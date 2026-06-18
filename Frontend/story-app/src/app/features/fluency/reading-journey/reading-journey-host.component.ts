@@ -9,6 +9,14 @@ import { RecordModeComponent } from './record-mode.component';
 
 type JourneyMode = 'listen' | 'read' | 'record';
 
+// Strip non-Arabic characters — keeps Arabic letters, diacritics, punctuation, spaces
+function arabicOnly(text: string): string {
+  return text
+    .replace(/[a-zA-Z]+/g, '')          // remove English words
+    .replace(/\s{2,}/g, ' ')            // collapse multiple spaces
+    .trim();
+}
+
 @Component({
   selector: 'app-reading-journey-host',
   standalone: true,
@@ -45,19 +53,20 @@ export class ReadingJourneyHostComponent implements OnInit {
       if (type === 'Story') {
         const s = await firstValueFrom(this.story.getStory(id));
         this.pages.set(s.pages.map(p => ({
-          pageId: p.pageId,
-          sentence: p.sentence,
-          imageUrl: p.imageUrl,
+          pageId:     p.pageId,
+          sentence:   arabicOnly(p.sentence),
+          imageUrl:   p.imageUrl,
           pageNumber: p.pageNumber
         })));
       } else {
         const l = await firstValueFrom(this.story.getLesson(id));
         this.pages.set(l.pages
           .filter(p => !p.isCoverPage)
+          .filter(p => arabicOnly(p.sentence).trim().length > 0)  // skip pages with no Arabic
           .map(p => ({
-            pageId: p.pageId,
-            sentence: p.sentence,
-            imageUrl: p.imageUrl,
+            pageId:     p.pageId,
+            sentence:   arabicOnly(p.sentence),
+            imageUrl:   p.imageUrl,
             pageNumber: p.pageNumber
           })));
       }

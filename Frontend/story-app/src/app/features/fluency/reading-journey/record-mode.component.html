@@ -60,6 +60,22 @@
         </div>
       </div>
 
+      <!-- Word-by-word comparison -->
+      <div class="comparison-box">
+        <p class="comparison-label">مقارنة كلمة بكلمة</p>
+        <div class="words-row">
+          @for (item of wordComparison; track item.word + $index) {
+            <span class="cmp-word" [class.cmp-correct]="item.correct" [class.cmp-wrong]="!item.correct">
+              {{ item.word }}
+            </span>
+          }
+        </div>
+        @if (report()!.extractedText) {
+          <p class="extracted-label">سمع الذكاء الاصطناعي:</p>
+          <p class="extracted-text">{{ report()!.extractedText }}</p>
+        }
+      </div>
+
       <!-- Mispronounced words -->
       @if (report()!.mispronouncedWords.length > 0) {
         <div class="miss-words">
