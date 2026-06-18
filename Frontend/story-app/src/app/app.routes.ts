@@ -78,6 +78,24 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  // ── Reading Journey (Module A) ───────────────────────────────────────────────
+  {
+    path: 'books/:id/journey',
+    loadComponent: () =>
+      import('./features/fluency/reading-journey/reading-journey-host.component')
+        .then(m => m.ReadingJourneyHostComponent),
+    canActivate: [authGuard],
+    data: { pageType: 'Story' }
+  },
+  {
+    path: 'lessons/:id/journey',
+    loadComponent: () =>
+      import('./features/fluency/reading-journey/reading-journey-host.component')
+        .then(m => m.ReadingJourneyHostComponent),
+    canActivate: [authGuard],
+    data: { pageType: 'Lesson' }
+  },
+
   // ── Student sub-pages ────────────────────────────────────────────────────────
   {
     path: 'progress',
@@ -355,6 +373,42 @@ export const routes: Routes = [
       import('./features/admin-rag-chunks/admin-rag-chunks')
         .then(m => m.AdminRagChunksComponent),
     canActivate: [adminGuard]
+  },
+
+  // ── Module B: eTools ─────────────────────────────────────────────────────────
+  {
+    path: 'my-journal',
+    loadComponent: () =>
+      import('./features/etools/word-journal/word-journal.component').then(m => m.WordJournalComponent),
+    canActivate: [authGuard]
+  },
+
+  // ── Module D: Messaging ───────────────────────────────────────────────────────
+  {
+    path: 'inbox',
+    loadComponent: () =>
+      import('./features/messaging/student-inbox/student-inbox.component').then(m => m.StudentInboxComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'teacher/feedback',
+    loadComponent: () =>
+      import('./features/messaging/teacher-feedback/teacher-feedback.component').then(m => m.TeacherFeedbackComponent),
+    canActivate: [teacherGuard]
+  },
+  {
+    path: 'parent/child/:id/recordings',
+    loadComponent: () =>
+      import('./features/messaging/parent-recordings/parent-recordings.component').then(m => m.ParentRecordingsComponent),
+    canActivate: [parentGuard]
+  },
+
+  // ── Module C: Mini-Games ──────────────────────────────────────────────────────
+  {
+    path: 'mini-games',
+    loadComponent: () =>
+      import('./features/mini-games/mini-games-host/mini-games-host.component').then(m => m.MiniGamesHostComponent),
+    canActivate: [authGuard]
   },
 
   // ── Utility ───────────────────────────────────────────────────────────────────

@@ -38,6 +38,18 @@ namespace Infrastructure.Data
         public DbSet<Classroom> Classrooms => Set<Classroom>();
         public DbSet<ClassroomStudent> ClassroomStudents => Set<ClassroomStudent>();
 
+        // Fluency (Module A)
+        public DbSet<AudioRecording> AudioRecordings => Set<AudioRecording>();
+        public DbSet<FluencyReport> FluencyReports => Set<FluencyReport>();
+
+        // Annotations & Vocabulary (Module B)
+        public DbSet<Annotation> Annotations => Set<Annotation>();
+        public DbSet<WordJournalEntry> WordJournalEntries => Set<WordJournalEntry>();
+        public DbSet<LessonVocabulary> LessonVocabularies => Set<LessonVocabulary>();
+
+        // Messaging (Module D)
+        public DbSet<Message> Messages => Set<Message>();
+
         // Placement test
         public DbSet<PlacementQuestion> PlacementQuestions => Set<PlacementQuestion>();
 

@@ -1,0 +1,64 @@
+.inbox-page {
+  min-height: 100vh;
+  background: var(--bg-base, #FFF5F7);
+  padding: 1.5rem;
+}
+
+.inbox-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary, #F4788A);
+  display: flex; align-items: center; gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.loading-state, .empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 1rem; padding: 4rem 1rem; color: #aaa;
+}
+.empty-icon { font-size: 4rem; }
+.empty-state h3 { color: #666; }
+.empty-state p { margin: 0; }
+
+.message-list { display: flex; flex-direction: column; gap: .75rem; }
+
+.message-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: flex-start; gap: 1rem;
+  position: relative; cursor: pointer;
+  transition: transform .15s;
+  border-right: 4px solid transparent;
+}
+
+.message-card:hover { transform: translateX(-3px); }
+.message-card.unread { border-right-color: var(--primary, #F4788A); }
+
+.msg-icon {
+  font-size: 1.5rem; padding-top: .1rem;
+  min-width: 32px; text-align: center;
+}
+
+.sticker-display { font-size: 1.6rem; }
+.sticker-big { font-size: 2.5rem; }
+
+.msg-body { flex: 1; }
+
+.msg-text {
+  color: #333; margin: 0 0 .25rem; font-size: 1rem; line-height: 1.6;
+  font-family: 'Amiri', serif;
+}
+
+.msg-audio { width: 100%; margin-bottom: .25rem; }
+
+.msg-time {
+  font-size: .75rem; color: #bbb;
+}
+
+.unread-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--primary, #F4788A);
+  position: absolute; top: 1rem; left: 1.25rem;
+}

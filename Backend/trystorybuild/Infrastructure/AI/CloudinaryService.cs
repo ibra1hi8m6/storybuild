@@ -40,7 +40,29 @@ namespace Infrastructure.AI
                 throw new InvalidOperationException($"Cloudinary upload error: {result.Error.Message}");
 
             var url = result.SecureUrl.ToString();
-            logger.LogInformation("[Cloudinary] Uploaded → {Url}", url);
+            logger.LogInformation("[Cloudinary] Image uploaded → {Url}", url);
+            return url;
+        }
+
+        public async Task<string> UploadRawBytesAsync(byte[] bytes, string fileName, string folder)
+        {
+            var cld = CreateClient();
+            using var ms = new MemoryStream(bytes);
+
+            var uploadParams = new RawUploadParams
+            {
+                File      = new FileDescription(fileName, ms),
+                PublicId  = $"{folder}/{Path.GetFileNameWithoutExtension(fileName)}",
+                Overwrite = true
+            };
+
+            var result = await cld.UploadAsync(uploadParams);
+
+            if (result.Error is not null)
+                throw new InvalidOperationException($"Cloudinary raw upload error: {result.Error.Message}");
+
+            var url = result.SecureUrl.ToString();
+            logger.LogInformation("[Cloudinary] Raw uploaded → {Url}", url);
             return url;
         }
     }

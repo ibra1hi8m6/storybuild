@@ -1,0 +1,58 @@
+.vocab-backdrop {
+  position: fixed; inset: 0; z-index: 1040;
+}
+
+.vocab-popup {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  padding: 1.5rem;
+  width: min(340px, 90vw);
+  animation: popIn .2s ease;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.close-btn {
+  position: absolute; top: .75rem; left: .75rem;
+  background: none; border: none; color: #888; font-size: 1rem; cursor: pointer;
+}
+
+.word-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+
+.the-word {
+  font-size: 1.5rem; font-weight: 700; color: var(--primary, #F4788A);
+  font-family: 'Amiri', serif;
+}
+
+.tts-btn {
+  background: none; border: none; color: var(--primary, #F4788A);
+  font-size: 1.3rem; cursor: pointer; padding: 0;
+}
+
+.definition {
+  color: #444; font-size: 1rem; line-height: 1.6; margin-bottom: 1rem;
+  font-family: 'Amiri', serif;
+}
+
+.add-btn {
+  width: 100%; padding: .6rem 1rem;
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  color: #fff; border: none; border-radius: 12px; font-size: .95rem;
+  cursor: pointer; display: flex; align-items: center; gap: .5rem; justify-content: center;
+}
+
+.add-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.added-badge {
+  color: #28a745; font-weight: 600; display: flex; align-items: center;
+  gap: .4rem; justify-content: center;
+}

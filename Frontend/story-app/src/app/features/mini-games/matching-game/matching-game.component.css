@@ -1,0 +1,58 @@
+.matching-game { padding: 1.5rem; }
+.game-title {
+  font-size: 1.4rem; font-weight: 700;
+  color: var(--primary, #F4788A);
+  text-align: center; margin-bottom: 1.5rem;
+}
+
+.game-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start;
+}
+
+.words-col, .images-col {
+  display: flex; flex-direction: column; gap: .75rem;
+}
+
+.word-chip {
+  background: #fff; border: 2px solid var(--primary, #F4788A);
+  border-radius: 12px; padding: .6rem 1rem;
+  font-size: 1.1rem; font-weight: 600;
+  font-family: 'Amiri', serif; color: #333;
+  text-align: center; cursor: grab;
+  transition: all .15s; user-select: none;
+}
+.word-chip:active { cursor: grabbing; }
+.word-chip.matched { opacity: .4; pointer-events: none; }
+.word-chip.cdk-drag-preview {
+  box-shadow: 0 4px 18px rgba(0,0,0,.2); border-radius: 12px;
+  background: #fff; padding: .6rem 1rem; font-size: 1.1rem; font-weight: 600;
+}
+
+.image-drop {
+  border: 2px dashed #ddd; border-radius: 14px; padding: .5rem;
+  position: relative; min-height: 90px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, background .15s;
+}
+.image-drop.correct { border-color: #28a745; background: #f0fff4; }
+.image-drop.wrong   { border-color: #e55; background: #fff0f0; animation: shake .3s; }
+.image-drop.cdk-drop-list-dragging { border-color: var(--primary, #F4788A); }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px); }
+  75%      { transform: translateX(6px); }
+}
+
+.pair-image { width: 100%; max-height: 80px; object-fit: cover; border-radius: 8px; }
+
+.check-badge {
+  position: absolute; bottom: 4px; right: 4px;
+  color: #28a745; font-size: 1.2rem;
+}
+
+.win-banner {
+  text-align: center; margin-top: 1.5rem;
+  font-size: 1.2rem; font-weight: 700; color: #155724;
+  background: #d4edda; padding: 1rem; border-radius: 14px;
+}

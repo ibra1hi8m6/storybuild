@@ -1,0 +1,72 @@
+.ml-game { padding: 1.5rem; text-align: center; }
+.game-title {
+  font-size: 1.4rem; font-weight: 700;
+  color: var(--primary, #F4788A); margin-bottom: 1.5rem;
+}
+
+.word-display {
+  display: flex; justify-content: center; gap: .5rem;
+  flex-wrap: wrap; margin-bottom: 1.25rem;
+}
+
+.letter-box {
+  width: 48px; height: 52px; border-radius: 10px;
+  background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; font-weight: 700; font-family: 'Amiri', serif;
+  color: #333;
+}
+
+.letter-slot {
+  width: 52px; height: 56px; border-radius: 10px;
+  border: 2px dashed var(--primary, #F4788A);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; font-weight: 700; font-family: 'Amiri', serif;
+  transition: all .15s;
+}
+
+.letter-slot.filled {
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  border-color: transparent; color: #fff;
+}
+
+.letter-slot.wrong-slot {
+  border-color: #e55; background: #fff0f0; animation: shake .3s;
+}
+
+.slot-dash { color: var(--primary, #F4788A); font-size: 1.5rem; }
+.filled-letter { color: #fff; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+.word-image {
+  width: 120px; height: 100px; object-fit: cover;
+  border-radius: 14px; margin-bottom: 1.25rem; display: block; margin-left: auto; margin-right: auto;
+}
+
+.letters-pool {
+  display: flex; justify-content: center; gap: .75rem;
+  flex-wrap: wrap; margin-top: .5rem;
+}
+
+.letter-apple {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 700; font-family: 'Amiri', serif;
+  cursor: grab; box-shadow: 0 3px 10px rgba(244,120,138,.35);
+  user-select: none; transition: transform .15s;
+}
+.letter-apple:hover { transform: scale(1.1); }
+.letter-apple.used  { opacity: .3; pointer-events: none; }
+.letter-apple.cdk-drag-preview {
+  border-radius: 50%; width: 52px; height: 52px;
+  background: var(--primary, #F4788A); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 700;
+  box-shadow: 0 6px 18px rgba(0,0,0,.2);
+}

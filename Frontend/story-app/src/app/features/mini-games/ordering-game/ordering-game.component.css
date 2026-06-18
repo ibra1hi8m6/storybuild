@@ -1,0 +1,63 @@
+.ordering-game { padding: 1.5rem; }
+.game-title {
+  font-size: 1.4rem; font-weight: 700;
+  color: var(--primary, #F4788A);
+  text-align: center; margin-bottom: 1.5rem;
+}
+
+.sentence-hint {
+  background: #fff8f9; border-radius: 14px; padding: 1rem;
+  margin-bottom: 1.5rem; text-align: center;
+}
+.hint-label { font-size: .8rem; color: #bbb; margin: 0; }
+.hint-text   { font-family: 'Amiri', serif; font-size: 1.2rem; color: #444; margin: 0; }
+
+.train-track {
+  background: #f5f5f5; border-radius: 16px;
+  padding: 1.25rem .75rem; margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.train-list {
+  display: flex; gap: .5rem; min-height: 90px; align-items: center;
+}
+
+.train-cart {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: grab; user-select: none;
+}
+
+.cart-body {
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  color: #fff; border-radius: 10px 10px 6px 6px;
+  padding: .5rem .75rem; font-size: 1rem; font-weight: 700;
+  font-family: 'Amiri', serif; white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0,0,0,.15);
+}
+
+.cart-wheels {
+  display: flex; gap: .25rem; margin-top: 2px;
+}
+.wheel {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #555; display: inline-block;
+}
+
+.train-cart.cdk-drag-preview .cart-body {
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+
+.check-btn {
+  display: block; margin: 0 auto;
+  padding: .7rem 2rem; border-radius: 14px; border: none;
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: .5rem;
+}
+
+.result-banner {
+  margin-top: 1rem; text-align: center; font-size: 1.1rem; font-weight: 700;
+  padding: .75rem; border-radius: 14px;
+}
+.result-banner.correct { background: #d4edda; color: #155724; }
+.result-banner.wrong   { background: #f8d7da; color: #842029; }
