@@ -29,11 +29,14 @@ namespace Infrastructure
             services.AddHttpClient("Gemini",     client => client.Timeout = TimeSpan.FromSeconds(120));
             services.AddHttpClient("Cloudflare", client => client.Timeout = TimeSpan.FromSeconds(120));
 
-            // ── AI Services (Gemini + Cloudflare — fully cloud, no local deps) ─────
+            // ── Cloudinary (shared upload helper) ─────────────────────────────────
+            services.AddScoped<CloudinaryService>();
+
+            // ── AI Services (Gemini + Cloudflare AI → Cloudinary storage) ─────────
             services.AddScoped<IStoryGeneratorService,  GeminiStoryGeneratorService>();
             services.AddScoped<IExamGeneratorService,   GeminiExamGeneratorService>();
             services.AddScoped<IJudgeService,           GeminiJudgeService>();
-            services.AddScoped<IImageGenerationService, CloudflareImageService>();
+            services.AddScoped<IImageGenerationService, CloudinaryImageService>();
             services.AddScoped<IOcrService,             GeminiOcrService>();
             services.AddScoped<ITextSimilarityService,  ArabicSimilarityService>();
             services.AddScoped<IAiTextCleanupService,   GeminiTextCleanupService>();
@@ -87,6 +90,7 @@ namespace Infrastructure
                     sp.GetRequiredService<AppDbContext>(),
                     sp.GetRequiredService<IEmbeddingService>(),
                     sp.GetRequiredService<IVectorStoreService>(),
+                    sp.GetRequiredService<CloudinaryService>(),
                     rootPath,
                     sp.GetRequiredService<ILogger<EducationalPdfService>>()));
 
