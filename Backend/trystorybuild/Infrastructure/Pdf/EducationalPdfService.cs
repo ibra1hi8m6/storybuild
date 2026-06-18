@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces;
+using Infrastructure.AI;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,12 +17,11 @@ namespace Infrastructure.Pdf
         AppDbContext db,
         IEmbeddingService embeddingService,
         IVectorStoreService vectorStore,
+        CloudinaryService cloudinaryService,
         string contentRootPath,
         ILogger<EducationalPdfService> logger) : IEducationalPdfService
     {
-        private string PdfsDir    => Path.Combine(contentRootPath, "Uploads", "PdfLibrary");
-        private string ImagesBase => Path.Combine(contentRootPath, "wwwroot", "uploads", "pdf-pages");
-        private const string ImagesUrlBase = "/uploads/pdf-pages";
+        private string PdfsDir => Path.Combine(contentRootPath, "Uploads", "PdfLibrary");
 
         // ── Upload: extract text + images → save to DB ─────────────────────────
         public async Task<PdfDocumentDto> UploadAsync(
@@ -157,9 +157,6 @@ namespace Infrastructure.Pdf
 
             if (File.Exists(doc.FilePath)) File.Delete(doc.FilePath);
 
-            var imgDir = Path.Combine(ImagesBase, id.ToString("N"));
-            if (Directory.Exists(imgDir)) Directory.Delete(imgDir, recursive: true);
-
             db.PdfDocuments.Remove(doc);
             await db.SaveChangesAsync();
         }
@@ -178,8 +175,6 @@ namespace Infrastructure.Pdf
             string pdfPath, Guid docId, CancellationToken ct)
         {
             var pdfBytes = await File.ReadAllBytesAsync(pdfPath, ct);
-            var imgDir   = Path.Combine(ImagesBase, docId.ToString("N"));
-            Directory.CreateDirectory(imgDir);
 
             // Step 1: extract text per page using PdfPig
             var sentences = new Dictionary<int, string>();
@@ -195,7 +190,7 @@ namespace Infrastructure.Pdf
                 }
             }
 
-            // Step 2: render pages to PNG using PDFtoImage
+            // Step 2: render pages to PNG and upload to Cloudinary
             var pageCount = Conversion.GetPageCount(pdfBytes, password: null);
             var results   = new List<DomainPdfPage>(pageCount);
 
@@ -207,15 +202,16 @@ namespace Infrastructure.Pdf
                     pdfBytes, page: i,
                     options: new(Dpi: 150, WithAnnotations: false, WithFormFill: false));
 
-                var imgName = $"page_{i + 1}.png";
-                var imgPath = Path.Combine(imgDir, imgName);
-
                 using var skImage = SKImage.FromBitmap(bitmap);
                 using var encoded = skImage.Encode(SKEncodedImageFormat.Png, 90);
-                await using (var stream = File.OpenWrite(imgPath))
-                    encoded.SaveTo(stream);
+                using var ms      = new MemoryStream();
+                encoded.SaveTo(ms);
+                var imgBytes = ms.ToArray();
 
-                var imageUrl = $"{ImagesUrlBase}/{docId:N}/{imgName}";
+                var publicId = $"{docId:N}_page{i + 1}";
+                var imageUrl = await cloudinaryService.UploadImageBytesAsync(
+                    imgBytes, publicId, "lughati/pdf-pages");
+
                 sentences.TryGetValue(i + 1, out var sentence);
 
                 results.Add(new DomainPdfPage
