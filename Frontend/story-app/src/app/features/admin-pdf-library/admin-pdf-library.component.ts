@@ -120,7 +120,8 @@ export class AdminPdfLibraryComponent implements OnInit {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   imageUrl(path: string): string {
-    return path ? `${this.api}${path}` : '';
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${this.api}${path}`;
   }
 
   embedProgress(doc: PdfDocumentDto): number {

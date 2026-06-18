@@ -10,7 +10,8 @@ namespace storybuild.API.Controllers
     [Route("api/story")]
     public class StoryController(
     StoryAgent storyAgent,
-    IStoryRepository storyRepository) : ControllerBase
+    IStoryRepository storyRepository,
+    IUploadedStoryService uploadedStoryService) : ControllerBase
     {
         /// <summary>Generate a new 3-page Arabic story with images.</summary>
         [HttpPost("generate")]
@@ -38,22 +39,26 @@ namespace storybuild.API.Controllers
             return Ok(StoryAgent.MapToResponse(story));
         }
 
-        /// <summary>List all stories.</summary>
+        /// <summary>List all AI-generated stories (excludes admin-uploaded PDF stories).</summary>
         [HttpGet]
         [ProducesResponseType(typeof(List<GenerateStoryResponse>), 200)]
         public async Task<IActionResult> GetAll()
         {
             var stories = await storyRepository.GetAllAsync();
-            return Ok(stories.Select(StoryAgent.MapToResponse).ToList());
+            return Ok(stories
+                .Where(s => s.Source == Domain.Entities.StorySource.AiGenerated)
+                .Select(StoryAgent.MapToResponse).ToList());
         }
 
-        /// <summary>List stories belonging to a specific child.</summary>
+        /// <summary>List AI stories belonging to a specific child.</summary>
         [HttpGet("mine/{childName}")]
         [ProducesResponseType(typeof(List<GenerateStoryResponse>), 200)]
         public async Task<IActionResult> GetMine(string childName)
         {
             var stories = await storyRepository.GetByChildNameAsync(childName);
-            return Ok(stories.Select(StoryAgent.MapToResponse).ToList());
+            return Ok(stories
+                .Where(s => s.Source == Domain.Entities.StorySource.AiGenerated)
+                .Select(StoryAgent.MapToResponse).ToList());
         }
 
         /// <summary>Delete a story by ID.</summary>
@@ -65,6 +70,23 @@ namespace storybuild.API.Controllers
             var deleted = await storyRepository.DeleteAsync(id);
             if (!deleted) return NotFound(new { error = "القصة غير موجودة." });
             return NoContent();
+        }
+
+        /// <summary>List all admin-uploaded PDF stories (for student browser).</summary>
+        [HttpGet("uploaded")]
+        public async Task<IActionResult> GetUploaded()
+        {
+            var list = await uploadedStoryService.GetAllAsync();
+            return Ok(list);
+        }
+
+        /// <summary>Get a single uploaded story by ID (for journey).</summary>
+        [HttpGet("uploaded/{id:guid}")]
+        public async Task<IActionResult> GetUploadedById(Guid id)
+        {
+            var story = await uploadedStoryService.GetByIdAsync(id);
+            if (story is null) return NotFound(new { error = "القصة غير موجودة." });
+            return Ok(story);
         }
     }
 

@@ -87,7 +87,7 @@ namespace Infrastructure.Services
             // Include students directly assigned AND students enrolled via classrooms
             var directStudents = await db.Students
                 .Where(s => s.TeacherId == teacherId)
-                .Select(s => new { s.Name, s.Level })
+                .Select(s => new { s.Id, s.Name, s.Level })
                 .ToListAsync();
 
             var classroomStudentIds = await db.Classrooms
@@ -99,7 +99,7 @@ namespace Infrastructure.Services
             var classroomStudents = classroomStudentIds.Any()
                 ? await db.Students
                     .Where(s => classroomStudentIds.Contains(s.Id) && s.TeacherId != teacherId)
-                    .Select(s => new { s.Name, s.Level })
+                    .Select(s => new { s.Id, s.Name, s.Level })
                     .ToListAsync()
                 : new();
 
@@ -119,7 +119,7 @@ namespace Infrastructure.Services
 
             var students = new List<StudentSummaryDto>();
             foreach (var entry in childEntries)
-                students.Add(await BuildStudentSummaryAsync(entry.Name, entry.Level));
+                students.Add(await BuildStudentSummaryAsync(entry.Id, entry.Name, entry.Level));
 
             return new TeacherDashboardDto(
                 childNames.Count,
@@ -348,7 +348,7 @@ namespace Infrastructure.Services
             return list.OrderByDescending(a => a.OccurredAt).Take(15).ToList();
         }
 
-        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(string name, int level = 1)
+        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1)
         {
             var progress = await db.StudentProgress.Where(p => p.ChildName == name).ToListAsync();
             var writing  = await db.WritingAttempts.Where(w => w.ChildName == name).ToListAsync();
@@ -359,7 +359,7 @@ namespace Infrastructure.Services
                 : writing.Any() ? (DateTime?)writing.Max(w => w.AttemptedAt) : null;
 
             return new StudentSummaryDto(
-                name, CalculateStars(progress, writing),
+                id, name, CalculateStars(progress, writing),
                 progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted),
                 progress.Count(p => p.LessonId.HasValue && p.ExamCompleted),
                 Math.Round(avg, 1),

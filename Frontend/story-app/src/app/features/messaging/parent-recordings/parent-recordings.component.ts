@@ -97,7 +97,7 @@ export class ParentRecordingsComponent implements OnInit {
     const studentId = this.route.snapshot.paramMap.get('id')!;
     try {
       const data = await firstValueFrom(
-        this.http.get<RecordingEntry[]>(`${environment.apiUrl}/parent-portal/child/${studentId}/recordings`)
+        this.http.get<RecordingEntry[]>(`${environment.apiUrl}/api/parent-portal/child/${studentId}/recordings`)
       );
       this.recordings.set(data);
     } finally {

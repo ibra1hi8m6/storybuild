@@ -143,6 +143,9 @@
                           <button class="btn btn-sm rounded-pill fw-800 flex-shrink-0"
                             style="border:1.5px solid rgba(244,120,138,.3);color:var(--primary);background:transparent;font-size:11px"
                             type="button" (click)="viewStudent(s.childName)">عرض</button>
+                          <button class="btn btn-sm rounded-pill fw-800 flex-shrink-0"
+                            style="border:1.5px solid rgba(99,102,241,.3);color:#6366F1;background:transparent;font-size:11px"
+                            type="button" (click)="sendFeedback(s.id, s.childName)">💬</button>
                         </div>
                       </div>
                     }
@@ -205,11 +208,18 @@
                     </td>
                     <td class="px-4 py-3 small fw-semibold text-muted">{{ lastActiveLabel(s.lastActivity) }}</td>
                     <td class="px-4 py-3">
-                      <button class="btn btn-sm rounded-pill fw-800"
-                        style="border:2px solid rgba(244,120,138,.3);color:var(--primary);background:transparent"
-                        type="button" (click)="viewStudent(s.childName)">
-                        عرض
-                      </button>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-sm rounded-pill fw-800"
+                          style="border:2px solid rgba(244,120,138,.3);color:var(--primary);background:transparent"
+                          type="button" (click)="viewStudent(s.childName)">
+                          عرض
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-800"
+                          style="border:2px solid rgba(99,102,241,.3);color:#6366F1;background:transparent"
+                          type="button" (click)="sendFeedback(s.id, s.childName)">
+                          💬 تشجيع
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }

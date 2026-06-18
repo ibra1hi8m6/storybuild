@@ -84,4 +84,8 @@ export class TeacherDashboardComponent implements OnInit {
   viewStudent(name: string): void {
     this.router.navigate(['/teacher/students', name]);
   }
+
+  sendFeedback(studentId: string, name: string): void {
+    this.router.navigate(['/teacher/feedback'], { queryParams: { studentId, name } });
+  }
 }

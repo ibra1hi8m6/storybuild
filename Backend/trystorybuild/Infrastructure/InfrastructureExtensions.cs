@@ -43,6 +43,7 @@ namespace Infrastructure
 
             // ── Module A: Fluency ──────────────────────────────────────────────────
             services.AddScoped<IAudioStorageService,      CloudinaryAudioStorageService>();
+            services.AddScoped<IImageStorageService,      CloudinaryImageStorageService>();
             services.AddScoped<IFluencyAssessorAgent,     GeminiFluencyAssessorAgent>();
             services.AddScoped<IAudioRecordingRepository, AudioRecordingRepository>();
 
@@ -57,6 +58,7 @@ namespace Infrastructure
             services.Configure<PdfImportSettings>(configuration.GetSection("PdfImport"));
             services.AddScoped<IPdfPageRenderer, PdfPageRenderer>();
             services.AddScoped<IPdfImportService, PdfImportService>();
+            services.AddScoped<IUploadedStoryService, UploadedStoryImportService>();
 
             // ── Auth ──────────────────────────────────────────────────────────────
             services.AddScoped<IAuthService,       AuthService>();

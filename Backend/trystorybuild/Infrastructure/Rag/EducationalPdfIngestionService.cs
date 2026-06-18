@@ -19,6 +19,7 @@ namespace Infrastructure.Rag
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IOptions<RagSettings> settings,
+        IImageStorageService imageStorage,
         ILogger<EducationalPdfIngestionService> logger) : IEducationalPdfIngestionService
     {
         private readonly RagSettings _cfg = settings.Value;
@@ -94,13 +95,18 @@ namespace Infrastructure.Rag
                     var wordCount = sentence.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
                     wordCounts.Add(wordCount);
 
-                    // Save page image permanently
-                    var imagesDir = Path.Combine("wwwroot", "images", "rag", docId.ToString());
-                    Directory.CreateDirectory(imagesDir);
-                    var imageName = $"page_{pageNum}.png";
-                    var imageSavePath = Path.Combine(imagesDir, imageName);
-                    File.Copy(tempPath, imageSavePath, overwrite: true);
-                    var imageWebPath = $"/images/rag/{docId}/{imageName}";
+                    // Upload page image to Cloudinary for permanent cloud storage
+                    var imageWebPath = string.Empty;
+                    try
+                    {
+                        var pageBytes = await File.ReadAllBytesAsync(tempPath);
+                        var imageName = $"{docId}_page_{pageNum}.png";
+                        imageWebPath = await imageStorage.UploadImageAsync(pageBytes, imageName, "lughati/rag");
+                    }
+                    catch (Exception imgEx)
+                    {
+                        logger.LogWarning(imgEx, "[EduPDF] Cloudinary upload failed for page {N}", pageNum);
+                    }
 
                     // Embed the sentence
                     var vector = await embeddingService.GetEmbeddingAsync(sentence);

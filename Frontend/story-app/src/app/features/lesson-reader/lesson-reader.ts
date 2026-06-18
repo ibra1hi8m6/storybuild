@@ -264,6 +264,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onImgLoad(): void { this.imageLoaded.set(true); }
   goBack():    void { this.router.navigate(['/books']); }
+  startJourney(): void { this.router.navigate(['/lessons', this.lessonId, 'journey']); }
 
   pageDotsArr(): number[] {
     return Array.from({ length: this.totalPages() }, (_, i) => i + 1);

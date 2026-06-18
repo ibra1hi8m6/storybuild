@@ -17,19 +17,21 @@ namespace storybuild.API.Controllers
         [HttpPost("evaluate")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<FluencyReportDto>> Evaluate(
-            [FromForm] Guid studentId,
-            [FromForm] Guid pageId,
-            [FromForm] string pageType,
-            [FromForm] string expectedText,
-            IFormFile audio)
+            [FromForm] string? pageId,
+            [FromForm] string? pageType,
+            [FromForm] string? expectedText,
+            IFormFile? audio)
         {
             if (audio is null || audio.Length == 0)
-                return BadRequest("Audio file is required.");
+                return BadRequest(new { error = "Audio file is required." });
             if (string.IsNullOrWhiteSpace(expectedText))
-                return BadRequest("Expected text is required.");
+                return BadRequest(new { error = "Expected text is required." });
+            if (!Guid.TryParse(pageId, out var pageGuid))
+                return BadRequest(new { error = "Invalid pageId." });
 
+            var studentId = CurrentUserId();
             var report = await fluencyAgent.EvaluateReadingAsync(
-                studentId, pageId, pageType, audio, expectedText);
+                studentId, pageGuid, pageType ?? "Story", audio, expectedText);
             return Ok(report);
         }
 

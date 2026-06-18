@@ -82,6 +82,7 @@ export class TeacherSidebarComponent {
         { icon: '📚', label: 'الدروس',          route: '/teacher/lessons' },
         { icon: '✨', label: 'المولّد الذكي',   route: '/teacher/ai-generator' },
         { icon: '📊', label: 'التقارير',        route: '/teacher/reports' },
+        { icon: '💬', label: 'إرسال تشجيع',   route: '/teacher/students' },
       ];
     }
     return [
@@ -93,6 +94,7 @@ export class TeacherSidebarComponent {
       { icon: '✨', label: 'المولّد الذكي',     route: '/teacher/ai-generator' },
       { icon: '📝', label: 'إنشاء درس',        route: '/teacher/lessons/create' },
       { icon: '📊', label: 'التقارير',          route: '/teacher/reports' },
+      { icon: '💬', label: 'إرسال تشجيع',     route: '/teacher/students' },
     ];
   });
 

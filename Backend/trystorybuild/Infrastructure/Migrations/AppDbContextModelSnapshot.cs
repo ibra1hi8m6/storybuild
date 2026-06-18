@@ -696,6 +696,13 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Source")
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("CoverImagePath")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Theme")
                         .IsRequired()
                         .HasMaxLength(100)

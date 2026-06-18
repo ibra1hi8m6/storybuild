@@ -69,7 +69,7 @@ namespace Infrastructure.AI
                 report.CreatedAt);
         }
 
-        // ── Gemini 2.5 Flash STT (3 retries) ─────────────────────────────────────
+        // ── Gemini Files API STT (upload → transcribe → delete) ──────────────────
         private async Task<string> TranscribeAudioAsync(IFormFile audio, string expectedText)
         {
             var apiKey = configuration["Gemini:ApiKey"];
@@ -79,13 +79,31 @@ namespace Infrastructure.AI
                 return string.Empty;
             }
 
-            // Read audio bytes once — we reuse them across retries
             using var ms = new MemoryStream();
             await audio.CopyToAsync(ms);
-            var base64  = Convert.ToBase64String(ms.ToArray());
+            var audioBytes = ms.ToArray();
+
             var mimeType = audio.ContentType.Contains("ogg") ? "audio/ogg"
                          : audio.ContentType.Contains("mp4") ? "audio/mp4"
                          : "audio/webm";
+
+            var model  = configuration["Gemini:AudioModel"] ?? "gemini-2.0-flash";
+            var client = httpClientFactory.CreateClient("Gemini");
+
+            // Step 1: Upload audio to Gemini Files API
+            string? fileUri = null;
+            string? fileName = null;
+            try
+            {
+                fileUri = await UploadToFilesApiAsync(client, apiKey, audioBytes, mimeType);
+                // Extract file name from URI for cleanup: .../files/abc123
+                fileName = fileUri?.Split('/').LastOrDefault();
+                logger.LogInformation("[Fluency] Uploaded to Files API: {Uri}", fileUri);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[Fluency] Files API upload failed — falling back to inline_data.");
+            }
 
             var prompt = $@"You are an Arabic reading evaluator for children aged 3-6.
 The child was asked to read: ""{expectedText}""
@@ -94,33 +112,34 @@ Return ONLY valid JSON — no markdown:
 {{""transcribedText"": """"}}
 If the audio is silent or unclear, return {{""transcribedText"": """"}}.";
 
+            // Build request body — prefer file_data if upload succeeded
+            object audioPartObj = fileUri != null
+                ? (object)new { file_data = new { file_uri = fileUri, mime_type = mimeType } }
+                : new { inline_data = new { mime_type = mimeType, data = Convert.ToBase64String(audioBytes) } };
+
             var body = new
             {
                 contents = new[]
                 {
                     new
                     {
-                        parts = new object[]
-                        {
-                            new { text = prompt },
-                            new { inline_data = new { mime_type = mimeType, data = base64 } }
-                        }
+                        parts = new object[] { new { text = prompt }, audioPartObj }
                     }
                 },
                 generationConfig = new { responseMimeType = "application/json" }
             };
 
-            var model  = configuration["Gemini:AudioModel"] ?? "gemini-2.5-flash";
-            var url    = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-            var client = httpClientFactory.CreateClient("Gemini");
+            var generateUrl = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
             const int maxAttempts = 3;
+            string result = string.Empty;
+
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 try
                 {
                     logger.LogInformation("[Fluency] Gemini STT attempt {A}/{Max}", attempt, maxAttempts);
-                    var resp = await client.PostAsJsonAsync(url, body);
+                    var resp = await client.PostAsJsonAsync(generateUrl, body);
                     resp.EnsureSuccessStatusCode();
 
                     var raw = await resp.Content.ReadAsStringAsync();
@@ -132,18 +151,18 @@ If the audio is silent or unclear, return {{""transcribedText"": """"}}.";
                         .GetProperty("text")
                         .GetString() ?? "{}";
 
-                    using var result = JsonDocument.Parse(jsonText);
-                    var transcribed = result.RootElement.TryGetProperty("transcribedText", out var t)
+                    using var parsed = JsonDocument.Parse(jsonText);
+                    var transcribed = parsed.RootElement.TryGetProperty("transcribedText", out var t)
                         ? (t.GetString() ?? string.Empty)
                         : string.Empty;
 
                     if (!string.IsNullOrWhiteSpace(transcribed))
                     {
-                        logger.LogInformation("[Fluency] STT succeeded on attempt {A}", attempt);
-                        return transcribed;
+                        logger.LogInformation("[Fluency] STT succeeded on attempt {A}: {T}", attempt, transcribed);
+                        result = transcribed;
+                        break;
                     }
 
-                    // Empty result — retry unless last attempt
                     logger.LogWarning("[Fluency] Gemini returned empty text on attempt {A}", attempt);
                 }
                 catch (Exception ex)
@@ -152,11 +171,66 @@ If the audio is silent or unclear, return {{""transcribedText"": """"}}.";
                 }
 
                 if (attempt < maxAttempts)
-                    await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt));
+                    await Task.Delay(TimeSpan.FromMilliseconds(800 * attempt));
             }
 
-            logger.LogWarning("[Fluency] All {Max} STT attempts failed — returning empty.", maxAttempts);
-            return string.Empty;
+            // Step 3: Delete uploaded file from Files API (fire-and-forget)
+            if (!string.IsNullOrEmpty(fileName))
+                _ = DeleteFileAsync(client, apiKey, fileName);
+
+            if (string.IsNullOrEmpty(result))
+                logger.LogWarning("[Fluency] All STT attempts failed — returning empty.");
+
+            return result;
+        }
+
+        private static async Task<string> UploadToFilesApiAsync(
+            HttpClient client, string apiKey, byte[] bytes, string mimeType)
+        {
+            var uploadUrl = $"https://generativelanguage.googleapis.com/upload/v1beta/files?key={apiKey}";
+
+            // Resumable upload: initiate
+            var initiateReq = new HttpRequestMessage(HttpMethod.Post, uploadUrl);
+            initiateReq.Headers.Add("X-Goog-Upload-Protocol", "resumable");
+            initiateReq.Headers.Add("X-Goog-Upload-Command", "start");
+            initiateReq.Headers.Add("X-Goog-Upload-Header-Content-Length", bytes.Length.ToString());
+            initiateReq.Headers.Add("X-Goog-Upload-Header-Content-Type", mimeType);
+            initiateReq.Content = new StringContent(
+                System.Text.Json.JsonSerializer.Serialize(new { file = new { display_name = "audio_recording" } }),
+                System.Text.Encoding.UTF8, "application/json");
+
+            var initiateResp = await client.SendAsync(initiateReq);
+            initiateResp.EnsureSuccessStatusCode();
+
+            var uploadSessionUri = initiateResp.Headers.GetValues("X-Goog-Upload-URL").First();
+
+            // Upload bytes
+            var uploadReq = new HttpRequestMessage(HttpMethod.Post, uploadSessionUri);
+            uploadReq.Headers.Add("X-Goog-Upload-Offset", "0");
+            uploadReq.Headers.Add("X-Goog-Upload-Command", "upload, finalize");
+            uploadReq.Content = new ByteArrayContent(bytes);
+            uploadReq.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeType);
+
+            var uploadResp = await client.SendAsync(uploadReq);
+            uploadResp.EnsureSuccessStatusCode();
+
+            var raw = await uploadResp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(raw);
+            return doc.RootElement.GetProperty("file").GetProperty("uri").GetString()
+                ?? throw new InvalidOperationException("No file URI in Files API response.");
+        }
+
+        private async Task DeleteFileAsync(HttpClient client, string apiKey, string fileName)
+        {
+            try
+            {
+                var url = $"https://generativelanguage.googleapis.com/v1beta/files/{fileName}?key={apiKey}";
+                await client.DeleteAsync(url);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "[Fluency] Could not delete Files API file {Name}", fileName);
+            }
         }
 
         // ── Metrics ───────────────────────────────────────────────────────────────

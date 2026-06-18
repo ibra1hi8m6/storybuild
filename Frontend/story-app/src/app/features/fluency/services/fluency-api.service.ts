@@ -31,17 +31,15 @@ export interface FluencyHistoryDto {
 @Injectable({ providedIn: 'root' })
 export class FluencyApiService {
   private http = inject(HttpClient);
-  private base = `${environment.apiUrl}/fluency`;
+  private base = `${environment.apiUrl}/api/fluency`;
 
   async evaluate(params: {
-    studentId: string;
     pageId: string;
     pageType: string;
     expectedText: string;
     audioBlob: Blob;
   }): Promise<FluencyReportDto> {
     const fd = new FormData();
-    fd.append('studentId', params.studentId);
     fd.append('pageId', params.pageId);
     fd.append('pageType', params.pageType);
     fd.append('expectedText', params.expectedText);

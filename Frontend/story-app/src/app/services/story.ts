@@ -12,7 +12,8 @@ import {
   PdfDocumentDto, PdfDocumentDetailDto, EmbedResultDto, PdfLibraryStatsDto,
   AdminBooksPageDto, CreateManualBookRequest,
   RagPageChunkDto, GenerateLessonV2Request,
-  StudentGroupDto, AssignLessonRequest, LessonAssignmentDto
+  StudentGroupDto, AssignLessonRequest, LessonAssignmentDto,
+  UploadedStoryDto
 } from '../models/story.models';
 import { environment } from '../../environments/environment';
 
@@ -442,5 +443,25 @@ export class StoryService {
 
   getTeacherAssignments(teacherId: string): Observable<LessonAssignmentDto[]> {
     return this.http.get<LessonAssignmentDto[]>(`${this.api}/api/groups/assignments/teacher/${teacherId}`);
+  }
+
+  // ── Admin-Uploaded PDF Stories ─────────────────────────────────────────────
+  uploadStoryPdf(title: string, file: File): Observable<UploadedStoryDto> {
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('pdfFile', file);
+    return this.http.post<UploadedStoryDto>(`${this.api}/api/admin/uploaded-stories`, fd);
+  }
+
+  getUploadedStories(): Observable<UploadedStoryDto[]> {
+    return this.http.get<UploadedStoryDto[]>(`${this.api}/api/story/uploaded`);
+  }
+
+  getUploadedStory(id: string): Observable<UploadedStoryDto> {
+    return this.http.get<UploadedStoryDto>(`${this.api}/api/story/uploaded/${id}`);
+  }
+
+  deleteUploadedStory(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/api/admin/uploaded-stories/${id}`);
   }
 }

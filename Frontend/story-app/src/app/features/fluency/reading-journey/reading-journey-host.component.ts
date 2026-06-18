@@ -6,6 +6,7 @@ import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
 import { ListenModeComponent } from './listen-mode.component';
 import { RecordModeComponent } from './record-mode.component';
+import { environment } from '../../../../environments/environment';
 
 type JourneyMode = 'listen' | 'read' | 'record';
 
@@ -73,6 +74,11 @@ export class ReadingJourneyHostComponent implements OnInit {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  resolveUrl(url: string): string {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${environment.apiUrl}${url}`;
   }
 
   setMode(m: JourneyMode) { this.mode.set(m); }

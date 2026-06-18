@@ -1,0 +1,63 @@
+<div class="admin-layout" dir="rtl">
+  <app-admin-sidebar />
+
+  <main class="admin-main">
+    <h1 class="page-title">قصص PDF المرفوعة</h1>
+    <p class="page-sub">قصص يرفعها المدير — تظهر للطلاب في قسم منفصل عن القصص الذكية والدروس</p>
+
+    <!-- Upload form -->
+    <section class="upload-card">
+      <h2>رفع قصة جديدة</h2>
+      <p class="upload-note">سيتم تخطي أول 3 صفحات تلقائياً (الغلاف والصفحات التمهيدية)</p>
+      <div class="upload-grid">
+        <div class="form-group">
+          <label>عنوان القصة</label>
+          <input [(ngModel)]="uploadTitle" class="form-control" placeholder="مثال: أرنوب والكسل" />
+        </div>
+        <div class="form-group">
+          <label>ملف PDF</label>
+          <input type="file" accept=".pdf" (change)="onFileChange($event)" class="form-control" />
+        </div>
+      </div>
+
+      @if (message()) {
+        <div [class]="isSuccess() ? 'alert alert-success' : 'alert alert-danger'">{{ message() }}</div>
+      }
+
+      <button class="btn-primary" [disabled]="isLoading()" (click)="upload()">
+        @if (isLoading()) { <span>جاري المعالجة...</span> } @else { <span>رفع القصة</span> }
+      </button>
+    </section>
+
+    <!-- Stories grid -->
+    <section class="stories-section">
+      <h2>القصص الحالية ({{ stories().length }})</h2>
+
+      @if (stories().length === 0) {
+        <div class="empty-state">لا توجد قصص PDF مرفوعة بعد.</div>
+      }
+
+      <div class="stories-grid">
+        @for (s of stories(); track s.id) {
+          <div class="story-card">
+            <div class="story-cover">
+              @if (s.coverImageUrl) {
+                <img [src]="resolveImg(s.coverImageUrl)" [alt]="s.title" />
+              } @else {
+                <div class="no-cover">📕</div>
+              }
+            </div>
+            <div class="story-body">
+              <h3 class="story-title">{{ s.title }}</h3>
+              <div class="story-meta">
+                <span class="badge">{{ s.pageCount }} صفحة</span>
+                <span class="date">{{ s.createdAt | date:'d/M/yyyy' }}</span>
+              </div>
+            </div>
+            <button class="btn-delete" (click)="delete(s.id, s.title)">🗑 حذف</button>
+          </div>
+        }
+      </div>
+    </section>
+  </main>
+</div>
