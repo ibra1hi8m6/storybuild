@@ -69,7 +69,7 @@ namespace Infrastructure.AI
                 report.CreatedAt);
         }
 
-        // ── Gemini 2.5 Flash STT ──────────────────────────────────────────────────
+        // ── Gemini 2.5 Flash STT (3 retries) ─────────────────────────────────────
         private async Task<string> TranscribeAudioAsync(IFormFile audio, string expectedText)
         {
             var apiKey = configuration["Gemini:ApiKey"];
@@ -79,64 +79,84 @@ namespace Infrastructure.AI
                 return string.Empty;
             }
 
-            try
-            {
-                using var ms = new MemoryStream();
-                await audio.CopyToAsync(ms);
-                var base64 = Convert.ToBase64String(ms.ToArray());
+            // Read audio bytes once — we reuse them across retries
+            using var ms = new MemoryStream();
+            await audio.CopyToAsync(ms);
+            var base64  = Convert.ToBase64String(ms.ToArray());
+            var mimeType = audio.ContentType.Contains("ogg") ? "audio/ogg"
+                         : audio.ContentType.Contains("mp4") ? "audio/mp4"
+                         : "audio/webm";
 
-                var mimeType = audio.ContentType.Contains("ogg") ? "audio/ogg"
-                             : audio.ContentType.Contains("mp4") ? "audio/mp4"
-                             : "audio/webm";
-
-                var prompt = $@"You are an Arabic reading evaluator for children aged 3-6.
+            var prompt = $@"You are an Arabic reading evaluator for children aged 3-6.
 The child was asked to read: ""{expectedText}""
-Transcribe exactly what you hear in the audio.
+Transcribe exactly what you hear in the audio. Arabic text only.
 Return ONLY valid JSON — no markdown:
 {{""transcribedText"": """"}}
 If the audio is silent or unclear, return {{""transcribedText"": """"}}.";
 
-                var body = new
-                {
-                    contents = new[]
-                    {
-                        new
-                        {
-                            parts = new object[]
-                            {
-                                new { text = prompt },
-                                new { inline_data = new { mime_type = mimeType, data = base64 } }
-                            }
-                        }
-                    },
-                    generationConfig = new { responseMimeType = "application/json" }
-                };
-
-                var model  = configuration["Gemini:AudioModel"] ?? "gemini-2.5-flash";
-                var url    = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-                var client = httpClientFactory.CreateClient("Gemini");
-                var resp   = await client.PostAsJsonAsync(url, body);
-                resp.EnsureSuccessStatusCode();
-
-                var raw = await resp.Content.ReadAsStringAsync();
-                using var rootDoc = JsonDocument.Parse(raw);
-                var jsonText = rootDoc.RootElement
-                    .GetProperty("candidates")[0]
-                    .GetProperty("content")
-                    .GetProperty("parts")[0]
-                    .GetProperty("text")
-                    .GetString() ?? "{}";
-
-                using var result = JsonDocument.Parse(jsonText);
-                return result.RootElement.TryGetProperty("transcribedText", out var t)
-                    ? (t.GetString() ?? string.Empty)
-                    : string.Empty;
-            }
-            catch (Exception ex)
+            var body = new
             {
-                logger.LogError(ex, "[Fluency] Gemini STT failed.");
-                return string.Empty;
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new object[]
+                        {
+                            new { text = prompt },
+                            new { inline_data = new { mime_type = mimeType, data = base64 } }
+                        }
+                    }
+                },
+                generationConfig = new { responseMimeType = "application/json" }
+            };
+
+            var model  = configuration["Gemini:AudioModel"] ?? "gemini-2.5-flash";
+            var url    = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+            var client = httpClientFactory.CreateClient("Gemini");
+
+            const int maxAttempts = 3;
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    logger.LogInformation("[Fluency] Gemini STT attempt {A}/{Max}", attempt, maxAttempts);
+                    var resp = await client.PostAsJsonAsync(url, body);
+                    resp.EnsureSuccessStatusCode();
+
+                    var raw = await resp.Content.ReadAsStringAsync();
+                    using var rootDoc = JsonDocument.Parse(raw);
+                    var jsonText = rootDoc.RootElement
+                        .GetProperty("candidates")[0]
+                        .GetProperty("content")
+                        .GetProperty("parts")[0]
+                        .GetProperty("text")
+                        .GetString() ?? "{}";
+
+                    using var result = JsonDocument.Parse(jsonText);
+                    var transcribed = result.RootElement.TryGetProperty("transcribedText", out var t)
+                        ? (t.GetString() ?? string.Empty)
+                        : string.Empty;
+
+                    if (!string.IsNullOrWhiteSpace(transcribed))
+                    {
+                        logger.LogInformation("[Fluency] STT succeeded on attempt {A}", attempt);
+                        return transcribed;
+                    }
+
+                    // Empty result — retry unless last attempt
+                    logger.LogWarning("[Fluency] Gemini returned empty text on attempt {A}", attempt);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "[Fluency] Gemini STT attempt {A} failed.", attempt);
+                }
+
+                if (attempt < maxAttempts)
+                    await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt));
             }
+
+            logger.LogWarning("[Fluency] All {Max} STT attempts failed — returning empty.", maxAttempts);
+            return string.Empty;
         }
 
         // ── Metrics ───────────────────────────────────────────────────────────────

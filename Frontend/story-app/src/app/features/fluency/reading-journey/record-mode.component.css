@@ -134,6 +134,41 @@
 .metric-val  { font-size: 22px; font-weight: 900; color: #333; }
 .metric-name { font-size: 12px; color: #888; }
 
+/* Word comparison */
+.comparison-box {
+  width: 100%; max-width: 380px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07);
+  text-align: right;
+}
+.comparison-label {
+  font-size: 12px; color: #aaa; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  margin-bottom: 10px;
+}
+.words-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 12px;
+  direction: rtl;
+}
+.cmp-word {
+  font-size: 18px; font-weight: 800;
+  font-family: 'Amiri', serif;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+.cmp-correct { background: #DCFCE7; color: #166534; }
+.cmp-wrong   { background: #FEE2E2; color: #991B1B; text-decoration: line-through; }
+
+.extracted-label { font-size: 11px; color: #bbb; margin-bottom: 4px; }
+.extracted-text  {
+  font-size: 15px; color: #666;
+  font-family: 'Amiri', serif; line-height: 1.6;
+  border-top: 1px solid #f0f0f0; padding-top: 8px; margin: 0;
+}
+
 /* Mispronounced */
 .miss-words { width: 100%; max-width: 380px; }
 .miss-title { font-size: 13px; color: #888; margin-bottom: 8px; }

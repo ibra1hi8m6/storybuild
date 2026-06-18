@@ -87,6 +87,20 @@ export class RecordModeComponent implements OnDestroy {
     return 'حاول مرة أخرى';
   }
 
+  // Word-by-word comparison: expected words coloured green/red
+  get wordComparison(): { word: string; correct: boolean }[] {
+    const r = this.report();
+    if (!r) return [];
+    const normalize = (w: string) => w.replace(/[ً-ٰٟـ]/g, '').trim();
+    const extractedSet = new Set(
+      r.extractedText.split(/[\s،.؟!،"]+/).filter(Boolean).map(normalize)
+    );
+    return r.expectedText
+      .split(/[\s،.؟!،"]+/)
+      .filter(Boolean)
+      .map(word => ({ word, correct: extractedSet.has(normalize(word)) }));
+  }
+
   ngOnDestroy() {
     if (this.audio.isRecording()) {
       this.audio.stopRecording().catch(() => {});
