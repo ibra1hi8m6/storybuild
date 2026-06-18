@@ -58,6 +58,14 @@ namespace Application.Interfaces
             CancellationToken ct = default);
     }
 
+    public interface IUploadedStoryService
+    {
+        Task<DTOs.UploadedStoryDto> ImportAsync(string title, IFormFile pdfFile, CancellationToken ct = default);
+        Task<List<DTOs.UploadedStoryDto>> GetAllAsync();
+        Task<DTOs.UploadedStoryDto?> GetByIdAsync(Guid id);
+        Task<bool> DeleteAsync(Guid id);
+    }
+
     // ── Story Repository ───────────────────────────────────────────────────────────
     public interface IStoryRepository
     {

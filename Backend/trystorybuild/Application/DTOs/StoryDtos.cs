@@ -18,6 +18,15 @@ namespace Application.DTOs
         string ImageUrl,
         bool IsUnlocked);
 
+    // ── Admin-Uploaded PDF Stories ─────────────────────────────────────────────────
+    public record UploadedStoryDto(
+        Guid Id,
+        string Title,
+        string CoverImageUrl,
+        int PageCount,
+        DateTime CreatedAt,
+        List<StoryPageDto> Pages);
+
     // ── PDF Lesson Import ──────────────────────────────────────────────────────────
     public record ImportBookResponse(
         Guid Id,

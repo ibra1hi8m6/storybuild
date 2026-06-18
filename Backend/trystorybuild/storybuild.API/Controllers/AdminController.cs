@@ -13,6 +13,7 @@ namespace storybuild.API.Controllers;
 [Route("api/admin")]
 public class AdminController(
     IPdfImportService pdfImportService,
+    IUploadedStoryService uploadedStoryService,
     ILessonRepository lessonRepository,
     AppDbContext db,
     IAuthService authService) : ControllerBase
@@ -300,6 +301,42 @@ public class AdminController(
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    // ── Uploaded PDF Stories ───────────────────────────────────────────────────
+
+    [HttpPost("uploaded-stories")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadStory(
+        [FromForm] string title,
+        IFormFile pdfFile,
+        CancellationToken ct)
+    {
+        if (pdfFile is null || pdfFile.Length == 0)
+            return BadRequest(new { error = "يرجى رفع ملف PDF." });
+        try
+        {
+            var dto = await uploadedStoryService.ImportAsync(title, pdfFile, ct);
+            return Ok(dto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("uploaded-stories")]
+    public async Task<IActionResult> GetUploadedStories()
+    {
+        var list = await uploadedStoryService.GetAllAsync();
+        return Ok(list);
+    }
+
+    [HttpDelete("uploaded-stories/{id:guid}")]
+    public async Task<IActionResult> DeleteUploadedStory(Guid id)
+    {
+        var deleted = await uploadedStoryService.DeleteAsync(id);
+        return deleted ? Ok(new { message = "تم الحذف." }) : NotFound(new { error = "القصة غير موجودة." });
     }
 }
 

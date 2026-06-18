@@ -217,6 +217,22 @@
 }
 .btn-retry-pill:hover { background: #F59E0B; color: #fff; }
 
+.btn-stop-recording {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  padding: 14px 36px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(239,68,68,.4);
+  transition: transform .15s, box-shadow .15s;
+  letter-spacing: .03em;
+}
+.btn-stop-recording:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(239,68,68,.5); }
+.btn-stop-recording:active { transform: scale(.97); }
+
 /* Error */
 .error-msg {
   background: #FEF2F2;

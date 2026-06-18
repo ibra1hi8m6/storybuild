@@ -4,7 +4,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { WebAudioService } from '../services/web-audio.service';
 import { FluencyApiService, FluencyReportDto } from '../services/fluency-api.service';
-import { AppStateService } from '../../../services/app-state-service';
 
 type RecordState = 'idle' | 'recording' | 'evaluating' | 'result';
 
@@ -21,9 +20,8 @@ export class RecordModeComponent implements OnDestroy {
   @Input() pageType: 'Story' | 'Lesson' = 'Story';
   @Output() passed = new EventEmitter<void>();
 
-  private audio  = inject(WebAudioService);
-  private api    = inject(FluencyApiService);
-  private appState = inject(AppStateService);
+  private audio = inject(WebAudioService);
+  private api   = inject(FluencyApiService);
 
   readonly state       = signal<RecordState>('idle');
   readonly report      = signal<FluencyReportDto | null>(null);
@@ -46,11 +44,8 @@ export class RecordModeComponent implements OnDestroy {
     this.state.set('evaluating');
     try {
       const blob = await this.audio.stopRecording();
-      const user = this.appState.currentUser();
-      if (!user) throw new Error('Not logged in');
 
       const result = await this.api.evaluate({
-        studentId: user.id,
         pageId: this.pageId,
         pageType: this.pageType,
         expectedText: this.sentence,

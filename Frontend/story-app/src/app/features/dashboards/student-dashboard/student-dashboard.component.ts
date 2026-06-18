@@ -47,16 +47,20 @@ export class StudentDashboardComponent implements OnInit {
     { icon:'🏆', label:'إنجازاتي',      route:'/achievements' },
     { icon:'📖', label:'قصصي',          route:'/my-stories' },
     { icon:'✨', label:'قصص ذكية',      route:'/ai-story' },
+    { icon:'📕', label:'مكتبة القصص',   route:'/uploaded-stories' },
     { icon:'📚', label:'دروسي',         route:'/my-lessons' },
     { icon:'🎯', label:'دروس مُعيَّنة', route:'/assigned-lessons' },
+    { icon:'📒', label:'مفرداتي',       route:'/my-journal' },
+    { icon:'🎮', label:'ألعاب اللغة',   route:'/mini-games' },
+    { icon:'💌', label:'رسائلي',        route:'/inbox' },
   ];
 
   readonly mobileNavItems = [
     { icon:'📊', label:'لوحتي',  route:'/dashboard' },
     { icon:'✏️', label:'الدروس', route:'/levels' },
-    { icon:'📖', label:'قصصي',   route:'/my-stories' },
-    { icon:'🎯', label:'مُعيَّن', route:'/assigned-lessons' },
-    { icon:'📋', label:'تقدّمي', route:'/progress' },
+    { icon:'🎮', label:'ألعاب',   route:'/mini-games' },
+    { icon:'💌', label:'رسائلي', route:'/inbox' },
+    { icon:'📒', label:'مفرداتي', route:'/my-journal' },
   ];
 
   ngOnInit(): void {

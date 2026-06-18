@@ -14,6 +14,7 @@ namespace Application.Agent
         IWritingAttemptRepository writingAttemptRepository,
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
+        IImageStorageService imageStorage,
         ILogger<WritingCorrectionAgent> logger)
     {
         private const double AcceptanceThreshold = 70.0;
@@ -27,12 +28,13 @@ namespace Application.Agent
         {
             logger.LogInformation("[WritingAgent] Evaluating page {PageId} for {Child}", lessonPageId, childName);
 
-            var uploadsFolder = Path.Combine("Uploads", "Writing");
-            Directory.CreateDirectory(uploadsFolder);
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            await using (var stream = File.Create(filePath))
-                await image.CopyToAsync(stream);
+            // Read image bytes directly from the upload stream — no local disk save
+            byte[] imageBytes;
+            using (var ms = new MemoryStream())
+            {
+                await image.CopyToAsync(ms);
+                imageBytes = ms.ToArray();
+            }
 
             var lesson = await lessonRepository.GetByIdAsync(lessonId)
                 ?? throw new InvalidOperationException($"Lesson {lessonId} not found.");
@@ -42,7 +44,6 @@ namespace Application.Agent
                 throw new InvalidOperationException("صفحة الغلاف لا تحتاج تمرين كتابة.");
 
             var expectedSentence = page.Sentence;
-            var imageBytes       = await File.ReadAllBytesAsync(filePath);
             var base64           = Convert.ToBase64String(imageBytes);
 
             var (extractedText, similarity, feedback) = await EvaluateWithGeminiAsync(base64, expectedSentence);
@@ -65,11 +66,23 @@ namespace Application.Agent
                 }
             }
 
+            // Upload image to Cloudinary for permanent cloud storage
+            var imageUrl = string.Empty;
+            try
+            {
+                var fileName = $"{Guid.NewGuid()}.png";
+                imageUrl = await imageStorage.UploadImageAsync(imageBytes, fileName, "lughati/writing");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[WritingAgent] Cloudinary upload failed — storing empty path.");
+            }
+
             await writingAttemptRepository.SaveAsync(new WritingAttempt
             {
                 LessonPageId      = lessonPageId,
                 ChildName         = childName,
-                UploadedImagePath = filePath,
+                UploadedImagePath = imageUrl,
                 ExtractedText     = extractedText,
                 ExpectedSentence  = expectedSentence,
                 SimilarityScore   = similarity,

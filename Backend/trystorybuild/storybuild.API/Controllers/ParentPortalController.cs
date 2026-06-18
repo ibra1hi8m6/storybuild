@@ -1,10 +1,12 @@
 using Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace storybuild.API.Controllers
 {
     [ApiController]
     [Route("api/parent-portal")]
+    [Authorize]
     public class ParentPortalController(IAudioRecordingRepository recordingRepo) : ControllerBase
     {
         [HttpGet("child/{studentId:guid}/recordings")]

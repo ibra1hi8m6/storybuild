@@ -289,7 +289,17 @@ export interface StudentDashboardDto {
   recentActivity:         RecentActivityDto[];
 }
 
+export interface UploadedStoryDto {
+  id:            string;
+  title:         string;
+  coverImageUrl: string;
+  pageCount:     number;
+  createdAt:     string;
+  pages:         StoryPage[];
+}
+
 export interface StudentSummaryDto {
+  id:               string;
   childName:        string;
   stars:            number;
   storiesRead:      number;
@@ -299,6 +309,7 @@ export interface StudentSummaryDto {
   writingAttempts:  number;
   performanceLevel: string;
   lastActivity:     string | null;
+  level?:           number;
 }
 
 export interface ParentDashboardDto {

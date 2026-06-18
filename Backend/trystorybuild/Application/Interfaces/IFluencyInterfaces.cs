@@ -8,6 +8,11 @@ namespace Application.Interfaces
         Task<string> UploadAudioAsync(IFormFile audioBlob, string folder = "lughati/audio");
     }
 
+    public interface IImageStorageService
+    {
+        Task<string> UploadImageAsync(byte[] bytes, string fileName, string folder = "lughati/images");
+    }
+
     public interface IFluencyAssessorAgent
     {
         Task<FluencyReportDto> EvaluateReadingAsync(

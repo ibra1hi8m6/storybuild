@@ -303,6 +303,20 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  // ── Uploaded PDF Stories (student) ───────────────────────────────────────────
+  {
+    path: 'uploaded-stories',
+    loadComponent: () =>
+      import('./features/uploaded-stories/uploaded-stories.component').then(m => m.UploadedStoriesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'uploaded-stories/:id/journey',
+    loadComponent: () =>
+      import('./features/uploaded-stories/uploaded-story-journey.component').then(m => m.UploadedStoryJourneyComponent),
+    canActivate: [authGuard]
+  },
+
   // ── Admin ─────────────────────────────────────────────────────────────────────
   {
     path: 'admin/rag',
@@ -372,6 +386,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin-rag-chunks/admin-rag-chunks')
         .then(m => m.AdminRagChunksComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'admin/uploaded-stories',
+    loadComponent: () =>
+      import('./features/admin-uploaded-stories/admin-uploaded-stories.component')
+        .then(m => m.AdminUploadedStoriesComponent),
     canActivate: [adminGuard]
   },
 

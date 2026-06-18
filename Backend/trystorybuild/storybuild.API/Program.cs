@@ -85,6 +85,19 @@ using (var scope = app.Services.CreateScope())
         await DbSeeder.SeedAsync(db);
     }
     catch (Exception ex) { logger.LogError(ex, "Migration/seed failed."); }
+
+    // ── Safe column additions (idempotent) ────────────────────────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'Source')
+                ALTER TABLE Stories ADD Source int NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'CoverImagePath')
+                ALTER TABLE Stories ADD CoverImagePath nvarchar(max) NULL;
+            """);
+        logger.LogInformation("Story columns ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Story column migration failed."); }
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────

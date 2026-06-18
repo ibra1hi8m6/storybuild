@@ -55,6 +55,11 @@ import { AppStateService } from '../../../services/app-state-service';
             <span class="nav-icon">🧩</span> صفحات RAG
           </a>
         </li>
+        <li>
+          <a class="nav-link" routerLink="/admin/uploaded-stories" routerLinkActive="active">
+            <span class="nav-icon">📕</span> قصص PDF
+          </a>
+        </li>
       </ul>
       <div class="sidebar-footer">
         <button class="logout-btn" (click)="logout()">🚪 تسجيل الخروج</button>

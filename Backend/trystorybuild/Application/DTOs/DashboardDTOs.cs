@@ -55,6 +55,7 @@ namespace Application.DTOs
     // ── Teacher-view student card ─────────────────────────────────────────────
 
     public record StudentSummaryDto(
+        Guid Id,
         string ChildName,
         int Stars,
         int StoriesRead,

@@ -25,6 +25,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   readonly pageNum     = signal(1);
   readonly isPlaying   = signal(false);
   readonly imageLoaded = signal(false);
+  readonly storyId     = signal('');
 
   private utterance: SpeechSynthesisUtterance | null = null;
 
@@ -43,6 +44,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) { this.router.navigate(['/levels']); return; }
+    this.storyId.set(id);
     this.loadStory(id);
   }
 
@@ -112,4 +114,5 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
 
   onImgLoad(): void { this.imageLoaded.set(true); }
   goBack(): void { this.router.navigate(['/levels']); }
+  startJourney(): void { this.router.navigate(['/books', this.storyId(), 'journey']); }
 }

@@ -72,7 +72,7 @@
       @for (chunk of chunks(); track chunk.id) {
         <div class="chunk-card">
           @if (chunk.imageUrl) {
-            <img [src]="api + chunk.imageUrl" [alt]="chunk.sentence" class="chunk-img" />
+            <img [src]="chunk.imageUrl.startsWith('http') ? chunk.imageUrl : api + chunk.imageUrl" [alt]="chunk.sentence" class="chunk-img" />
           } @else {
             <div class="chunk-no-img">لا توجد صورة</div>
           }

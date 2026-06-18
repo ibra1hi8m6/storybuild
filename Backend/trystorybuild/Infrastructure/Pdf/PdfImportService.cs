@@ -2,6 +2,7 @@ using Application.DTOs;
 using Application.Interfaces;
 using Application.Mapping;
 using Domain.Entities;
+using Infrastructure.AI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ public class PdfImportService(
     IOptions<PdfImportSettings> settings,
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
+    CloudinaryService cloudinaryService,
     ILogger<PdfImportService> logger) : IPdfImportService
 {
     private const int MaxContentPages = 3;
@@ -73,7 +75,6 @@ public class PdfImportService(
             var pageNumber = i + 1;
             var isCover   = pageNumber == 1;
             var isLast    = pageNumber == imagePaths.Count && imagePaths.Count > 1;
-            var webPath   = ToWebPath(imagePaths[i]);
 
             if (isLast)
             {
@@ -81,12 +82,27 @@ public class PdfImportService(
                 break;
             }
 
+            // Upload page image to Cloudinary for permanent cloud storage
+            string imageUrl;
+            try
+            {
+                var bytes    = await File.ReadAllBytesAsync(imagePaths[i], ct);
+                var publicId = $"{lessonId}_page{pageNumber}";
+                imageUrl = await cloudinaryService.UploadImageBytesAsync(bytes, publicId, "lughati/lessons");
+                logger.LogInformation("[PdfImport] Page {N} → Cloudinary {Url}", pageNumber, imageUrl);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[PdfImport] Cloudinary upload failed for page {N} — falling back to local path.", pageNumber);
+                imageUrl = ToWebPath(imagePaths[i]);
+            }
+
             string sentence;
 
             if (isCover)
             {
                 sentence = letterName.Trim();
-                lesson.CoverImagePath = webPath;
+                lesson.CoverImagePath = imageUrl;
             }
             else
             {
@@ -105,7 +121,7 @@ public class PdfImportService(
                 LessonId    = lessonId,
                 PageNumber  = pageNumber,
                 Sentence    = sentence,
-                ImagePath   = webPath,
+                ImagePath   = imageUrl,
                 IsCoverPage = isCover,
                 IsUnlocked  = isCover || pageNumber == 2
             });

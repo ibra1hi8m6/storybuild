@@ -23,7 +23,10 @@
         </button>
       </div>
       <p class="duration-text">{{ duration.formattedDuration }}</p>
-      <p class="hint-text">اقرأ الجملة... ثم اضغط إيقاف</p>
+      <p class="hint-text">اقرأ الجملة بصوت واضح ثم اضغط إيقاف</p>
+      <button class="btn-stop-recording" (click)="stopAndEvaluate()">
+        <i class="bi bi-stop-circle-fill me-2"></i>إيقاف التسجيل
+      </button>
     </div>
   }
 
