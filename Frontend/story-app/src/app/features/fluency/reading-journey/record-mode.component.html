@@ -1,0 +1,100 @@
+<div class="record-panel" dir="rtl">
+
+  <!-- Sentence to read -->
+  <p class="target-sentence">{{ sentence }}</p>
+
+  <!-- IDLE -->
+  @if (state() === 'idle') {
+    <div class="idle-area">
+      <p class="hint-text">اضغط على الزر واقرأ الجملة بوضوح</p>
+      <button class="mic-btn" (click)="startRecording()">
+        <i class="bi bi-mic-fill"></i>
+      </button>
+      <p class="hint-sub">ابدأ التسجيل</p>
+    </div>
+  }
+
+  <!-- RECORDING -->
+  @if (state() === 'recording') {
+    <div class="recording-area">
+      <div class="pulse-ring">
+        <button class="mic-btn recording" (click)="stopAndEvaluate()">
+          <i class="bi bi-stop-fill"></i>
+        </button>
+      </div>
+      <p class="duration-text">{{ duration.formattedDuration }}</p>
+      <p class="hint-text">اقرأ الجملة... ثم اضغط إيقاف</p>
+    </div>
+  }
+
+  <!-- EVALUATING -->
+  @if (state() === 'evaluating') {
+    <div class="eval-area">
+      <div class="eval-spinner"></div>
+      <p class="eval-text">الذكاء الاصطناعي يقيّم قراءتك...</p>
+      <p class="eval-sub">ثوانٍ فقط!</p>
+    </div>
+  }
+
+  <!-- RESULT -->
+  @if (state() === 'result' && report()) {
+    <div class="result-area">
+
+      <!-- Score circle -->
+      <div class="score-circle" [style.border-color]="scoreColor">
+        <span class="score-number" [style.color]="scoreColor">
+          {{ report()!.accuracyScore | number:'1.0-0' }}%
+        </span>
+        <span class="score-label" [style.color]="scoreColor">{{ scoreLabel }}</span>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <span class="metric-val">{{ report()!.wcpm | number:'1.0-0' }}</span>
+          <span class="metric-name">كلمة/دقيقة</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-val">{{ report()!.accuracyScore | number:'1.0-0' }}%</span>
+          <span class="metric-name">دقة النطق</span>
+        </div>
+      </div>
+
+      <!-- Mispronounced words -->
+      @if (report()!.mispronouncedWords.length > 0) {
+        <div class="miss-words">
+          <p class="miss-title">الكلمات التي تحتاج تدريب:</p>
+          <div class="miss-chips">
+            @for (w of report()!.mispronouncedWords; track w) {
+              <span class="miss-chip">{{ w }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Audio playback -->
+      <audio [src]="report()!.audioFileUrl" controls class="audio-player"></audio>
+
+      <!-- Actions -->
+      @if (report()!.passed) {
+        <button class="btn-success-pill" (click)="onNext()">
+          <i class="bi bi-stars me-2"></i>
+          التالي
+        </button>
+      } @else {
+        <button class="btn-retry-pill" (click)="retry()">
+          <i class="bi bi-arrow-repeat me-2"></i>
+          حاول مرة أخرى
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-msg">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error() }}
+    </div>
+  }
+
+</div>

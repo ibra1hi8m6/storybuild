@@ -1,0 +1,53 @@
+.games-host {
+  min-height: 100vh;
+  background: var(--bg-base, #FFF5F7);
+  padding: 1.5rem;
+}
+
+.games-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.games-header h1 {
+  font-size: 1.8rem; font-weight: 700;
+  color: var(--primary, #F4788A);
+  display: flex; align-items: center; gap: .5rem;
+  justify-content: center; margin-bottom: .75rem;
+}
+
+.progress-bar-wrap {
+  height: 8px; background: #f0e0e6; border-radius: 99px;
+  overflow: hidden; margin-bottom: .35rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  border-radius: 99px; transition: width .4s ease;
+}
+
+.progress-text { font-size: .85rem; color: #bbb; margin: 0; }
+
+.game-card {
+  background: #fff; border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.08);
+  overflow: hidden;
+}
+
+.all-done {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1rem; padding: 4rem 1rem; text-align: center;
+}
+
+.done-icon { font-size: 5rem; }
+
+.all-done h2 { color: #333; font-size: 1.5rem; }
+.all-done p  { color: #888; }
+
+.back-btn {
+  padding: .75rem 2rem; border-radius: 14px; border: none;
+  background: var(--primary-gradient, linear-gradient(135deg, #F4788A, #C084FC));
+  color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: .5rem;
+}

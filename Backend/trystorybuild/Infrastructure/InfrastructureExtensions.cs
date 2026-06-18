@@ -41,6 +41,18 @@ namespace Infrastructure
             services.AddScoped<ITextSimilarityService,  ArabicSimilarityService>();
             services.AddScoped<IAiTextCleanupService,   GeminiTextCleanupService>();
 
+            // ── Module A: Fluency ──────────────────────────────────────────────────
+            services.AddScoped<IAudioStorageService,      CloudinaryAudioStorageService>();
+            services.AddScoped<IFluencyAssessorAgent,     GeminiFluencyAssessorAgent>();
+            services.AddScoped<IAudioRecordingRepository, AudioRecordingRepository>();
+
+            // ── Module B: Annotations & Vocabulary ────────────────────────────────
+            services.AddScoped<IAnnotationRepository, AnnotationRepository>();
+            services.AddScoped<IVocabularyRepository,  VocabularyRepository>();
+
+            // ── Module D: Messaging ───────────────────────────────────────────────
+            services.AddScoped<IMessagingRepository, MessagingRepository>();
+
             // ── PDF Import ────────────────────────────────────────────────────────
             services.Configure<PdfImportSettings>(configuration.GetSection("PdfImport"));
             services.AddScoped<IPdfPageRenderer, PdfPageRenderer>();
