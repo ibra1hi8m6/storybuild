@@ -65,7 +65,6 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.service.getPlacementQuestions().subscribe({
       next: qs => {
-        console.log('RAW BACKEND DATA:', qs);
         this.questions.set(this.normalizeQuestions(qs));
         this.isLoading.set(false);
         this.speakQuestion();
