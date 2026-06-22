@@ -50,6 +50,8 @@ export interface LessonSummary {
   title:         string;
   coverImageUrl: string;
   pageCount:     number;
+  isPublished:   boolean;
+  status:        string;
 }
 
 export interface LessonDetail {
@@ -147,12 +149,55 @@ export interface ExamResult {
 
 // ── Writing ────────────────────────────────────────────────────────────────────
 
+export interface WritingMistake {
+  type:        string;
+  expected:    string;
+  actual:      string;
+  description: string;
+}
+
 export interface WritingCorrectionResponse {
   extractedText:    string;
   expectedSentence: string;
   similarityScore:  number;
   isAccepted:       boolean;
   message:          string;
+  displayMessage:   string;
+  spokenFeedback:   string;
+  mistakes:         WritingMistake[];
+  tips:             string[];
+}
+
+export interface WritingAttemptHistory {
+  id:               string;
+  lessonPageId:     string;
+  expectedSentence: string;
+  extractedText:    string;
+  similarityScore:  number;
+  isAccepted:       boolean;
+  attemptNumber:    number;
+  displayMessage:   string;
+  mistakes:         WritingMistake[];
+  tips:             string[];
+  imageUrl:         string;
+  attemptedAt:      string;
+}
+
+export interface ReadingAttemptHistory {
+  recordingId:       string;
+  pageId:            string;
+  pageType:          string;
+  expectedText:      string;
+  extractedText:     string;
+  wcpm:              number;
+  accuracyScore:     number;
+  isAccepted:        boolean;
+  attemptNumber:     number;
+  displayMessage:    string;
+  mispronouncedWords: string[];
+  tips:              string[];
+  audioUrl:          string;
+  createdAt:         string;
 }
 
 // ── Progress ───────────────────────────────────────────────────────────────────
@@ -356,6 +401,14 @@ export interface SchoolDashboardDto {
   levelDistribution: LevelDistributionDto[];
 }
 
+// ── Weakness Map ──────────────────────────────────────────────────────────────
+export interface SkillStat  { attempts: number; correct: number; }
+export interface LessonStat { title: string; letter: string; attempts: number; correct: number; }
+export interface WeaknessMap {
+  letters: Record<string, SkillStat>;
+  lessons: Record<string, LessonStat>;
+}
+
 // ── PDF Library ───────────────────────────────────────────────────────────────
 
 export interface PdfDocumentDto {
@@ -470,4 +523,66 @@ export interface LessonAssignmentDto {
   targetGroupId?:   string;
   targetGroupName?: string;
   assignedAt:       string;
+}
+
+export interface AssignmentDto {
+  assignmentId:  string;
+  lessonId:      string;
+  lessonTitle:   string;
+  letter:        string;
+  level:         number;
+  targetType:    string;
+  assignedAt:    string;
+  isSubmitted:   boolean;
+  writingScore:  number;
+  isComplete:    boolean;
+}
+
+export interface AssignmentSubmissionDto {
+  submissionId:   string;
+  assignmentId:   string;
+  studentId:      string;
+  childName:      string;
+  pagesCompleted: number;
+  totalPages:     number;
+  writingScore:   number;
+  isComplete:     boolean;
+  submittedAt:    string;
+}
+
+export interface WeakLetterDto {
+  letter:       string;
+  attempts:     number;
+  correct:      number;
+  accuracy:     number;
+  activityType: string;
+  lastSeenAt:   string;
+}
+
+export interface StudentAnalyticsDto {
+  studentId:       string;
+  childName:       string;
+  level:           number;
+  overallAccuracy: number;
+  weakLetters:     WeakLetterDto[];
+}
+
+export interface AnalyticsSummaryDto {
+  totalStudents:          number;
+  classAvgAccuracy:       number;
+  students:               StudentAnalyticsDto[];
+  mostCommonWeakLetters:  WeakLetterDto[];
+}
+
+export interface TeacherAssignmentOverview {
+  assignmentId:    string;
+  lessonId:        string;
+  lessonTitle:     string;
+  letter:          string;
+  level:           number;
+  targetType:      string;
+  assignedAt:      string;
+  submissionCount: number;
+  completedCount:  number;
+  avgScore:        number;
 }

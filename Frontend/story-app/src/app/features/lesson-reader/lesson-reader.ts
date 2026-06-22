@@ -25,15 +25,17 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly service = inject(StoryService);
   private readonly state   = inject(AppStateService);
 
-  readonly isLoading   = signal(false);
-  readonly lesson      = signal<any>(null);
-  readonly pageNum     = signal(1);
-  readonly isPlaying   = signal(false);
-  readonly imageLoaded = signal(false);
-  readonly tool        = signal<'pencil' | 'eraser'>('pencil');
-  readonly hasDrawing  = signal(false);
-  readonly isChecking  = signal(false);
-  readonly checkResult = signal<WritingCorrectionResponse | null>(null);
+  readonly isLoading            = signal(false);
+  readonly lesson               = signal<any>(null);
+  readonly pageNum              = signal(1);
+  readonly isPlaying            = signal(false);
+  readonly imageLoaded          = signal(false);
+  readonly tool                 = signal<'pencil' | 'eraser'>('pencil');
+  readonly hasDrawing           = signal(false);
+  readonly isChecking           = signal(false);
+  readonly checkResult          = signal<WritingCorrectionResponse | null>(null);
+  readonly writingCheckedOnPage = signal(false);
+  readonly showWritingWarning   = signal(false);
 
   private ctx!: CanvasRenderingContext2D;
   private isDrawing = false;
@@ -51,6 +53,15 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     this.totalPages() > 0 ? Math.round(this.pageNum() / this.totalPages() * 100) : 0
   );
 
+  readonly pageNeedsWriting = computed(() => {
+    const p = this.activePage();
+    return !!p?.sentence && !p?.isCoverPage;
+  });
+
+  readonly canGoNext = computed(() =>
+    !this.pageNeedsWriting() || this.writingCheckedOnPage()
+  );
+
   private lessonId = '';
 
   private canvasReady = false;
@@ -64,10 +75,19 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
       next: l => {
         this.lesson.set(l);
         this.state.setLesson(l);
-        this.saveProgress(1, l.pages?.length ?? 0, false);
+
+        // Resume from last saved page
+        const saved = this.state.lessonProgress(id);
+        const resumePage = (saved && saved.currentPage > 1 && saved.currentPage <= (l.pages?.length ?? 1))
+          ? saved.currentPage : 1;
+        this.pageNum.set(resumePage);
+
+        this.saveProgress(resumePage, l.pages?.length ?? 0, false);
         this.isLoading.set(false);
-        // Let Angular render the @if block, then setup canvas
-        setTimeout(() => this.setupCanvas(), 80);
+        setTimeout(() => {
+          this.setupCanvas();
+          this.autoPlayCurrentPage();
+        }, 300);
       },
       error: () => { this.isLoading.set(false); this.router.navigate(['/levels']); }
     });
@@ -87,24 +107,46 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     this.pageNum.update(p => p - 1);
     this.imageLoaded.set(false);
     this.checkResult.set(null);
+    this.writingCheckedOnPage.set(false);
+    this.showWritingWarning.set(false);
     this.clearCanvas();
     window.speechSynthesis.cancel();
     this.isPlaying.set(false);
+    setTimeout(() => this.autoPlayCurrentPage(), 200);
   }
 
   next(): void {
+    if (!this.canGoNext()) {
+      this.showWritingWarning.set(true);
+      setTimeout(() => this.showWritingWarning.set(false), 3000);
+      return;
+    }
+    this.showWritingWarning.set(false);
+
+    const page = this.activePage();
+    if (page?.pageId) {
+      this.service.markPageDone(
+        this.state.childName() || 'طالب',
+        this.lessonId,
+        page.pageId,
+        this.writingCheckedOnPage()
+      ).subscribe();
+    }
+
     if (this.isLast()) {
       this.saveProgress(this.pageNum(), this.totalPages(), true);
-      this.router.navigate(['/exam']);
+      this.router.navigate(['/lessons', this.lessonId, 'complete']);
       return;
     }
     const next = this.pageNum() + 1;
     this.pageNum.set(next);
+    this.writingCheckedOnPage.set(false);
     this.saveProgress(next, this.totalPages(), false);
     this.imageLoaded.set(false);
     this.clearCanvas();
     window.speechSynthesis.cancel();
     this.isPlaying.set(false);
+    setTimeout(() => this.autoPlayCurrentPage(), 200);
   }
 
   private saveProgress(page: number, total: number, completed: boolean): void {
@@ -116,12 +158,57 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     const page = this.activePage();
     if (!page) return;
     if (this.isPlaying()) { window.speechSynthesis.cancel(); this.isPlaying.set(false); return; }
+    this.speakText(page.sentence);
+  }
+
+  private autoPlayCurrentPage(): void {
+    const page = this.activePage();
+    if (!page?.sentence) return;
+    // Voices may not be loaded yet on first call — wait for them
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        this.speakText(page.sentence);
+      };
+    } else {
+      this.speakText(page.sentence);
+    }
+  }
+
+  private speakText(text: string, rate = 0.8): void {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(page.sentence);
-    u.lang = 'ar-SA'; u.rate = 0.8;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang  = 'ar-SA';
+    u.rate  = rate;
+    u.voice = this.getBestArabicVoice();
     u.onstart = () => this.isPlaying.set(true);
     u.onend   = () => this.isPlaying.set(false);
+    u.onerror  = () => this.isPlaying.set(false);
     window.speechSynthesis.speak(u);
+  }
+
+  private getBestArabicVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    // Priority list: best quality Arabic voices available in browsers
+    const preferred = [
+      'Microsoft Hamed Online',   // Windows high-quality
+      'Microsoft Naayf Online',
+      'Microsoft Hamed',
+      'Microsoft Naayf',
+      'Majed',                     // macOS Arabic voice
+      'Maged',
+    ];
+    for (const name of preferred) {
+      const v = voices.find(v => v.name.includes(name));
+      if (v) return v;
+    }
+    // Fallback: any Arabic voice
+    return voices.find(v => v.lang.startsWith('ar')) ?? null;
+  }
+
+  speakFeedback(text: string): void {
+    this.speakText(text, 0.85);
   }
 
   private setupCanvas(): void {
@@ -243,7 +330,17 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
         this.state.childName() || 'طالب',
         blob
       ).subscribe({
-        next:  r => { this.checkResult.set(r);  this.isChecking.set(false); },
+        next:  r => {
+          this.checkResult.set(r);
+          this.isChecking.set(false);
+          this.writingCheckedOnPage.set(true);
+          const parts: string[] = [];
+          if (r.spokenFeedback || r.displayMessage) parts.push(r.spokenFeedback || r.displayMessage);
+          if (r.mistakes?.length) parts.push(...r.mistakes.map((m: any) => m.description).filter(Boolean));
+          if (r.tips?.length)     parts.push(...r.tips.filter(Boolean));
+          const tts = parts.join('. ');
+          if (tts) setTimeout(() => this.speakFeedback(tts), 400);
+        },
         error: () => { this.isChecking.set(false); }
       });
     }, 'image/png');
@@ -263,8 +360,10 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onImgLoad(): void { this.imageLoaded.set(true); }
-  goBack():    void { this.router.navigate(['/books']); }
-  startJourney(): void { this.router.navigate(['/lessons', this.lessonId, 'journey']); }
+  goBack(): void {
+    const level = this.lesson()?.level ?? 1;
+    this.router.navigate(['/levels', level, 'books']);
+  }
 
   pageDotsArr(): number[] {
     return Array.from({ length: this.totalPages() }, (_, i) => i + 1);

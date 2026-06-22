@@ -3,6 +3,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, ActivatedRoute } from '@angular/router';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { StoryService } from '../../../services/story';
+import { AuthService } from '../../../services/auth.service';
 import { RecentActivityDto } from '../../../models/story.models';
 
 @Component({
@@ -13,18 +14,20 @@ import { RecentActivityDto } from '../../../models/story.models';
 })
 export class ParentNotificationsComponent implements OnInit {
   private readonly svc   = inject(StoryService);
+  private readonly auth  = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
 
-  readonly isLoading    = signal(false);
-  readonly childNames   = signal<string[]>([]);
+  readonly isLoading     = signal(false);
+  readonly childNames    = signal<string[]>([]);
   readonly selectedChild = signal<string>('');
-  readonly activities   = signal<RecentActivityDto[]>([]);
+  readonly activities    = signal<RecentActivityDto[]>([]);
 
   ngOnInit(): void {
     const preselect = this.route.snapshot.queryParamMap.get('child') ?? '';
     this.isLoading.set(true);
-    this.svc.getKnownStudentNames().subscribe({
-      next: names => {
+    this.auth.getMyStudents().subscribe({
+      next: students => {
+        const names = students.map(s => s.name);
         this.childNames.set(names);
         if (names.length === 0) { this.isLoading.set(false); return; }
         const first = preselect && names.includes(preselect) ? preselect : names[0];

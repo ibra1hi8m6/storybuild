@@ -1,4 +1,5 @@
-﻿using Application.Interfaces;
+﻿using Application.DTOs;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -36,9 +37,10 @@ namespace Infrastructure.Repositories
                     .Include(s => s.Progress)
                     .FirstOrDefaultAsync(s => s.Id == id);
 
-            public async Task<List<Story>> GetAllAsync() =>
+            public async Task<List<Story>> GetAllAsync(bool publishedOnly = false) =>
                 await db.Stories
                     .Include(s => s.Pages)
+                    .Where(s => !publishedOnly || s.IsPublished)
                     .OrderByDescending(s => s.CreatedAt)
                     .ToListAsync();
 
@@ -107,18 +109,20 @@ namespace Infrastructure.Repositories
                     .Include(l => l.Pages).ThenInclude(p => p.WritingAttempts)
                     .FirstOrDefaultAsync(l => l.Id == id);
 
-            public async Task<List<Lesson>> GetByLevelAsync(int level) =>
+            public async Task<List<Lesson>> GetByLevelAsync(int level, bool publishedOnly = true) =>
                 await db.Lessons
                     .Include(l => l.Pages)
-                    .Where(l => l.Level == level)
+                    .Where(l => l.Level == level && (!publishedOnly || l.IsPublished))
                     .OrderBy(l => l.Letter)
                     .ToListAsync();
 
-            public async Task<List<Lesson>> GetAllAsync(int? level = null)
+            public async Task<List<Lesson>> GetAllAsync(int? level = null, bool publishedOnly = false)
             {
                 var query = db.Lessons.Include(l => l.Pages).AsQueryable();
                 if (level.HasValue)
                     query = query.Where(l => l.Level == level.Value);
+                if (publishedOnly)
+                    query = query.Where(l => l.IsPublished);
                 return await query.OrderBy(l => l.Level).ThenBy(l => l.Letter).ToListAsync();
             }
 
@@ -245,6 +249,17 @@ namespace Infrastructure.Repositories
                 await db.SaveChangesAsync();
                 return attempt;
             }
+
+            public async Task<List<WritingAttempt>> GetByChildNameAsync(string childName, int take = 50) =>
+                await db.WritingAttempts
+                    .Where(a => a.ChildName == childName)
+                    .OrderByDescending(a => a.AttemptedAt)
+                    .Take(take)
+                    .ToListAsync();
+
+            public async Task<int> CountByPageAsync(Guid pageId, string childName) =>
+                await db.WritingAttempts
+                    .CountAsync(a => a.LessonPageId == pageId && a.ChildName == childName);
         }
 
         // ── LevelWordConfig Repository ─────────────────────────────────────────────────
@@ -383,6 +398,121 @@ namespace Infrastructure.Repositories
                     .Where(a => a.TeacherId == teacherId)
                     .OrderByDescending(a => a.AssignedAt)
                     .ToListAsync();
+        }
+
+        // ── AssignmentSubmission Repository ────────────────────────────────────────────
+        public class AssignmentSubmissionRepository(AppDbContext db) : IAssignmentSubmissionRepository
+        {
+            public async Task<AssignmentSubmission> SaveAsync(AssignmentSubmission sub)
+            {
+                var existing = await db.AssignmentSubmissions.FindAsync(sub.Id);
+                if (existing is null) db.AssignmentSubmissions.Add(sub);
+                else db.Entry(existing).CurrentValues.SetValues(sub);
+                await db.SaveChangesAsync();
+                return sub;
+            }
+
+            public async Task<AssignmentSubmission?> GetByAssignmentAndStudentAsync(Guid assignmentId, Guid studentId) =>
+                await db.AssignmentSubmissions
+                    .FirstOrDefaultAsync(s => s.AssignmentId == assignmentId && s.StudentId == studentId);
+
+            public async Task<List<AssignmentSubmission>> GetByAssignmentAsync(Guid assignmentId) =>
+                await db.AssignmentSubmissions
+                    .Where(s => s.AssignmentId == assignmentId)
+                    .OrderByDescending(s => s.SubmittedAt)
+                    .ToListAsync();
+
+            public async Task<List<AssignmentSubmission>> GetByStudentAsync(Guid studentId) =>
+                await db.AssignmentSubmissions
+                    .Where(s => s.StudentId == studentId)
+                    .ToListAsync();
+        }
+
+        // ── WeakLetterRecord Repository / Analytics Service ────────────────────────────
+        public class AnalyticsService(AppDbContext db) : IAnalyticsService
+        {
+            public async Task<List<WeakLetterRecord>> GetWeakLettersAsync(Guid studentId) =>
+                await db.WeakLetterRecords
+                    .Where(r => r.StudentId == studentId)
+                    .OrderBy(r => r.Letter)
+                    .ToListAsync();
+
+            public async Task UpsertWeakLetterAsync(Guid studentId, string childName, string letter, bool correct, string activityType)
+            {
+                var existing = await db.WeakLetterRecords
+                    .FirstOrDefaultAsync(r => r.StudentId == studentId && r.Letter == letter && r.ActivityType == activityType);
+
+                if (existing is null)
+                {
+                    db.WeakLetterRecords.Add(new WeakLetterRecord
+                    {
+                        StudentId    = studentId,
+                        ChildName    = childName,
+                        Letter       = letter,
+                        Attempts     = 1,
+                        Correct      = correct ? 1 : 0,
+                        ActivityType = activityType,
+                        LastSeenAt   = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.Attempts++;
+                    if (correct) existing.Correct++;
+                    existing.LastSeenAt = DateTime.UtcNow;
+                }
+                await db.SaveChangesAsync();
+            }
+
+            public async Task<AnalyticsSummaryDto> GetClassAnalyticsAsync(Guid teacherId)
+            {
+                var students = await db.Students
+                    .Where(s => s.TeacherId == teacherId)
+                    .ToListAsync();
+
+                var studentIds = students.Select(s => s.Id).ToList();
+                var allRecords = await db.WeakLetterRecords
+                    .Where(r => studentIds.Contains(r.StudentId))
+                    .ToListAsync();
+
+                var studentAnalytics = students.Select(s =>
+                {
+                    var records  = allRecords.Where(r => r.StudentId == s.Id).ToList();
+                    var overall  = records.Count > 0
+                        ? Math.Round(records.Sum(r => r.Correct) / (double)records.Sum(r => r.Attempts) * 100, 1)
+                        : 0;
+                    var weak     = records
+                        .Select(r => new WeakLetterDto(
+                            r.Letter, r.Attempts, r.Correct,
+                            r.Attempts > 0 ? Math.Round(r.Correct / (double)r.Attempts * 100, 1) : 0,
+                            r.ActivityType, r.LastSeenAt))
+                        .Where(d => d.Accuracy < 70)
+                        .OrderBy(d => d.Accuracy)
+                        .ToList();
+                    return new StudentAnalyticsDto(s.Id, s.Name, s.Level, overall, weak);
+                }).ToList();
+
+                var classAvg = studentAnalytics.Count > 0
+                    ? Math.Round(studentAnalytics.Average(a => a.OverallAccuracy), 1)
+                    : 0;
+
+                var commonWeak = allRecords
+                    .GroupBy(r => r.Letter)
+                    .Select(g => new WeakLetterDto(
+                        g.Key,
+                        g.Sum(r => r.Attempts),
+                        g.Sum(r => r.Correct),
+                        g.Sum(r => r.Attempts) > 0
+                            ? Math.Round(g.Sum(r => r.Correct) / (double)g.Sum(r => r.Attempts) * 100, 1) : 0,
+                        "All",
+                        g.Max(r => r.LastSeenAt)))
+                    .Where(d => d.Accuracy < 70)
+                    .OrderBy(d => d.Accuracy)
+                    .Take(10)
+                    .ToList();
+
+                return new AnalyticsSummaryDto(students.Count, classAvg, studentAnalytics, commonWeak);
+            }
         }
 
     }

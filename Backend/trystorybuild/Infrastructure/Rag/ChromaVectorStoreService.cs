@@ -14,6 +14,7 @@ namespace Infrastructure.Rag
     {
         private readonly RagSettings _cfg = settings.Value;
         private string? _collectionId;
+        private readonly Dictionary<string, string> _collectionIdCache = new();
 
         // ── Base path helpers (ChromaDB 0.6+ multi-tenant API / Chroma Cloud) ──
         private void SetAuthHeader()
@@ -27,16 +28,17 @@ namespace Infrastructure.Rag
 
         private string ColPath(string collectionId) => $"{ColBase}/{collectionId}";
 
-        public async Task EnsureCollectionAsync()
+        private string ResolveCollection(string? collectionName) =>
+            collectionName ?? _cfg.CollectionName;
+
+        public async Task EnsureCollectionAsync(string? collectionName = null)
         {
             SetAuthHeader();
-            // Ensure tenant exists
             await EnsureTenantAsync();
-            // Ensure database exists
             await EnsureDatabaseAsync();
 
-            // Create collection (ignore 409 Conflict = already exists)
-            var body     = new { name = _cfg.CollectionName };
+            var name     = ResolveCollection(collectionName);
+            var body     = new { name };
             var response = await httpClient.PostAsJsonAsync(ColBase, body);
             if (response.StatusCode != System.Net.HttpStatusCode.Conflict
              && response.StatusCode != System.Net.HttpStatusCode.OK
@@ -48,15 +50,18 @@ namespace Infrastructure.Rag
             }
             else
             {
-                logger.LogInformation("[Chroma] Collection '{Name}' ready.", _cfg.CollectionName);
+                logger.LogInformation("[Chroma] Collection '{Name}' ready.", name);
             }
 
-            _collectionId = await GetCollectionIdAsync();
+            var id = await GetCollectionIdAsync(name);
+            if (id is not null) _collectionIdCache[name] = id;
+            if (collectionName is null) _collectionId = id;
         }
 
-        public async Task DeleteBySourceAsync(string sourceFile)
+        public async Task DeleteBySourceAsync(string sourceFile, string? collectionName = null)
         {
-            var id = await GetCollectionIdAsync();
+            var name = ResolveCollection(collectionName);
+            var id   = await GetCollectionIdAsync(name);
             if (id is null) return;
 
             var getResponse = await httpClient.PostAsJsonAsync(
@@ -71,14 +76,16 @@ namespace Infrastructure.Rag
             if (ids.Count == 0) return;
 
             await httpClient.PostAsJsonAsync($"{ColPath(id)}/delete", new { ids });
-            logger.LogInformation("[Chroma] Deleted {Count} chunks for {Source}", ids.Count, sourceFile);
+            logger.LogInformation("[Chroma] Deleted {Count} chunks for {Source} in {Col}", ids.Count, sourceFile, name);
         }
 
         public async Task AddChunksAsync(
             List<string> ids, List<float[]> embeddings,
-            List<string> texts, List<Dictionary<string, string>> metadatas)
+            List<string> texts, List<Dictionary<string, string>> metadatas,
+            string? collectionName = null)
         {
-            var id       = await GetCollectionIdAsync();
+            var name     = ResolveCollection(collectionName);
+            var id       = await GetCollectionIdAsync(name);
             var body     = new { ids, embeddings, documents = texts, metadatas };
             var response = await httpClient.PostAsJsonAsync($"{ColPath(id!)}/add", body);
             if (!response.IsSuccessStatusCode)
@@ -87,12 +94,13 @@ namespace Infrastructure.Rag
                 logger.LogError("[Chroma] AddChunks failed {S}: {E}", response.StatusCode, err);
                 response.EnsureSuccessStatusCode();
             }
-            logger.LogInformation("[Chroma] Stored {Count} chunks.", ids.Count);
+            logger.LogInformation("[Chroma] Stored {Count} chunks in '{Col}'.", ids.Count, name);
         }
 
-        public async Task<List<RagSearchResult>> SearchAsync(float[] queryEmbedding, int topK = 5)
+        public async Task<List<RagSearchResult>> SearchAsync(float[] queryEmbedding, int topK = 5, string? collectionName = null)
         {
-            var id      = await GetCollectionIdAsync();
+            var name    = ResolveCollection(collectionName);
+            var id      = await GetCollectionIdAsync(name);
             var request = new
             {
                 query_embeddings = new[] { queryEmbedding },
@@ -153,9 +161,11 @@ namespace Infrastructure.Rag
                 logger.LogWarning("[Chroma] Could not create database '{D}': {S}", _cfg.ChromaDatabase, create.StatusCode);
         }
 
-        private async Task<string?> GetCollectionIdAsync()
+        private async Task<string?> GetCollectionIdAsync(string? name = null)
         {
-            if (_collectionId is not null) return _collectionId;
+            name ??= _cfg.CollectionName;
+            if (name == _cfg.CollectionName && _collectionId is not null) return _collectionId;
+            if (_collectionIdCache.TryGetValue(name, out var cached)) return cached;
 
             var response = await httpClient.GetAsync(ColBase);
             if (!response.IsSuccessStatusCode)
@@ -167,14 +177,16 @@ namespace Infrastructure.Rag
             var json = await response.Content.ReadFromJsonAsync<JsonDocument>();
             foreach (var col in json!.RootElement.EnumerateArray())
             {
-                if (col.GetProperty("name").GetString() == _cfg.CollectionName)
+                if (col.GetProperty("name").GetString() == name)
                 {
-                    _collectionId = col.GetProperty("id").GetString()!;
-                    return _collectionId;
+                    var id = col.GetProperty("id").GetString()!;
+                    _collectionIdCache[name] = id;
+                    if (name == _cfg.CollectionName) _collectionId = id;
+                    return id;
                 }
             }
 
-            logger.LogWarning("[Chroma] Collection '{Name}' not found after create.", _cfg.CollectionName);
+            logger.LogWarning("[Chroma] Collection '{Name}' not found.", name);
             return null;
         }
     }

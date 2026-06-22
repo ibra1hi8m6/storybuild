@@ -1,70 +1,248 @@
-<div dir="rtl" style="min-height:100vh;background:var(--bg-base);display:flex">
+<div dir="rtl" class="d-flex min-vh-100">
 
   <app-teacher-sidebar />
 
-  <main style="flex:1;padding:32px 24px;max-width:1000px">
+  <main class="flex-grow-1 p-4" style="max-width:1000px">
 
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
-      <a routerLink="/teacher/students"
-         style="color:var(--text-muted);text-decoration:none;font-size:13px;font-weight:700">← العودة</a>
-      <h2 style="font-size:24px;font-weight:900;margin:0">👤 {{ studentName() }}</h2>
+    <!-- Back + title -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <a routerLink="/teacher/students" class="fw-bold text-decoration-none small text-muted">← العودة</a>
+      <h2 class="fw-900 mb-0 fs-4">👤 {{ studentName() }}</h2>
     </div>
 
     @if (isLoading()) {
-      <div style="text-align:center;padding:60px;color:var(--text-muted)">جارٍ التحميل…</div>
+      <div class="text-center py-5 text-muted">جارٍ التحميل…</div>
     } @else if (error()) {
-      <div style="background:#FEF2F2;border:1.5px solid #FECACA;color:#DC2626;border-radius:14px;padding:16px">{{ error() }}</div>
+      <div class="alert alert-danger fw-bold">{{ error() }}</div>
     } @else if (data()) {
 
-      <!-- Stats -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:28px">
-        @for (stat of [
-          { icon:'⭐', val: data()!.stars,           label:'النجوم',              color:'#F59E0B' },
-          { icon:'📖', val: data()!.storiesRead,      label:'القصص',              color:'#8B5CF6' },
-          { icon:'✏️', val: data()!.lessonsCompleted, label:'الدروس',             color:'#2563EB' },
-          { icon:'🎯', val: data()!.examsCompleted,   label:'الاختبارات',          color:'#059669' },
-          { icon:'📊', val: data()!.avgScore,         label:'متوسط الدرجات %',    color:'#EC4899' }
-        ]; track stat.label) {
-          <div style="background:var(--bg-card);border-radius:16px;padding:18px;text-align:center;border:1.5px solid rgba(244,120,138,.08)">
-            <div style="font-size:26px">{{ stat.icon }}</div>
-            <div [style.color]="stat.color" style="font-size:28px;font-weight:900">{{ stat.val | number:'1.0-0' }}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">{{ stat.label }}</div>
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-4 fw-bold">
+        @for (tab of tabs; track tab.id) {
+          <li class="nav-item">
+            <button class="nav-link"
+                    [class.active]="activeTab() === tab.id"
+                    (click)="selectTab(tab.id)">
+              {{ tab.icon }} {{ tab.label }}
+            </button>
+          </li>
+        }
+      </ul>
+
+      <!-- ── Tab: Overview ───────────────────────────────────────────── -->
+      @if (activeTab() === 'overview') {
+
+        <!-- Stats -->
+        <div class="row g-3 mb-4">
+          @for (stat of [
+            { icon:'⭐', val: data()!.stars,           label:'النجوم',          color:'#F59E0B' },
+            { icon:'📖', val: data()!.storiesRead,      label:'القصص',           color:'#8B5CF6' },
+            { icon:'✏️', val: data()!.lessonsCompleted, label:'الدروس',          color:'#2563EB' },
+            { icon:'🎯', val: data()!.examsCompleted,   label:'الاختبارات',      color:'#059669' },
+            { icon:'📊', val: data()!.avgScore,         label:'متوسط الدرجات ٪', color:'#EC4899' }
+          ]; track stat.label) {
+            <div class="col-6 col-md-2">
+              <div class="card p-3 text-center h-100 border-0" style="border-radius:16px;background:var(--bg-card)">
+                <div style="font-size:22px">{{ stat.icon }}</div>
+                <div class="fw-900 fs-4" [style.color]="stat.color">{{ stat.val | number:'1.0-0' }}</div>
+                <div class="small text-muted fw-semibold mt-1">{{ stat.label }}</div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Top Stories -->
+        @if ((data()?.topStories?.length ?? 0) > 0) {
+          <div class="card p-4 mb-3">
+            <h5 class="fw-800 mb-3">📚 أفضل القصص</h5>
+            @for (s of data()!.topStories; track s.title) {
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <span class="fw-700 small">{{ s.title }}</span>
+                <span class="small text-muted">{{ s.avgScore | number:'1.0-0' }}٪</span>
+              </div>
+            }
           </div>
         }
-      </div>
 
-      <!-- Top Stories -->
-      @if ((data()?.topStories?.length ?? 0) > 0) {
-        <div style="background:var(--bg-card);border-radius:18px;padding:22px;margin-bottom:20px;border:1.5px solid rgba(244,120,138,.08)">
-          <h4 style="font-weight:800;margin-bottom:14px">📚 أفضل القصص</h4>
-          @for (s of data()!.topStories; track s.title) {
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F3F4F6">
-              <span style="font-weight:700;font-size:14px">{{ s.title }}</span>
-              <span style="font-size:13px;color:var(--text-muted)">{{ s.avgScore | number:'1.0-0' }}%</span>
-            </div>
+        <!-- Exam History -->
+        <div class="card p-4">
+          <h5 class="fw-800 mb-3">📝 سجل الاختبارات</h5>
+          @if ((data()?.examHistory?.length ?? 0) === 0) {
+            <p class="text-muted text-center py-3 small">لم يكمل الطالب أي اختبار بعد.</p>
+          } @else {
+            @for (exam of data()!.examHistory; track exam.storyTitle) {
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                  <div class="fw-800 small">{{ exam.storyTitle }}</div>
+                  <div class="text-muted" style="font-size:12px">{{ formatDate(exam.completedAt) }}</div>
+                </div>
+                <span class="fw-900 fs-5" [style.color]="scoreColor(exam.score)">{{ exam.score | number:'1.0-0' }}٪</span>
+              </div>
+            }
           }
         </div>
       }
 
-      <!-- Exam History -->
-      <div style="background:var(--bg-card);border-radius:18px;padding:22px;border:1.5px solid rgba(244,120,138,.08)">
-        <h4 style="font-weight:800;margin-bottom:14px">📝 سجل الاختبارات</h4>
-        @if ((data()?.examHistory?.length ?? 0) === 0) {
-          <p style="color:var(--text-muted);text-align:center;padding:24px">لم يكمل الطالب أي اختبار بعد.</p>
+      <!-- ── Tab: Writing ────────────────────────────────────────────── -->
+      @if (activeTab() === 'writing') {
+        @if (historyLoading()) {
+          <div class="text-center py-5 text-muted">جارٍ تحميل سجل الكتابة…</div>
+        } @else if (writingHistory().length === 0) {
+          <div class="card p-5 text-center text-muted">
+            <div style="font-size:48px" class="mb-3">✏️</div>
+            <p class="fw-bold mb-0">لا توجد محاولات كتابة مسجّلة بعد.</p>
+          </div>
         } @else {
-          @for (exam of data()!.examHistory; track exam.storyTitle) {
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #F3F4F6">
-              <div>
-                <div style="font-weight:800;font-size:14px">{{ exam.storyTitle }}</div>
-                <div style="font-size:12px;color:var(--text-muted)">{{ formatDate(exam.completedAt) }}</div>
+          <div class="d-flex flex-column gap-3">
+            @for (a of writingHistory(); track a.id) {
+              <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span class="badge rounded-pill fw-bold me-2"
+                          [class.bg-success]="a.isAccepted"
+                          [class.bg-danger]="!a.isAccepted">
+                      {{ a.isAccepted ? '✓ مقبول' : '✗ يحتاج مراجعة' }}
+                    </span>
+                    <span class="small text-muted">محاولة #{{ a.attemptNumber }}</span>
+                  </div>
+                  <span class="fw-900 fs-5" [style.color]="scoreColor(a.similarityScore)">
+                    {{ a.similarityScore | number:'1.0-0' }}٪
+                  </span>
+                </div>
+
+                <div class="row g-2 mb-2 small">
+                  <div class="col-md-6">
+                    <span class="text-muted fw-semibold">الجملة المطلوبة: </span>
+                    <span class="fw-bold amiri">{{ a.expectedSentence }}</span>
+                  </div>
+                  <div class="col-md-6">
+                    <span class="text-muted fw-semibold">ما كتبه الطالب: </span>
+                    <span class="amiri">{{ a.extractedText || '—' }}</span>
+                  </div>
+                </div>
+
+                @if (a.displayMessage) {
+                  <div class="alert mb-2 py-2 small fw-semibold"
+                       [class.alert-success]="a.isAccepted"
+                       [class.alert-warning]="!a.isAccepted">
+                    {{ a.displayMessage }}
+                  </div>
+                }
+
+                @if (a.mistakes.length > 0) {
+                  <div class="mb-2">
+                    <div class="fw-bold small text-danger mb-1">الأخطاء:</div>
+                    <div class="d-flex flex-wrap gap-1">
+                      @for (m of a.mistakes; track m.description) {
+                        <span class="badge rounded-pill bg-danger-subtle text-danger fw-semibold small">
+                          {{ m.description }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (a.tips.length > 0) {
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (tip of a.tips; track tip) {
+                      <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold small">
+                        💡 {{ tip }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                <div class="text-muted mt-2" style="font-size:11px">{{ formatDate(a.attemptedAt) }}</div>
               </div>
-              <span style="font-size:20px;font-weight:900" [style.color]="scoreColor(exam.score)">
-                {{ exam.score | number:'1.0-0' }}%
-              </span>
-            </div>
-          }
+            }
+          </div>
         }
-      </div>
+      }
+
+      <!-- ── Tab: Reading ────────────────────────────────────────────── -->
+      @if (activeTab() === 'reading') {
+        @if (historyLoading()) {
+          <div class="text-center py-5 text-muted">جارٍ تحميل سجل القراءة…</div>
+        } @else if (readingHistory().length === 0) {
+          <div class="card p-5 text-center text-muted">
+            <div style="font-size:48px" class="mb-3">🎤</div>
+            <p class="fw-bold mb-0">لا توجد تسجيلات قراءة بعد.</p>
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-3">
+            @for (r of readingHistory(); track r.recordingId) {
+              <div class="card p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span class="badge rounded-pill fw-bold me-2"
+                          [class.bg-success]="r.isAccepted"
+                          [class.bg-danger]="!r.isAccepted">
+                      {{ r.isAccepted ? '✓ ناجح' : '✗ يحتاج تحسيناً' }}
+                    </span>
+                    <span class="badge bg-secondary-subtle text-secondary fw-semibold small me-2">
+                      {{ r.pageType === 'Story' ? 'قصة' : 'درس' }}
+                    </span>
+                    <span class="small text-muted">محاولة #{{ r.attemptNumber }}</span>
+                  </div>
+                  <div class="text-end">
+                    <div class="fw-900 fs-5" [style.color]="scoreColor(r.accuracyScore)">
+                      {{ r.accuracyScore | number:'1.0-0' }}٪
+                    </div>
+                    <div class="small text-muted">{{ r.wcpm | number:'1.0-0' }} كلمة/دقيقة</div>
+                  </div>
+                </div>
+
+                <div class="row g-2 mb-2 small">
+                  <div class="col-md-6">
+                    <span class="text-muted fw-semibold">النص المطلوب: </span>
+                    <span class="fw-bold amiri">{{ r.expectedText }}</span>
+                  </div>
+                  <div class="col-md-6">
+                    <span class="text-muted fw-semibold">ما سُمِع: </span>
+                    <span class="amiri">{{ r.extractedText || '—' }}</span>
+                  </div>
+                </div>
+
+                @if (r.displayMessage) {
+                  <div class="alert mb-2 py-2 small fw-semibold"
+                       [class.alert-success]="r.isAccepted"
+                       [class.alert-warning]="!r.isAccepted">
+                    {{ r.displayMessage }}
+                  </div>
+                }
+
+                @if (r.mispronouncedWords.length > 0) {
+                  <div class="mb-2">
+                    <span class="fw-bold small text-danger me-1">كلمات بها أخطاء: </span>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      @for (w of r.mispronouncedWords; track w) {
+                        <span class="badge rounded-pill bg-danger-subtle text-danger fw-semibold small amiri">{{ w }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (r.tips.length > 0) {
+                  <div class="d-flex flex-wrap gap-1">
+                    @for (tip of r.tips; track tip) {
+                      <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold small">
+                        💡 {{ tip }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                @if (r.audioUrl) {
+                  <audio controls class="mt-2 w-100" style="height:36px" [src]="r.audioUrl"></audio>
+                }
+
+                <div class="text-muted mt-2" style="font-size:11px">{{ formatDate(r.createdAt) }}</div>
+              </div>
+            }
+          </div>
+        }
+      }
+
     }
   </main>
 </div>

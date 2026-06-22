@@ -29,10 +29,8 @@
       <!-- KPI row -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px">
         @for (kpi of [
-          { icon:'👨‍🎓', val: totalStudents(),  label:'إجمالي الطلاب',    color:'#F4788A' },
-          { icon:'👩‍🏫', val: totalTeachers(),  label:'إجمالي المعلمين',  color:'#8B5CF6' },
-          { icon:'✅',   val: activeThisWeek(), label:'نشط هذا الأسبوع', color:'#22C55E' },
-          { icon:'📊',   val: avgSchoolScore(),  label:'متوسط الدرجات %', color:'#F59E0B' },
+          { icon:'👨‍🎓', val: totalStudents(),        label:'إجمالي الطلاب',    color:'#F4788A' },
+          { icon:'📊',   val: avgSchoolScore(),        label:'متوسط الدرجات %', color:'#F59E0B' },
           { icon:'🏫',   val: classroomReport().length, label:'الفصول الدراسية', color:'#06B6D4' }
         ]; track kpi.label) {
           <div style="background:var(--bg-card);border-radius:16px;padding:18px;text-align:center;border:1.5px solid rgba(244,120,138,.08)">

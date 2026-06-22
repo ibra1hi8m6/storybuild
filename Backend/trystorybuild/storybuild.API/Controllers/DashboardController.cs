@@ -48,10 +48,18 @@ namespace storybuild.API.Controllers
         }
 
         [HttpGet("school")]
+        [Authorize(Roles = "SchoolAdmin")]
         [ProducesResponseType(typeof(SchoolDashboardDto), 200)]
         public async Task<IActionResult> GetSchool()
         {
-            var data = await dashboardService.GetSchoolDashboardAsync();
+            var adminId = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+
+            // SchoolCode is deterministically derived from the admin's user ID
+            var schoolCode = adminId.ToString("N")[..8].ToUpper();
+            var data = await dashboardService.GetSchoolDashboardAsync(schoolCode);
             return Ok(data);
         }
 

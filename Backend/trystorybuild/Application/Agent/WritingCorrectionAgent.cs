@@ -28,7 +28,6 @@ namespace Application.Agent
         {
             logger.LogInformation("[WritingAgent] Evaluating page {PageId} for {Child}", lessonPageId, childName);
 
-            // Read image bytes directly from the upload stream — no local disk save
             byte[] imageBytes;
             using (var ms = new MemoryStream())
             {
@@ -45,14 +44,13 @@ namespace Application.Agent
 
             var expectedSentence = page.Sentence;
             var base64           = Convert.ToBase64String(imageBytes);
-
-            var (extractedText, similarity, feedback) = await EvaluateWithGeminiAsync(base64, expectedSentence);
+            var geminiResult     = await EvaluateWithGeminiAsync(base64, expectedSentence);
 
             logger.LogInformation(
                 "[WritingAgent] Extracted: '{Text}' | Similarity: {Score:F1}%",
-                extractedText, similarity);
+                geminiResult.ExtractedText, geminiResult.Similarity);
 
-            var isAccepted = similarity >= AcceptanceThreshold;
+            var isAccepted = geminiResult.Similarity >= AcceptanceThreshold;
 
             if (isAccepted)
             {
@@ -66,7 +64,6 @@ namespace Application.Agent
                 }
             }
 
-            // Upload image to Cloudinary for permanent cloud storage
             var imageUrl = string.Empty;
             try
             {
@@ -78,62 +75,92 @@ namespace Application.Agent
                 logger.LogWarning(ex, "[WritingAgent] Cloudinary upload failed — storing empty path.");
             }
 
+            var attemptNumber = await writingAttemptRepository.CountByPageAsync(lessonPageId, childName) + 1;
+
             await writingAttemptRepository.SaveAsync(new WritingAttempt
             {
                 LessonPageId      = lessonPageId,
+                LessonId          = lessonId,
                 ChildName         = childName,
                 UploadedImagePath = imageUrl,
-                ExtractedText     = extractedText,
+                ExtractedText     = geminiResult.ExtractedText,
                 ExpectedSentence  = expectedSentence,
-                SimilarityScore   = similarity,
-                IsAccepted        = isAccepted
+                SimilarityScore   = geminiResult.Similarity,
+                IsAccepted        = isAccepted,
+                AttemptNumber     = attemptNumber,
+                DisplayMessage    = geminiResult.DisplayMessage,
+                SpokenFeedback    = geminiResult.SpokenFeedback,
+                MistakesJson      = JsonSerializer.Serialize(geminiResult.Mistakes),
+                TipsJson          = JsonSerializer.Serialize(geminiResult.Tips)
             });
 
-            return new WritingCorrectionResponse(extractedText, expectedSentence, similarity, isAccepted, feedback);
+            return new WritingCorrectionResponse(
+                geminiResult.ExtractedText, expectedSentence, geminiResult.Similarity,
+                isAccepted, geminiResult.DisplayMessage,
+                geminiResult.DisplayMessage, geminiResult.SpokenFeedback,
+                geminiResult.Mistakes, geminiResult.Tips);
         }
 
-        // ── Standalone canvas evaluation (new) ────────────────────────────────────
+        // ── Standalone canvas evaluation ──────────────────────────────────────────
         public async Task<WritingCorrectionResponse> EvaluateDirectAsync(
             string imageBase64,
             string expectedText)
         {
             logger.LogInformation("[WritingAgent] Direct canvas evaluation for: '{Expected}'", expectedText);
-            var (extractedText, similarity, feedback) = await EvaluateWithGeminiAsync(imageBase64, expectedText);
-            var isAccepted = similarity >= AcceptanceThreshold;
-            return new WritingCorrectionResponse(extractedText, expectedText, similarity, isAccepted, feedback);
+            var result     = await EvaluateWithGeminiAsync(imageBase64, expectedText);
+            var isAccepted = result.Similarity >= AcceptanceThreshold;
+            return new WritingCorrectionResponse(
+                result.ExtractedText, expectedText, result.Similarity,
+                isAccepted, result.DisplayMessage,
+                result.DisplayMessage, result.SpokenFeedback,
+                result.Mistakes, result.Tips);
         }
 
-        // ── Gemini 2.5 Flash vision ───────────────────────────────────────────────
-        private async Task<(string extracted, double similarity, string feedback)>
-            EvaluateWithGeminiAsync(string base64Image, string expectedSentence)
+        // ── Gemini 2.5 Flash vision — structured feedback ─────────────────────────
+        private async Task<GeminiWritingResult> EvaluateWithGeminiAsync(
+            string base64Image, string expectedSentence)
         {
             var apiKey = configuration["Gemini:ApiKey"];
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 logger.LogWarning("[WritingAgent] Gemini:ApiKey is not configured.");
-                return (string.Empty, 0, $"مفتاح Gemini API غير مهيأ. الجملة المطلوبة: {expectedSentence}");
+                return GeminiWritingResult.Fallback(expectedSentence);
             }
 
+            const int maxAttempts = 3;
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             try
             {
                 var prompt = $$"""
-                    You are an Arabic handwriting evaluator for children.
+                    You are an Arabic handwriting evaluator for children learning to write Arabic letters and words.
 
                     The child was asked to write: "{{expectedSentence}}"
 
-                    Look at the handwriting in the image.
-
-                    Return ONLY valid JSON — no markdown, no extra text:
+                    Analyze the handwriting image carefully and return ONLY valid JSON — no markdown, no extra text:
                     {
                       "detectedText": "",
                       "similarity": 0,
-                      "differences": []
+                      "displayMessage": "",
+                      "spokenFeedback": "",
+                      "mistakes": [
+                        { "type": "", "expected": "", "actual": "", "description": "" }
+                      ],
+                      "tips": []
                     }
 
                     Rules:
-                    - detectedText: exactly what you read from the image in Arabic, or "" if the canvas is empty
+                    - detectedText: exactly what you read from the image in Arabic, or "" if canvas is empty
                     - similarity: integer 0-100 (how closely the writing matches the expected sentence)
-                    - differences: short Arabic descriptions of specific mistakes; empty array [] if correct
+                    - displayMessage: short encouraging Arabic message shown on screen (1 sentence, max 60 chars)
+                      * if similarity >= 70: start with "أحسنت!" and praise the score
+                      * if similarity < 70: start with "حاول مرة أخرى!" and mention what to fix
+                    - spokenFeedback: same message but suitable for text-to-speech (no emojis, plain Arabic)
+                    - mistakes: list of specific mistakes; empty [] if correct
+                      * type: one of "missing_letter", "extra_letter", "wrong_letter", "wrong_diacritic", "spacing", "shape"
+                      * expected: what was expected (Arabic)
+                      * actual: what was written (Arabic)
+                      * description: one-line Arabic explanation for the child
+                    - tips: list of 1-3 short Arabic tip strings to help improve; empty [] if score >= 90
                     """;
 
                 var body = new
@@ -171,57 +198,77 @@ namespace Application.Agent
 
                 using var resultDoc = JsonDocument.Parse(jsonText);
                 var detected = resultDoc.RootElement.TryGetProperty("detectedText", out var d)
-                    ? (d.GetString() ?? string.Empty)
-                    : string.Empty;
+                    ? (d.GetString() ?? string.Empty) : string.Empty;
                 var sim = resultDoc.RootElement.TryGetProperty("similarity", out var s)
-                    ? Math.Clamp(s.GetDouble(), 0, 100)
-                    : 0.0;
+                    ? Math.Clamp(s.GetDouble(), 0, 100) : 0.0;
+                var displayMsg = resultDoc.RootElement.TryGetProperty("displayMessage", out var dm)
+                    ? (dm.GetString() ?? string.Empty) : string.Empty;
+                var spokenFb = resultDoc.RootElement.TryGetProperty("spokenFeedback", out var sf)
+                    ? (sf.GetString() ?? string.Empty) : string.Empty;
 
-                var isAccepted = sim >= AcceptanceThreshold;
-                var feedback = isAccepted
-                    ? $"أحسنت! كتبت الجملة بدقة {sim:F0}٪ 🌟"
-                    : $"حصلت على {sim:F0}٪ — حاول مرة أخرى! الجملة: {expectedSentence}";
+                var mistakes = new List<WritingMistakeDto>();
+                if (resultDoc.RootElement.TryGetProperty("mistakes", out var mArr) && mArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var m in mArr.EnumerateArray())
+                    {
+                        mistakes.Add(new WritingMistakeDto(
+                            m.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "",
+                            m.TryGetProperty("expected", out var e) ? e.GetString() ?? "" : "",
+                            m.TryGetProperty("actual", out var a) ? a.GetString() ?? "" : "",
+                            m.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : ""));
+                    }
+                }
 
-                return (detected, sim, feedback);
+                var tips = new List<string>();
+                if (resultDoc.RootElement.TryGetProperty("tips", out var tArr) && tArr.ValueKind == JsonValueKind.Array)
+                    foreach (var tip in tArr.EnumerateArray())
+                        if (tip.GetString() is string ts) tips.Add(ts);
+
+                if (string.IsNullOrWhiteSpace(displayMsg))
+                    displayMsg = sim >= AcceptanceThreshold
+                        ? $"أحسنت! كتبت الجملة بدقة {sim:F0}٪"
+                        : $"حاول مرة أخرى! حصلت على {sim:F0}٪";
+                if (string.IsNullOrWhiteSpace(spokenFb))
+                    spokenFb = displayMsg;
+
+                return new GeminiWritingResult(detected, sim, displayMsg, spokenFb, mistakes, tips);
+            }
+            catch (HttpRequestException ex) when (
+                attempt < maxAttempts &&
+                ex.StatusCode is System.Net.HttpStatusCode.ServiceUnavailable   // 503
+                                or System.Net.HttpStatusCode.TooManyRequests    // 429
+                                or System.Net.HttpStatusCode.InternalServerError) // 500
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // 2s, 4s
+                logger.LogWarning("[WritingAgent] Gemini {Status} on attempt {A}/{Max}. Retrying in {D}s.",
+                    ex.StatusCode, attempt, maxAttempts, delay.TotalSeconds);
+                await Task.Delay(delay);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[WritingAgent] Gemini evaluation failed.");
-                return (string.Empty, 0, $"تعذّر تحليل الكتابة. الجملة: {expectedSentence}");
+                logger.LogError(ex, "[WritingAgent] Gemini evaluation failed after {A} attempt(s).", attempt);
+                return GeminiWritingResult.Fallback(expectedSentence);
             }
+
+            // All retries exhausted
+            return GeminiWritingResult.Fallback(expectedSentence);
         }
 
-        // ── Local Levenshtein fallback (utility) ──────────────────────────────────
-        private static double ComputeLocalSimilarity(string expected, string actual)
-        {
-            if (string.IsNullOrWhiteSpace(expected) || string.IsNullOrWhiteSpace(actual)) return 0;
-            var e = NormalizeArabic(expected);
-            var a = NormalizeArabic(actual);
-            if (e == a) return 100.0;
-            int distance = Levenshtein(e, a);
-            int maxLen   = Math.Max(e.Length, a.Length);
-            return maxLen == 0 ? 100.0 : Math.Max(0, Math.Round((1.0 - (double)distance / maxLen) * 100.0, 1));
-        }
+    }
 
-        private static string NormalizeArabic(string text) =>
-            new string(text
-                .Where(c => !((c >= 'ً' && c <= 'ٟ') || c == 'ـ'))
-                .ToArray())
-            .Trim();
-
-        private static int Levenshtein(string s, string t)
-        {
-            int m = s.Length, n = t.Length;
-            var dp = new int[m + 1, n + 1];
-            for (int i = 0; i <= m; i++) dp[i, 0] = i;
-            for (int j = 0; j <= n; j++) dp[0, j] = j;
-            for (int i = 1; i <= m; i++)
-                for (int j = 1; j <= n; j++)
-                    dp[i, j] = s[i - 1] == t[j - 1]
-                        ? dp[i - 1, j - 1]
-                        : 1 + Math.Min(dp[i - 1, j - 1],
-                              Math.Min(dp[i - 1, j], dp[i, j - 1]));
-            return dp[m, n];
-        }
+    // ── Internal result record ────────────────────────────────────────────────────
+    internal record GeminiWritingResult(
+        string ExtractedText,
+        double Similarity,
+        string DisplayMessage,
+        string SpokenFeedback,
+        List<WritingMistakeDto> Mistakes,
+        List<string> Tips)
+    {
+        public static GeminiWritingResult Fallback(string expected) => new(
+            string.Empty, 0,
+            $"تعذّر تحليل الكتابة. الجملة: {expected}",
+            $"تعذّر تحليل الكتابة. الجملة: {expected}",
+            [], []);
     }
 }

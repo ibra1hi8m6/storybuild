@@ -20,12 +20,13 @@ namespace Application.DTOs
 
     // ── Student management ─────────────────────────────────────────────────────
     public record CreateStudentRequest(
-        string Name,
-        int    Age,
-        string Username,
-        int    ImagePin1,
-        int?   ImagePin2 = null,
-        int    Level     = 1);
+        string  Name,
+        int     Age,
+        string  Username,
+        int     ImagePin1,
+        int?    ImagePin2   = null,
+        int     Level       = 1,
+        string? AvatarEmoji = null);
 
     public record StudentLoginRequest(
         string Username,
@@ -38,14 +39,16 @@ namespace Application.DTOs
         string   Name,
         int      Level,
         bool     PlacementDone,
-        DateTime ExpiresAt);
+        DateTime ExpiresAt,
+        string?  AvatarEmoji = null);
 
     public record StudentProfileDto(
-        Guid   Id,
-        string Name,
-        int    Age,
-        string Username,
-        int    Level,
-        bool   PlacementDone,
-        string? AvatarUrl);
+        Guid    Id,
+        string  Name,
+        int     Age,
+        string  Username,
+        int     Level,
+        bool    PlacementDone,
+        string? AvatarUrl,
+        string? AvatarEmoji = null);
 }

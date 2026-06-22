@@ -50,6 +50,16 @@ namespace Infrastructure.Data
         // Messaging (Module D)
         public DbSet<Message> Messages => Set<Message>();
 
+        // Lesson page completion tracking
+        public DbSet<LessonPageCompletion> LessonPageCompletions => Set<LessonPageCompletion>();
+
+        // Phase 6 — Assignments & Analytics
+        public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
+        public DbSet<WeakLetterRecord> WeakLetterRecords => Set<WeakLetterRecord>();
+
+        // Phase 7 — Level history
+        public DbSet<StudentLevelHistory> StudentLevelHistories => Set<StudentLevelHistory>();
+
         // Placement test
         public DbSet<PlacementQuestion> PlacementQuestions => Set<PlacementQuestion>();
 

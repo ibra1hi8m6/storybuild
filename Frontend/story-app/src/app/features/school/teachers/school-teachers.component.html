@@ -90,7 +90,7 @@
         <table style="width:100%;border-collapse:collapse">
           <thead>
             <tr style="background:rgba(244,120,138,.05)">
-              @for (h of ['المعلم','المادة','الطلاب','متوسط الدرجات','تاريخ الانضمام']; track h) {
+              @for (h of ['المعلم','المادة','الطلاب','متوسط الدرجات','تاريخ الانضمام','']; track h) {
                 <th style="padding:14px 16px;font-size:13px;font-weight:800;color:var(--text-muted);text-align:right">{{ h }}</th>
               }
             </tr>
@@ -113,6 +113,11 @@
                   <span style="font-size:14px;font-weight:900" [style.color]="scoreColor(t.avgScore)">{{ t.avgScore }}%</span>
                 </td>
                 <td style="padding:14px 16px;font-size:12px;color:var(--text-muted)">{{ t.joinedAt }}</td>
+                <td style="padding:10px 16px">
+                  <button class="btn btn-outline-warning btn-sm fw-bold" (click)="openResetModal(t)">
+                    🔑 إعادة كلمة المرور
+                  </button>
+                </td>
               </tr>
             }
           </tbody>
@@ -121,6 +126,42 @@
     }
   </div>
 </div>
+
+<!-- Reset password modal -->
+@if (showResetModal()) {
+  <div class="modal d-block" tabindex="-1" (click)="closeResetModal()">
+    <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+      <div class="modal-content rounded-4" dir="rtl">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-800">🔑 إعادة تعيين كلمة المرور</h5>
+          <button type="button" class="btn-close" (click)="closeResetModal()"></button>
+        </div>
+        <div class="modal-body pt-1">
+          <p class="text-muted small mb-3">المعلم: <strong>{{ resetTeacherName }}</strong></p>
+
+          @if (resetError) {
+            <div class="alert alert-danger py-2 small">{{ resetError }}</div>
+          }
+          @if (resetSuccess) {
+            <div class="alert alert-success py-2 small fw-bold">{{ resetSuccess }}</div>
+          }
+
+          <label class="form-label fw-800 small">كلمة المرور الجديدة</label>
+          <input [(ngModel)]="resetNewPassword" type="text" class="form-control rounded-3 mb-3"
+                 placeholder="6 أحرف على الأقل" />
+        </div>
+        <div class="modal-footer border-0 gap-2">
+          <button class="btn btn-warning fw-800 flex-grow-1" (click)="confirmReset()" [disabled]="isResetting()">
+            @if (isResetting()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            ✅ تأكيد وإرسال بريد
+          </button>
+          <button class="btn btn-outline-secondary" (click)="closeResetModal()">إلغاء</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
 
 <style>
   .school-nav-active { background: var(--primary-gradient) !important; color: #fff !important; }

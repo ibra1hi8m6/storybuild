@@ -3,6 +3,7 @@ using Application.Interfaces;
 using Application.Mapping;
 using Domain.Entities;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -11,6 +12,7 @@ namespace storybuild.API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
+[Authorize(Roles = "SystemAdmin")]
 public class AdminController(
     IPdfImportService pdfImportService,
     IUploadedStoryService uploadedStoryService,
@@ -63,7 +65,7 @@ public class AdminController(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 9)
     {
-        var all = await lessonRepository.GetAllAsync(level);
+        var all = await lessonRepository.GetAllAsync(level, publishedOnly: false);
         var total = all.Count;
         var items = all
             .Skip((page - 1) * pageSize)
@@ -156,6 +158,73 @@ public class AdminController(
         if (lesson is null)
             return NotFound(new { error = "الكتاب غير موجود." });
         return Ok(LessonMapper.ToDetail(lesson));
+    }
+
+    // ── Publish / Unpublish lesson ─────────────────────────────────────────────
+    [HttpPost("books/{id:guid}/publish")]
+    public async Task<IActionResult> PublishLesson(Guid id)
+    {
+        var lesson = await db.Lessons.FindAsync(id);
+        if (lesson is null) return NotFound(new { error = "الدرس غير موجود." });
+        lesson.IsPublished = true;
+        lesson.Status = ContentStatus.Published;
+        await db.SaveChangesAsync();
+        return Ok(new { message = "تم نشر الدرس.", isPublished = true });
+    }
+
+    [HttpPost("books/{id:guid}/unpublish")]
+    public async Task<IActionResult> UnpublishLesson(Guid id)
+    {
+        var lesson = await db.Lessons.FindAsync(id);
+        if (lesson is null) return NotFound(new { error = "الدرس غير موجود." });
+        lesson.IsPublished = false;
+        lesson.Status = ContentStatus.Draft;
+        await db.SaveChangesAsync();
+        return Ok(new { message = "تم إلغاء نشر الدرس.", isPublished = false });
+    }
+
+    // ── Publish / Unpublish story ──────────────────────────────────────────────
+    [HttpPost("stories/{id:guid}/publish")]
+    public async Task<IActionResult> PublishStory(Guid id)
+    {
+        var story = await db.Stories.FindAsync(id);
+        if (story is null) return NotFound(new { error = "القصة غير موجودة." });
+        story.IsPublished = true;
+        story.Status = ContentStatus.Published;
+        await db.SaveChangesAsync();
+        return Ok(new { message = "تم نشر القصة.", isPublished = true });
+    }
+
+    [HttpPost("stories/{id:guid}/unpublish")]
+    public async Task<IActionResult> UnpublishStory(Guid id)
+    {
+        var story = await db.Stories.FindAsync(id);
+        if (story is null) return NotFound(new { error = "القصة غير موجودة." });
+        story.IsPublished = false;
+        story.Status = ContentStatus.Draft;
+        await db.SaveChangesAsync();
+        return Ok(new { message = "تم إلغاء نشر القصة.", isPublished = false });
+    }
+
+    // ── List all stories (admin) ────────────────────────────────────────────────
+    [HttpGet("stories")]
+    public async Task<IActionResult> GetAllStories()
+    {
+        var stories = await db.Stories
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new
+            {
+                id          = s.Id,
+                title       = s.Title,
+                childName   = s.ChildName,
+                isPublished = s.IsPublished,
+                status      = s.Status.ToString(),
+                source      = s.Source.ToString(),
+                isApproved  = s.IsApproved,
+                createdAt   = s.CreatedAt
+            })
+            .ToListAsync();
+        return Ok(stories);
     }
 
     // ── AI Settings ────────────────────────────────────────────────────────────
