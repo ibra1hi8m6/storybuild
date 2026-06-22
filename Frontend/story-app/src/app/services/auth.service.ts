@@ -14,12 +14,13 @@ export interface AuthResponse {
 }
 
 export interface StudentAuthResponse {
-  token:         string;
-  studentId:     string;
-  name:          string;
-  level:         number;
-  placementDone: boolean;
-  expiresAt:     string;
+  token:        string;
+  studentId:    string;
+  name:         string;
+  level:        number;
+  placementDone:boolean;
+  expiresAt:    string;
+  avatarEmoji?: string | null;
 }
 
 export interface StudentSummary {
@@ -30,15 +31,17 @@ export interface StudentSummary {
   level:         number;
   placementDone: boolean;
   avatarUrl:     string | null;
+  avatarEmoji?:  string | null;
 }
 
 export interface CreateStudentRequest {
-  name:      string;
-  age:       number;
-  username:  string;
-  imagePin1: number;
-  imagePin2: number | null;
-  level:     number;
+  name:         string;
+  age:          number;
+  username:     string;
+  imagePin1:    number;
+  imagePin2:    number | null;
+  level:        number;
+  avatarEmoji?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -113,9 +116,22 @@ export class AuthService {
     return this.http.patch<StudentAuthResponse>(`${this.api}/api/auth/students/${studentId}/level`, { level });
   }
 
+  // ── Student updates own level after placement test ─────────────────────────
+  updateMyLevel(level: number): Observable<any> {
+    return this.http.patch<any>(`${this.api}/api/auth/students/me/level`, { level });
+  }
+
   // ── School admin: get teachers belonging to this school ───────────────────
   getSchoolTeachers(): Observable<{ id: string; name: string; email: string }[]> {
     return this.http.get<{ id: string; name: string; email: string }[]>(`${this.api}/api/auth/school/teachers`);
+  }
+
+  // ── School admin: reset a teacher's password ──────────────────────────────
+  resetTeacherPassword(teacherId: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.api}/api/auth/school/teachers/${teacherId}/reset-password`,
+      { newPassword }
+    );
   }
 
   // ── Logout ─────────────────────────────────────────────────────────────────

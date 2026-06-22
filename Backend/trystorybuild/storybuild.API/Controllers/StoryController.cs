@@ -24,8 +24,15 @@ namespace storybuild.API.Controllers
                 string.IsNullOrWhiteSpace(request.Theme))
                 return BadRequest(new { error = "يرجى إرسال اسم الطفل والشخصية والموضوع." });
 
-            var result = await storyAgent.RunAsync(request);
-            return Ok(result);
+            try
+            {
+                var result = await storyAgent.RunAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "تعذّر توليد القصة. حاول مرة أخرى.", detail = ex.Message });
+            }
         }
 
         /// <summary>Load a previously generated story by ID.</summary>
@@ -44,7 +51,7 @@ namespace storybuild.API.Controllers
         [ProducesResponseType(typeof(List<GenerateStoryResponse>), 200)]
         public async Task<IActionResult> GetAll()
         {
-            var stories = await storyRepository.GetAllAsync();
+            var stories = await storyRepository.GetAllAsync(publishedOnly: true);
             return Ok(stories
                 .Where(s => s.Source == Domain.Entities.StorySource.AiGenerated)
                 .Select(StoryAgent.MapToResponse).ToList());

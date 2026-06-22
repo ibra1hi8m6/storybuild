@@ -1,12 +1,16 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace storybuild.API.Controllers;
 
 [ApiController]
 [Route("api/groups")]
+[Authorize]
 public class GroupsController(
     IStudentGroupRepository groupRepository,
     ILessonAssignmentRepository assignmentRepository,
@@ -67,15 +71,21 @@ public class GroupsController(
 
     // ── Assign lesson to student or group ──────────────────────────────────────
     [HttpPost("assign")]
+    [Authorize(Roles = "Teacher,SystemAdmin")]
     public async Task<IActionResult> AssignLesson([FromBody] AssignLessonRequest req)
     {
         if (req.TargetStudentId is null && req.TargetGroupId is null)
             return BadRequest(new { error = "يرجى تحديد طالب أو مجموعة." });
 
+        var teacherIdStr = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(teacherIdStr, out var teacherId))
+            return Unauthorized();
+
         var assignment = new LessonAssignment
         {
             LessonId        = req.LessonId,
-            TeacherId       = Guid.Empty, // caller should pass teacherId
+            TeacherId       = teacherId,
             TargetType      = req.TargetType,
             TargetStudentId = req.TargetStudentId,
             TargetGroupId   = req.TargetGroupId

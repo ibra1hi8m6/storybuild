@@ -76,9 +76,14 @@ namespace Infrastructure
             services.AddScoped<IRagPageChunkRepository,      RagPageChunkRepository>();
             services.AddScoped<IStudentGroupRepository,      StudentGroupRepository>();
             services.AddScoped<ILessonAssignmentRepository,  LessonAssignmentRepository>();
+            services.AddScoped<IAssignmentSubmissionRepository, AssignmentSubmissionRepository>();
+            services.AddScoped<IAnalyticsService,             AnalyticsService>();
 
             // ── Dashboard Service ──────────────────────────────────────────────────
             services.AddScoped<IDashboardService, DashboardService>();
+
+            // ── Email Service ──────────────────────────────────────────────────────
+            services.AddScoped<IEmailService, EmailService>();
 
             // ── RAG (Gemini embeddings + Chroma Cloud) ─────────────────────────────
             services.Configure<RagSettings>(configuration.GetSection("Rag"));

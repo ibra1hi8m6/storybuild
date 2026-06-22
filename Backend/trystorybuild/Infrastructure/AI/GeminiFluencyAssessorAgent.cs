@@ -45,15 +45,35 @@ namespace Infrastructure.AI
             var (accuracy, wcpm, mispronounced) =
                 ComputeMetrics(expectedText, extractedText, recording.DurationSeconds);
 
-            // 5. Save report
+            // 5. Compute attempt number for this page
+            var pastRecordings = await recordingRepository.GetByPageIdAsync(pageId, studentId);
+            var attemptNumber  = pastRecordings.Count; // already saved, so count includes this one
+
+            var isAccepted     = accuracy >= PassThreshold;
+            var displayMessage = isAccepted
+                ? $"أحسنت! قرأت الجملة بدقة {accuracy:F0}٪"
+                : $"حاول مرة أخرى! دقتك {accuracy:F0}٪";
+            var tips = new List<string>();
+            if (mispronounced.Count > 0 && !isAccepted)
+            {
+                tips.Add($"ركّز على الكلمات: {string.Join("، ", mispronounced.Take(3))}");
+                if (wcpm < 20) tips.Add("حاول القراءة بشكل أبطأ وبوضوح أكبر.");
+            }
+
+            // 6. Save report
             var report = await recordingRepository.SaveReportAsync(new FluencyReport
             {
-                RecordingId          = recording.Id,
-                WCPM                 = wcpm,
-                AccuracyScore        = accuracy,
-                ExpectedText         = expectedText,
-                ExtractedText        = extractedText,
-                MispronouncedWordsJson = JsonSerializer.Serialize(mispronounced)
+                RecordingId            = recording.Id,
+                WCPM                   = wcpm,
+                AccuracyScore          = accuracy,
+                ExpectedText           = expectedText,
+                ExtractedText          = extractedText,
+                MispronouncedWordsJson = JsonSerializer.Serialize(mispronounced),
+                IsAccepted             = isAccepted,
+                AttemptNumber          = attemptNumber,
+                DisplayMessage         = displayMessage,
+                SpokenFeedback         = displayMessage,
+                TipsJson               = JsonSerializer.Serialize(tips)
             });
 
             return new FluencyReportDto(
@@ -65,8 +85,10 @@ namespace Infrastructure.AI
                 expectedText,
                 extractedText,
                 mispronounced,
-                accuracy >= PassThreshold,
-                report.CreatedAt);
+                isAccepted,
+                report.CreatedAt,
+                displayMessage,
+                tips);
         }
 
         // ── Gemini Files API STT (upload → transcribe → delete) ──────────────────

@@ -56,8 +56,8 @@
       <!-- Feedback toast -->
       @if (showFeedback()) {
         <div class="feedback-toast animate-pop"
-          [class.good]="selected() === currentQ().correctAnswer"
-          [class.bad]="selected() !== currentQ().correctAnswer">
+          [class.good]="isCorrect(selected() ?? '')"
+          [class.bad]="!isCorrect(selected() ?? '')">
           {{ feedbackText() }}
         </div>
       }

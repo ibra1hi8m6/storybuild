@@ -50,7 +50,11 @@ namespace Application.DTOs
         List<TopContentDto> TopStories,
         List<TopContentDto> TopLessons,
         List<ExamHistoryDto> ExamHistory,
-        List<RecentActivityDto> RecentActivity);
+        List<RecentActivityDto> RecentActivity,
+        int Xp = 0,
+        int DailyPagesGoal = 3,
+        int DailyPagesDone = 0,
+        List<string>? EarnedBadges = null);
 
     // ── Teacher-view student card ─────────────────────────────────────────────
 
@@ -125,6 +129,54 @@ namespace Application.DTOs
         string Label,
         double Pct,
         string Color);
+
+    // ── Assignment DTOs ────────────────────────────────────────────────────────
+
+    public record AssignmentDto(
+        Guid AssignmentId,
+        Guid LessonId,
+        string LessonTitle,
+        string Letter,
+        int Level,
+        string TargetType,
+        DateTime AssignedAt,
+        bool IsSubmitted,
+        double WritingScore,
+        bool IsComplete);
+
+    public record AssignmentSubmissionDto(
+        Guid SubmissionId,
+        Guid AssignmentId,
+        Guid StudentId,
+        string ChildName,
+        int PagesCompleted,
+        int TotalPages,
+        double WritingScore,
+        bool IsComplete,
+        DateTime SubmittedAt);
+
+    // ── Analytics DTOs ─────────────────────────────────────────────────────────
+
+    public record WeakLetterDto(
+        string Letter,
+        int Attempts,
+        int Correct,
+        double Accuracy,
+        string ActivityType,
+        DateTime LastSeenAt);
+
+    public record StudentAnalyticsDto(
+        Guid StudentId,
+        string ChildName,
+        int Level,
+        double OverallAccuracy,
+        List<WeakLetterDto> WeakLetters);
+
+    public record AnalyticsSummaryDto(
+        int TotalStudents,
+        double ClassAvgAccuracy,
+        List<StudentAnalyticsDto> Students,
+        List<WeakLetterDto> MostCommonWeakLetters);
 
     // ── Level Progress (for /levels page) ────────────────────────────────────
 

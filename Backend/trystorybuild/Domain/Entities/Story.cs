@@ -16,6 +16,10 @@ namespace Domain.Entities
         public StorySource Source { get; set; } = StorySource.AiGenerated;
         public string? CoverImagePath { get; set; }
 
+        // Content lifecycle
+        public bool IsPublished { get; set; } = true;
+        public ContentStatus Status { get; set; } = ContentStatus.Published;
+
         public List<StoryPage> Pages { get; set; } = new();
         public List<Exam> Exams { get; set; } = new();
         public List<StudentProgress> Progress { get; set; } = new();

@@ -63,6 +63,48 @@ namespace Infrastructure.Migrations
                     b.ToTable("Annotations");
                 });
 
+            modelBuilder.Entity("Domain.Entities.AssignmentSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChildName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsComplete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NotesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PagesCompleted")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalPages")
+                        .HasColumnType("int");
+
+                    b.Property<double>("WritingScore")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.ToTable("AssignmentSubmissions");
+                });
+
             modelBuilder.Entity("Domain.Entities.AudioRecording", b =>
                 {
                     b.Property<Guid>("Id")
@@ -168,8 +210,15 @@ namespace Infrastructure.Migrations
                     b.Property<double>("AccuracyScore")
                         .HasColumnType("float");
 
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DisplayMessage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ExpectedText")
                         .IsRequired()
@@ -179,12 +228,23 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsAccepted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("MispronouncedWordsJson")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("RecordingId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SpokenFeedback")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TipsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("WCPM")
                         .HasColumnType("float");
@@ -264,6 +324,9 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsGenerated")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Letter")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -280,6 +343,9 @@ namespace Infrastructure.Migrations
                     b.Property<string>("PromptText")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -331,6 +397,9 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ChromaId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -341,6 +410,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsCoverPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEmbedded")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsUnlocked")
@@ -362,6 +434,33 @@ namespace Infrastructure.Migrations
                     b.HasIndex("LessonId");
 
                     b.ToTable("LessonPages");
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonPageCompletion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChildName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("LessonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LessonPageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("WritingSubmitted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LessonPageCompletions");
                 });
 
             modelBuilder.Entity("Domain.Entities.LessonVocabulary", b =>
@@ -690,18 +789,23 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("CoverImagePath")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
-                    b.Property<int>("Source")
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("CoverImagePath")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("Theme")
                         .IsRequired()
@@ -764,6 +868,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Age")
                         .HasColumnType("int");
 
+                    b.Property<string>("AvatarEmoji")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -805,6 +912,10 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("WeaknessMapJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -889,6 +1000,44 @@ namespace Infrastructure.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("StudentGroupMembers");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudentLevelHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedByRole")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ChangedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChildName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NewLevel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreviousLevel")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StudentLevelHistories");
                 });
 
             modelBuilder.Entity("Domain.Entities.StudentProgress", b =>
@@ -993,6 +1142,41 @@ namespace Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Domain.Entities.WeakLetterRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChildName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Correct")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Letter")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WeakLetterRecords");
+                });
+
             modelBuilder.Entity("Domain.Entities.WordJournalEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1027,6 +1211,9 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("AttemptedAt")
                         .HasColumnType("datetime2");
 
@@ -1034,6 +1221,10 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DisplayMessage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ExpectedSentence")
                         .IsRequired()
@@ -1048,11 +1239,29 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsAccepted")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("LessonPageId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("MistakesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("SimilarityScore")
                         .HasColumnType("float");
+
+                    b.Property<string>("SpokenFeedback")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TipsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UploadedImagePath")
                         .IsRequired()
@@ -1064,6 +1273,17 @@ namespace Infrastructure.Migrations
                     b.HasIndex("LessonPageId");
 
                     b.ToTable("WritingAttempts");
+                });
+
+            modelBuilder.Entity("Domain.Entities.AssignmentSubmission", b =>
+                {
+                    b.HasOne("Domain.Entities.LessonAssignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
                 });
 
             modelBuilder.Entity("Domain.Entities.ClassroomStudent", b =>

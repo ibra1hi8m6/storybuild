@@ -66,6 +66,7 @@ export class LoginComponent {
 
   // ── Adult submit ────────────────────────────────────────────────────────────
   submitAdult(): void {
+    if (this.isLoading()) return;
     if (!this.adultForm.email || !this.adultForm.password) {
       this.error.set('يرجى ملء جميع الحقول.'); return;
     }
@@ -87,6 +88,7 @@ export class LoginComponent {
 
   // ── Student PIN submit ──────────────────────────────────────────────────────
   submitStudentPin(): void {
+    if (this.isLoading()) return;
     const pins = this.selectedPins();
     if (pins.length < 1) { this.error.set('يرجى اختيار رمز صورة واحد على الأقل.'); return; }
 
@@ -95,7 +97,7 @@ export class LoginComponent {
 
     this.auth.studentLogin(this.studentUsername.trim(), pins[0], pins[1] ?? null).subscribe({
       next: res => {
-        this.state.setUser({ id: res.studentId, name: res.name, role: 'student', level: res.level });
+        this.state.setUser({ id: res.studentId, name: res.name, role: 'student', level: res.level, avatar: res.avatarEmoji ?? undefined });
         this.state.setChildName(res.name);
         this.isLoading.set(false);
         if (!res.placementDone) {

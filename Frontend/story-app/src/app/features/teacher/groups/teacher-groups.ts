@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
+import { AuthService, StudentSummary } from '../../../services/auth.service';
 import { StudentGroupDto, LessonSummary, AssignLessonRequest } from '../../../models/story.models';
 
 @Component({
@@ -15,21 +16,23 @@ import { StudentGroupDto, LessonSummary, AssignLessonRequest } from '../../../mo
 export class TeacherGroupsComponent implements OnInit {
   private readonly svc   = inject(StoryService);
   private readonly state = inject(AppStateService);
+  private readonly auth  = inject(AuthService);
 
-  teacherId = signal('');
-  groups    = signal<StudentGroupDto[]>([]);
-  loading   = signal(false);
-  error     = signal('');
-  message   = signal('');
+  teacherId  = signal('');
+  groups     = signal<StudentGroupDto[]>([]);
+  myStudents = signal<StudentSummary[]>([]);
+  loading    = signal(false);
+  error      = signal('');
+  message    = signal('');
 
   // Create group
   newGroupName = '';
 
-  // Add member
+  // Add member (stores selected studentId per group)
   addStudentId: { [groupId: string]: string } = {};
 
   // Assign lesson
-  lessons  = signal<LessonSummary[]>([]);
+  lessons    = signal<LessonSummary[]>([]);
   assignForm: { [groupId: string]: { lessonId: string; type: 'Student' | 'Group'; studentId: string } } = {};
 
   ngOnInit(): void {
@@ -38,6 +41,7 @@ export class TeacherGroupsComponent implements OnInit {
       this.teacherId.set(user.id);
       this.loadGroups();
       this.loadLessons();
+      this.auth.getMyStudents().subscribe({ next: s => this.myStudents.set(s) });
     }
   }
 

@@ -29,6 +29,13 @@ namespace Infrastructure.Services
                 ? progress.Where(p => p.ExamCompleted).Average(p => p.ScorePercentage) : 0;
             int writingAccepted  = writing.Count(w => w.IsAccepted);
             int stars            = CalculateStars(progress, writing);
+            int xp               = stars * 10;
+
+            var today          = DateTime.UtcNow.Date;
+            int dailyPagesDone = await db.LessonPageCompletions
+                .CountAsync(c => c.ChildName == name && c.CompletedAt >= today);
+
+            var badges = ComputeBadges(storiesRead, lessonsCompleted, writingAccepted, stars, xp);
 
             return new StudentDashboardDto(
                 name, stars,
@@ -43,7 +50,11 @@ namespace Infrastructure.Services
                 await GetStudentTopContentAsync(name, storyOnly: true),
                 await GetStudentTopContentAsync(name, storyOnly: false),
                 await BuildExamHistoryAsync(name),
-                await BuildRecentActivityAsync(name));
+                await BuildRecentActivityAsync(name),
+                Xp: xp,
+                DailyPagesGoal: 3,
+                DailyPagesDone: dailyPagesDone,
+                EarnedBadges: badges);
         }
 
         // ── Parent ────────────────────────────────────────────────────────────
@@ -108,10 +119,12 @@ namespace Infrastructure.Services
                 .DistinctBy(e => e.Name)
                 .ToList();
             var childNames   = childEntries.Select(e => e.Name).ToList();
-            var allProgress  = await db.StudentProgress.Where(p => p.ExamCompleted).ToListAsync();
+            var allProgress  = await db.StudentProgress
+                .Where(p => p.ExamCompleted && childNames.Contains(p.ChildName))
+                .ToListAsync();
             var cutoff       = DateTime.UtcNow.AddDays(-7);
             int activeWeek   = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff)
+                .Where(p => p.LastUpdatedAt >= cutoff && childNames.Contains(p.ChildName))
                 .Select(p => p.ChildName).Distinct().CountAsync();
             double avgScore  = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
 
@@ -132,16 +145,35 @@ namespace Infrastructure.Services
         }
 
         // ── School ────────────────────────────────────────────────────────────
-        public async Task<SchoolDashboardDto> GetSchoolDashboardAsync()
+        public async Task<SchoolDashboardDto> GetSchoolDashboardAsync(string schoolCode)
         {
-            var allProgress   = await db.StudentProgress.Where(p => p.ExamCompleted).ToListAsync();
-            var cutoff        = DateTime.UtcNow.AddDays(-7);
-            int activeWeek    = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff)
+            // Scope to this school only
+            var schoolTeacherIds = await db.Teachers
+                .Where(t => t.SchoolCode == schoolCode)
+                .Select(t => t.Id)
+                .ToListAsync();
+
+            int totalTeachers = await db.Users
+                .CountAsync(u => schoolTeacherIds.Contains(u.Id) && u.IsActive);
+
+            int totalStudents = await db.Students
+                .CountAsync(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value));
+
+            var schoolChildNames = await db.Students
+                .Where(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value))
+                .Select(s => s.Name)
+                .ToListAsync();
+
+            var allProgress = await db.StudentProgress
+                .Where(p => p.ExamCompleted && schoolChildNames.Contains(p.ChildName))
+                .ToListAsync();
+
+            var cutoff     = DateTime.UtcNow.AddDays(-7);
+            int activeWeek = await db.StudentProgress
+                .Where(p => p.LastUpdatedAt >= cutoff && schoolChildNames.Contains(p.ChildName))
                 .Select(p => p.ChildName).Distinct().CountAsync();
-            double avgScore   = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
-            int totalTeachers = await db.Users.CountAsync(u => u.Role == UserRole.Teacher && u.IsActive);
-            int totalStudents = await db.Students.CountAsync();
+
+            double avgScore = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
 
             var topStories    = await BuildTopStoriesAsync();
             var topLessons    = await BuildTopLessonsAsync();
@@ -176,6 +208,10 @@ namespace Infrastructure.Services
         {
             var name = childName.Trim();
 
+            // Placement level unlocks all levels up to and including it
+            var student      = await db.Students.FirstOrDefaultAsync(s => s.Name == name);
+            int placementLvl = student?.Level ?? 1;
+
             var doneProgress = await db.StudentProgress
                 .Where(p => p.ChildName == name && p.LessonId.HasValue && p.ExamCompleted)
                 .Include(p => p.Lesson)
@@ -194,8 +230,7 @@ namespace Infrastructure.Services
                 new { Level=3, Title="الجمل والقصص",      Subtitle="اقرأ واكتب جملاً وقصصاً", Icon="📚", Tag="جمل"  },
             };
 
-            var result       = new List<LevelProgressDto>();
-            int prevComplete = 0;
+            var result = new List<LevelProgressDto>();
 
             foreach (var d in defs)
             {
@@ -204,7 +239,7 @@ namespace Infrastructure.Services
                 int total     = levelCounts.FirstOrDefault(x => x.Level == d.Level)?.Total ?? 0;
                 double avg    = lp.Any() ? lp.Average(p => p.ScorePercentage) : 0;
                 int stars     = lp.Sum(p => p.ScorePercentage >= 90 ? 3 : p.ScorePercentage >= 70 ? 2 : p.ScorePercentage >= 50 ? 1 : 0);
-                bool locked   = d.Level > 1 && prevComplete == 0;
+                bool locked   = d.Level > placementLvl && completed == 0;
 
                 result.Add(new LevelProgressDto(
                     d.Level, d.Title, d.Subtitle, d.Icon,
@@ -212,9 +247,7 @@ namespace Infrastructure.Services
                     locked, stars, total * 3,
                     completed, total,
                     Math.Round(avg, 1),
-                    locked ? $"أكمل المستوى {d.Level - 1} لفتحه" : null));
-
-                prevComplete = completed;
+                    locked ? $"أكمل دروس المستوى {d.Level - 1} للوصول إليه" : null));
             }
             return result;
         }
@@ -507,5 +540,21 @@ namespace Infrastructure.Services
 
         private static string GetPerformanceLevel(double avg) =>
             avg >= 80 ? "ممتاز" : avg >= 50 ? "جيد" : "يحتاج تحسين";
+
+        private static List<string> ComputeBadges(
+            int storiesRead, int lessonsCompleted, int writingAccepted, int stars, int xp)
+        {
+            var earned = new List<string>();
+            if (storiesRead >= 1)       earned.Add("first_story");
+            if (storiesRead >= 5)       earned.Add("story_explorer");
+            if (lessonsCompleted >= 1)  earned.Add("first_lesson");
+            if (lessonsCompleted >= 10) earned.Add("lesson_master");
+            if (writingAccepted >= 1)   earned.Add("first_writing");
+            if (writingAccepted >= 10)  earned.Add("calligraphy_star");
+            if (stars >= 10)            earned.Add("star_collector");
+            if (xp >= 100)              earned.Add("xp_100");
+            if (xp >= 500)              earned.Add("xp_500");
+            return earned;
+        }
     }
 }

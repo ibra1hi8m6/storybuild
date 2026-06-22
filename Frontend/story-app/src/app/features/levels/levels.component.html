@@ -9,6 +9,29 @@
       <p class="text-muted mb-0">اختر مستواك وواصل رحلتك في اللغة العربية</p>
     </div>
 
+    <!-- Level completion / retake banner -->
+    @if (isCurrentLevelComplete()) {
+      <div class="alert alert-success d-flex align-items-center gap-3 mb-4 rounded-4 shadow-sm">
+        <span class="fs-2">🎓</span>
+        <div class="flex-grow-1">
+          <div class="fw-800 fs-6">أكملت جميع دروس المستوى!</div>
+          <div class="text-muted small">هل أنت مستعد لاختبار مستوى أعلى؟</div>
+          @if (retakeMsg()) {
+            <div class="fw-bold mt-1 text-success">{{ retakeMsg() }}</div>
+          }
+          @if (retakeError()) {
+            <div class="fw-bold mt-1 small text-danger">{{ retakeError() }}</div>
+          }
+        </div>
+        <button class="btn btn-success fw-800 rounded-pill px-4"
+                [disabled]="retakeLoading() || !!retakeMsg()"
+                (click)="requestRetake()">
+          @if (retakeLoading()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+          ارفع مستواك 🚀
+        </button>
+      </div>
+    }
+
     <!-- Level cards -->
     @if (isLoading()) {
       <div class="d-flex justify-content-center py-5">

@@ -71,7 +71,7 @@ namespace Application.Interfaces
     {
         Task<Story> SaveAsync(Story story);
         Task<Story?> GetByIdAsync(Guid id);
-        Task<List<Story>> GetAllAsync();
+        Task<List<Story>> GetAllAsync(bool publishedOnly = false);
         Task<List<Story>> GetByChildNameAsync(string childName);
         Task<bool> DeleteAsync(Guid id);
     }
@@ -81,8 +81,8 @@ namespace Application.Interfaces
     {
         Task<Lesson> SaveAsync(Lesson lesson);
         Task<Lesson?> GetByIdAsync(Guid id);
-        Task<List<Lesson>> GetByLevelAsync(int level);
-        Task<List<Lesson>> GetAllAsync(int? level = null);
+        Task<List<Lesson>> GetByLevelAsync(int level, bool publishedOnly = true);
+        Task<List<Lesson>> GetAllAsync(int? level = null, bool publishedOnly = false);
         Task<bool> DeleteAsync(Guid id);
         Task<bool> UpdatePageSentenceAsync(Guid pageId, string sentence);
         Task<Lesson> CreateManualAsync(Lesson lesson);
@@ -108,6 +108,8 @@ namespace Application.Interfaces
     public interface IWritingAttemptRepository
     {
         Task<WritingAttempt> SaveAsync(WritingAttempt attempt);
+        Task<List<WritingAttempt>> GetByChildNameAsync(string childName, int take = 50);
+        Task<int> CountByPageAsync(Guid pageId, string childName);
     }
 
     // ── Auth Service ───────────────────────────────────────────────────────────────
@@ -194,14 +196,38 @@ namespace Application.Interfaces
             CancellationToken ct = default);
     }
 
+    // ── Email Service ──────────────────────────────────────────────────────────────
+    public interface IEmailService
+    {
+        Task SendTeacherWelcomeAsync(string toEmail, string teacherName, string password);
+        Task SendTeacherPasswordResetAsync(string toEmail, string teacherName, string newPassword);
+    }
+
     // ── Dashboard Service ──────────────────────────────────────────────────────────
     public interface IDashboardService
     {
         Task<StudentDashboardDto?> GetStudentDashboardAsync(string childName);
         Task<ParentDashboardDto?> GetParentDashboardAsync(string childName);
         Task<TeacherDashboardDto> GetTeacherDashboardAsync(Guid teacherId);
-        Task<SchoolDashboardDto> GetSchoolDashboardAsync();
+        Task<SchoolDashboardDto> GetSchoolDashboardAsync(string schoolCode);
         Task<List<string>> GetKnownChildNamesAsync();
         Task<List<LevelProgressDto>> GetLevelProgressAsync(string childName);
+    }
+
+    // ── Assignment Submission Repository ───────────────────────────────────────────
+    public interface IAssignmentSubmissionRepository
+    {
+        Task<Domain.Entities.AssignmentSubmission> SaveAsync(Domain.Entities.AssignmentSubmission submission);
+        Task<Domain.Entities.AssignmentSubmission?> GetByAssignmentAndStudentAsync(Guid assignmentId, Guid studentId);
+        Task<List<Domain.Entities.AssignmentSubmission>> GetByAssignmentAsync(Guid assignmentId);
+        Task<List<Domain.Entities.AssignmentSubmission>> GetByStudentAsync(Guid studentId);
+    }
+
+    // ── Analytics Service ──────────────────────────────────────────────────────────
+    public interface IAnalyticsService
+    {
+        Task<List<Domain.Entities.WeakLetterRecord>> GetWeakLettersAsync(Guid studentId);
+        Task UpsertWeakLetterAsync(Guid studentId, string childName, string letter, bool correct, string activityType);
+        Task<AnalyticsSummaryDto> GetClassAnalyticsAsync(Guid teacherId);
     }
 }

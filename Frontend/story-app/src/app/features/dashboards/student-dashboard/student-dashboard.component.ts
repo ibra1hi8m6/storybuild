@@ -21,6 +21,7 @@ export class StudentDashboardComponent implements OnInit {
   readonly data      = signal<any>(null);
   nameInput          = this.state.childName() || '';
 
+  readonly Math     = Math;
   readonly weekDays = ['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
 
   readonly weekActivity   = computed(() => this.data()?.weeklyActivity as number[] ?? [0,0,0,0,0,0,0]);
@@ -76,7 +77,8 @@ export class StudentDashboardComponent implements OnInit {
     });
   }
 
-  openBook(id: string): void { this.router.navigate(['/books', id, 'read']); }
+  openBook(id: string):    void { this.router.navigate(['/books', id, 'read']); }
+  openLesson(id: string): void { this.router.navigate(['/lessons', id]); }
 
   logout(): void {
     this.state.logout();
