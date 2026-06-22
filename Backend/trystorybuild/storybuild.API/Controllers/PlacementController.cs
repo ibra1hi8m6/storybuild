@@ -73,7 +73,8 @@ namespace storybuild.API.Controllers
                 q.Id, q.Part, q.Order,
                 q.QuestionText, q.ImageContent,
                 options.Select(o => new PlacementOptionDto(o.Key, o.Emoji, o.Label)).ToList(),
-                q.AudioText);
+                q.AudioText,
+                q.CorrectAnswer);
         }
 
         // ── POST /api/placement/retake ─────────────────────────────────────────

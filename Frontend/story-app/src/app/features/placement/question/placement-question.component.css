@@ -36,7 +36,7 @@
   z-index: 10;
 }
 .feedback-toast.good { background: #F0FFF4; color: #16A34A; box-shadow: 0 4px 16px rgba(34,197,94,.2); }
-.feedback-toast.bad  { background: #EEF2FF; color: #4F46E5; box-shadow: 0 4px 16px rgba(79,70,229,.15); }
+.feedback-toast.bad  { background: #ffeef7; color: #cb4a6f; box-shadow: 0 4px 16px rgba(229, 70, 200, 0.15); }
 
 .audio-btn.playing { animation: pulse-audio 1s ease infinite; }
 

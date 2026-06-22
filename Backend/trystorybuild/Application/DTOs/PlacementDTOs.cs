@@ -7,7 +7,8 @@ namespace Application.DTOs
         string QuestionText,
         string ImageContent,
         List<PlacementOptionDto> Options,
-        string AudioText);
+        string AudioText,
+        string CorrectAnswer);
 
     public record PlacementOptionDto(
         string Key,
