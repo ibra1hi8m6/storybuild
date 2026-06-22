@@ -158,7 +158,6 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
             .AnyAsync(cs => cs.ClassroomId == id && cs.StudentId == req.StudentId);
         if (exists) return Ok(new { message = "Already enrolled." });
 
-        student.TeacherId = classroom.TeacherId;
         db.ClassroomStudents.Add(new ClassroomStudent { ClassroomId = id, StudentId = req.StudentId });
         await db.SaveChangesAsync();
         return Ok(new { message = "Student added.", studentId = student.Id, name = student.Name });

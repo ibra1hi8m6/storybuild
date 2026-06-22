@@ -8,12 +8,14 @@ import {
   LessonSummary, LessonDetail, ImportBookResponse,
   KnowledgeDocumentDto, RagSearchResult, GenerateLessonRequest,
   IngestDocumentResponse,
-  StudentDashboardDto, ParentDashboardDto, TeacherDashboardDto, SchoolDashboardDto, LevelProgressDto,
+  StudentDashboardDto, ParentDashboardDto, TeacherDashboardDto, SchoolDashboardDto, LevelProgressDto, WeaknessMap,
   PdfDocumentDto, PdfDocumentDetailDto, EmbedResultDto, PdfLibraryStatsDto,
   AdminBooksPageDto, CreateManualBookRequest,
   RagPageChunkDto, GenerateLessonV2Request,
   StudentGroupDto, AssignLessonRequest, LessonAssignmentDto,
-  UploadedStoryDto
+  UploadedStoryDto,
+  WritingAttemptHistory, ReadingAttemptHistory,
+  AssignmentDto, AssignmentSubmissionDto, AnalyticsSummaryDto, WeakLetterDto, TeacherAssignmentOverview
 } from '../models/story.models';
 import { environment } from '../../environments/environment';
 
@@ -99,6 +101,16 @@ export class StoryService {
     });
   }
 
+  getWritingHistory(childName: string, take = 30): Observable<WritingAttemptHistory[]> {
+    return this.http.get<WritingAttemptHistory[]>(
+      `${this.api}/api/writing/history/${encodeURIComponent(childName)}?take=${take}`);
+  }
+
+  getReadingHistory(childName: string, take = 30): Observable<ReadingAttemptHistory[]> {
+    return this.http.get<ReadingAttemptHistory[]>(
+      `${this.api}/api/fluency/history/${encodeURIComponent(childName)}?take=${take}`);
+  }
+
   // ── Lessons ────────────────────────────────────────────────────────────────
   getLessonsByLevel(level: number): Observable<LessonSummary[]> {
     return this.http.get<LessonSummary[]>(`${this.api}/api/lessons?level=${level}`);
@@ -172,6 +184,22 @@ export class StoryService {
     return this.http.delete<void>(`${this.api}/api/admin/books/${id}`);
   }
 
+  publishLesson(id: string): Observable<any> {
+    return this.http.post(`${this.api}/api/admin/books/${id}/publish`, {});
+  }
+
+  unpublishLesson(id: string): Observable<any> {
+    return this.http.post(`${this.api}/api/admin/books/${id}/unpublish`, {});
+  }
+
+  publishStory(id: string): Observable<any> {
+    return this.http.post(`${this.api}/api/admin/stories/${id}/publish`, {});
+  }
+
+  unpublishStory(id: string): Observable<any> {
+    return this.http.post(`${this.api}/api/admin/stories/${id}/unpublish`, {});
+  }
+
   updateBookPageSentence(bookId: string, pageId: string, sentence: string): Observable<void> {
     return this.http.patch<void>(
       `${this.api}/api/admin/books/${bookId}/pages/${pageId}/sentence`,
@@ -198,6 +226,20 @@ export class StoryService {
     scorePercentage: number; examCompleted: boolean;
   }): Observable<any> {
     return this.http.put<any>(`${this.api}/api/progress/lesson`, req);
+  }
+
+  markPageDone(childName: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> {
+    return this.http.post<void>(`${this.api}/api/progress/page`, {
+      childName, lessonId, lessonPageId, writingSubmitted
+    });
+  }
+
+  getLessonPageProgress(lessonId: string, childName: string): Observable<{ completedPageIds: string[]; completedCount: number; totalPages: number }> {
+    return this.http.get<any>(`${this.api}/api/progress/lesson/${lessonId}/${childName}`);
+  }
+
+  getCurrentLesson(childName: string): Observable<{ lessonId: string | null; lessonTitle: string | null; currentPage: number; totalPages: number; level: number }> {
+    return this.http.get<any>(`${this.api}/api/progress/current/${childName}`);
   }
 
   // ── RAG ────────────────────────────────────────────────────────────────────
@@ -237,6 +279,14 @@ export class StoryService {
 
   getParentDashboard(childName: string): Observable<ParentDashboardDto> {
     return this.http.get<ParentDashboardDto>(`${this.api}/api/dashboard/parent/${childName}`);
+  }
+
+  getWeaknessMap(childName: string): Observable<WeaknessMap> {
+    return this.http.get<WeaknessMap>(`${this.api}/api/progress/weakness/${childName}`);
+  }
+
+  requestPlacementRetake(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.api}/api/placement/retake`, {});
   }
 
   getTeacherDashboard(): Observable<TeacherDashboardDto> {
@@ -463,5 +513,47 @@ export class StoryService {
 
   deleteUploadedStory(id: string): Observable<void> {
     return this.http.delete<void>(`${this.api}/api/admin/uploaded-stories/${id}`);
+  }
+
+  // ── Assignments ────────────────────────────────────────────────────────────
+  getStudentAssignments(studentId: string): Observable<AssignmentDto[]> {
+    return this.http.get<AssignmentDto[]>(`${this.api}/api/assignments/student/${studentId}`);
+  }
+
+  submitAssignment(assignmentId: string, body: {
+    studentId: string; childName: string;
+    pagesCompleted: number; totalPages: number;
+    writingScore: number; isComplete: boolean;
+  }): Observable<AssignmentSubmissionDto> {
+    return this.http.post<AssignmentSubmissionDto>(
+      `${this.api}/api/assignments/${assignmentId}/submit`, body);
+  }
+
+  getAssignmentSubmissions(assignmentId: string): Observable<AssignmentSubmissionDto[]> {
+    return this.http.get<AssignmentSubmissionDto[]>(
+      `${this.api}/api/assignments/${assignmentId}/submissions`);
+  }
+
+  getTeacherAssignmentOverview(teacherId: string): Observable<TeacherAssignmentOverview[]> {
+    return this.http.get<TeacherAssignmentOverview[]>(
+      `${this.api}/api/assignments/teacher/${teacherId}/overview`);
+  }
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
+  getStudentWeakLetters(studentId: string): Observable<WeakLetterDto[]> {
+    return this.http.get<WeakLetterDto[]>(
+      `${this.api}/api/analytics/student/${studentId}/weak-letters`);
+  }
+
+  getClassAnalytics(teacherId: string): Observable<AnalyticsSummaryDto> {
+    return this.http.get<AnalyticsSummaryDto>(
+      `${this.api}/api/analytics/teacher/${teacherId}/class`);
+  }
+
+  recordActivity(body: {
+    studentId: string; childName: string;
+    letter: string; correct: boolean; activityType: string;
+  }): Observable<void> {
+    return this.http.post<void>(`${this.api}/api/analytics/record`, body);
   }
 }

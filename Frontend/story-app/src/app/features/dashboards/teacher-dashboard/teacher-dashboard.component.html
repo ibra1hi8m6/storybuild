@@ -127,7 +127,7 @@
                   <p class="text-muted small mb-0">لا يوجد طلاب في هذا المستوى.</p>
                 } @else {
                   <div class="row g-2">
-                    @for (s of group.students; track s.childName) {
+                    @for (s of pagedStudents(group.students, group.level); track s.childName) {
                       <div class="col-md-6 col-lg-4">
                         <div class="d-flex align-items-center gap-2 p-3 rounded-3"
                              style="background:var(--bg-base);border:1.5px solid rgba(244,120,138,.06)">
@@ -150,6 +150,21 @@
                       </div>
                     }
                   </div>
+                  @if (totalPages(group.students) > 1) {
+                    <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
+                      <button class="btn btn-sm rounded-pill fw-800"
+                        style="border:1.5px solid #E5E7EB;background:transparent;min-width:36px"
+                        [disabled]="levelPage()[group.level] <= 1"
+                        type="button" (click)="setLevelPage(group.level, levelPage()[group.level] - 1)">‹</button>
+                      <span class="small fw-bold text-muted">
+                        {{ levelPage()[group.level] }} / {{ totalPages(group.students) }}
+                      </span>
+                      <button class="btn btn-sm rounded-pill fw-800"
+                        style="border:1.5px solid #E5E7EB;background:transparent;min-width:36px"
+                        [disabled]="levelPage()[group.level] >= totalPages(group.students)"
+                        type="button" (click)="setLevelPage(group.level, levelPage()[group.level] + 1)">›</button>
+                    </div>
+                  }
                 }
               </div>
             }

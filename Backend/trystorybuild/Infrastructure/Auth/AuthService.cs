@@ -86,15 +86,16 @@ namespace Infrastructure.Auth
 
             var student = new Student
             {
-                Name        = request.Name,
-                Age         = request.Age,
-                Username    = normalised,
-                ImagePin1   = request.ImagePin1,
-                ImagePin2   = request.ImagePin2,
-                Level       = request.Level,
-                LoginMethod = StudentLoginMethod.ImagePin,
-                ParentId    = creator.Role == UserRole.Parent  ? creatorId : null,
-                TeacherId   = creator.Role == UserRole.Teacher ? creatorId : null,
+                Name         = request.Name,
+                Age          = request.Age,
+                Username     = normalised,
+                ImagePin1    = request.ImagePin1,
+                ImagePin2    = request.ImagePin2,
+                Level        = request.Level,
+                AvatarEmoji  = request.AvatarEmoji,
+                LoginMethod  = StudentLoginMethod.ImagePin,
+                ParentId     = creator.Role == UserRole.Parent  ? creatorId : null,
+                TeacherId    = creator.Role == UserRole.Teacher ? creatorId : null,
             };
             await studentRepo.SaveAsync(student);
 
@@ -207,10 +208,11 @@ namespace Infrastructure.Auth
                 student.Name,
                 student.Level,
                 student.PlacementDone,
-                expiry);
+                expiry,
+                student.AvatarEmoji);
         }
 
         private static StudentProfileDto ToSummary(Student s) =>
-            new(s.Id, s.Name, s.Age, s.Username, s.Level, s.PlacementDone, s.AvatarUrl);
+            new(s.Id, s.Name, s.Age, s.Username, s.Level, s.PlacementDone, s.AvatarUrl, s.AvatarEmoji);
     }
 }

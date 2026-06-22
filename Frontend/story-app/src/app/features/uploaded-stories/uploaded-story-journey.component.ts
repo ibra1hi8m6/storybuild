@@ -62,7 +62,7 @@ export class UploadedStoryJourneyComponent implements OnInit {
       this.pageIdx.set(next);
       this.mode.set('listen');
     } else {
-      this.router.navigate(['/uploaded-stories']);
+      this.router.navigate(['/exam'], { queryParams: { storyId: this.id() } });
     }
   }
 

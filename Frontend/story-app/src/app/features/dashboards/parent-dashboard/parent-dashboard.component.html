@@ -26,21 +26,28 @@
 
     <!-- Quick nav cards -->
     <div class="row g-3 mb-4">
-      @for (nav of [
-        { icon:'👨‍👧‍👦', label:'إدارة الأطفال',    sub:'عرض وتعديل حسابات أطفالك',       route:'/parent/children',       color:'#F4788A' },
-        { icon:'🔔',     label:'الإشعارات',        sub:'آخر أنشطة أطفالك',                route:'/parent/notifications',   color:'#8B5CF6' }
-      ]; track nav.route) {
-        <div class="col-sm-6 col-md-3">
-          <a [routerLink]="nav.route" class="card text-decoration-none d-flex flex-row align-items-center gap-3 p-3 h-100">
-            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-                 [style.background]="nav.color + '18'" style="width:48px;height:48px;font-size:22px">{{ nav.icon }}</div>
-            <div>
-              <div class="fw-800" style="font-size:14px" [style.color]="nav.color">{{ nav.label }}</div>
-              <div class="text-muted" style="font-size:12px">{{ nav.sub }}</div>
-            </div>
-          </a>
-        </div>
-      }
+      <div class="col-sm-6 col-md-3">
+        <a routerLink="/parent/children" class="card text-decoration-none d-flex flex-row align-items-center gap-3 p-3 h-100">
+          <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+               style="background:#F4788A18;width:48px;height:48px;font-size:22px">👨‍👧‍👦</div>
+          <div>
+            <div class="fw-800" style="font-size:14px;color:#F4788A">إدارة الأطفال</div>
+            <div class="text-muted" style="font-size:12px">عرض وتعديل حسابات أطفالك</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-sm-6 col-md-3">
+        <a routerLink="/parent/notifications"
+           [queryParams]="activeChild() ? { child: activeChild() } : {}"
+           class="card text-decoration-none d-flex flex-row align-items-center gap-3 p-3 h-100">
+          <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+               style="background:#8B5CF618;width:48px;height:48px;font-size:22px">🔔</div>
+          <div>
+            <div class="fw-800" style="font-size:14px;color:#8B5CF6">الإشعارات</div>
+            <div class="text-muted" style="font-size:12px">آخر أنشطة أطفالك</div>
+          </div>
+        </a>
+      </div>
     </div>
 
     <!-- Empty state when no children yet -->
@@ -212,6 +219,149 @@
           }
         </div>
       </div>
+
+      <!-- Weakness map -->
+      @if (weaknessMap() && (weakLetters().length > 0 || weakLessons().length > 0)) {
+        <div class="mb-4">
+          <h4 class="fw-800 mb-3">📉 نقاط تحتاج تحسيناً</h4>
+          <div class="row g-3">
+            @if (weakLetters().length > 0) {
+              <div class="col-md-6">
+                <div class="card p-4 h-100 border-danger border-start border-3">
+                  <h6 class="fw-800 mb-3 text-danger">🔤 حروف تحتاج تدريباً</h6>
+                  <div class="d-flex flex-wrap gap-2">
+                    @for (l of weakLetters(); track l.letter) {
+                      <div class="d-flex flex-column align-items-center gap-1 p-2 rounded-3 bg-danger-subtle text-center" style="min-width:60px">
+                        <span class="fw-800 fs-5 text-danger">{{ l.letter }}</span>
+                        <span class="badge rounded-pill fw-bold"
+                              [class.bg-danger]="l.pct < 40"
+                              [class.bg-warning]="l.pct >= 40"
+                              [class.text-dark]="l.pct >= 40">{{ l.pct }}٪</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+            @if (weakLessons().length > 0) {
+              <div class="col-md-6">
+                <div class="card p-4 h-100 border-warning border-start border-3">
+                  <h6 class="fw-800 mb-3 text-warning">📚 دروس بأداء منخفض</h6>
+                  <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    @for (l of weakLessons(); track l.title) {
+                      <li class="d-flex align-items-center gap-2 small">
+                        <span class="badge rounded-pill bg-warning text-dark fw-bold" style="min-width:36px">{{ l.letter || '؟' }}</span>
+                        <span class="flex-grow-1 fw-semibold">{{ l.title }}</span>
+                        <span class="fw-800" [class.text-danger]="l.pct < 40" [class.text-warning]="l.pct >= 40">{{ l.pct }}٪</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Reading Report -->
+      @if (readingHistory().length > 0) {
+        <div class="mb-4">
+          <h4 class="fw-800 mb-3">🎤 تقرير القراءة</h4>
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#2563EB">{{ readingHistory().length }}</div>
+                <div class="small text-muted fw-semibold">محاولات القراءة</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#22C55E">
+                  {{ avgReading() }}٪
+                </div>
+                <div class="small text-muted fw-semibold">متوسط الدقة</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#8B5CF6">
+                  {{ passedReading() }}
+                </div>
+                <div class="small text-muted fw-semibold">محاولات ناجحة</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#F59E0B">
+                  {{ avgWcpm() }}
+                </div>
+                <div class="small text-muted fw-semibold">كلمة/دقيقة</div>
+              </div>
+            </div>
+          </div>
+          <div class="card p-4">
+            <h6 class="fw-800 mb-3">آخر محاولات القراءة</h6>
+            @for (r of readingHistory().slice(0, 5); track r.recordingId) {
+              <div class="d-flex align-items-center gap-3 py-2 border-bottom small">
+                <span class="badge rounded-pill fw-bold"
+                      [class.bg-success]="r.isAccepted"
+                      [class.bg-danger]="!r.isAccepted">
+                  {{ r.accuracyScore | number:'1.0-0' }}٪
+                </span>
+                <span class="fw-semibold amiri flex-grow-1 text-truncate">{{ r.expectedText }}</span>
+                @if (r.mispronouncedWords.length > 0) {
+                  <span class="text-danger small">{{ r.mispronouncedWords.slice(0,2).join('، ') }}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Writing Report -->
+      @if (writingHistory().length > 0) {
+        <div class="mb-4">
+          <h4 class="fw-800 mb-3">✏️ تقرير الكتابة</h4>
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-4">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#2563EB">{{ writingHistory().length }}</div>
+                <div class="small text-muted fw-semibold">محاولات الكتابة</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#22C55E">{{ avgWriting() }}٪</div>
+                <div class="small text-muted fw-semibold">متوسط التشابه</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-4">
+              <div class="card p-3 text-center">
+                <div class="fw-900 fs-3" style="color:#8B5CF6">{{ passedWriting() }}</div>
+                <div class="small text-muted fw-semibold">محاولات مقبولة</div>
+              </div>
+            </div>
+          </div>
+          <div class="card p-4">
+            <h6 class="fw-800 mb-3">آخر محاولات الكتابة</h6>
+            @for (w of writingHistory().slice(0, 5); track w.id) {
+              <div class="d-flex align-items-center gap-3 py-2 border-bottom small">
+                <span class="badge rounded-pill fw-bold"
+                      [class.bg-success]="w.isAccepted"
+                      [class.bg-danger]="!w.isAccepted">
+                  {{ w.similarityScore | number:'1.0-0' }}٪
+                </span>
+                <span class="fw-semibold amiri flex-grow-1 text-truncate">{{ w.expectedSentence }}</span>
+                @if (w.mistakes.length > 0) {
+                  <span class="badge rounded-pill bg-danger-subtle text-danger small">
+                    {{ w.mistakes.length }} خطأ
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
 
       <!-- Achievements -->
       <div>

@@ -1,0 +1,47 @@
+<div dir="rtl" class="min-vh-100 d-flex flex-column align-items-center justify-content-center text-center px-3"
+     style="background: linear-gradient(135deg, #FDF6F0 0%, #FFE4E8 100%)">
+
+  @if (isLoading()) {
+    <div class="spinner-border" style="color: var(--primary); width: 48px; height: 48px" role="status"></div>
+  } @else {
+
+    <!-- Celebration icon -->
+    <div class="mb-3" style="font-size: 88px; line-height: 1; animation: bounce 0.8s ease infinite alternate">🎉</div>
+
+    <h1 class="fw-900 mb-2" style="font-size: 36px; color: var(--primary)">أحسنت يا بطل!</h1>
+    <p class="text-muted fw-600 mb-4" style="font-size: 18px">
+      لقد أكملت درس <strong class="amiri">{{ lessonTitle() || 'الدرس' }}</strong>
+    </p>
+
+    <!-- Stars earned so far -->
+    <div class="d-flex gap-2 justify-content-center mb-4">
+      @for (earned of starsArr(); track $index) {
+        <span style="font-size: 40px">{{ earned ? '⭐' : '☆' }}</span>
+      }
+    </div>
+
+    <p class="fw-600 mb-5" style="color: #666; font-size: 16px">
+      مجموع نجومك حتى الآن: <strong style="color: var(--primary)">{{ stars() }}</strong> نجمة
+    </p>
+
+    <!-- Action buttons -->
+    <div class="d-flex flex-column gap-3 w-100" style="max-width: 340px">
+      <button class="btn btn-primary rounded-pill py-3 fw-800 fs-5"
+              type="button" (click)="goToExam()">
+        🎯 ابدأ اختبار الدرس
+      </button>
+      <button class="btn btn-outline-secondary rounded-pill py-2 fw-700"
+              type="button" (click)="goToBooks()">
+        ← العودة إلى الكتب
+      </button>
+    </div>
+
+  }
+</div>
+
+<style>
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-14px); }
+}
+</style>

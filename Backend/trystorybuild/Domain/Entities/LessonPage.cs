@@ -11,6 +11,10 @@ namespace Domain.Entities
         public bool IsCoverPage { get; set; } = false;
         public bool IsUnlocked { get; set; } = false;
 
+        // RAG embedding tracking
+        public bool IsEmbedded { get; set; } = false;
+        public string? ChromaId { get; set; }
+
         public Lesson Lesson { get; set; } = null!;
         public List<WritingAttempt> WritingAttempts { get; set; } = new();
     }

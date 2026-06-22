@@ -76,8 +76,8 @@ export class AiStoryWizardComponent {
         this.isLoading.set(false);
         this.router.navigate(['/books', story.id, 'read']);
       },
-      error: (err: Error) => {
-        this.error.set(err.message);
+      error: (err: any) => {
+        this.error.set(err?.error?.error ?? err?.message ?? 'تعذّر توليد القصة. حاول مرة أخرى.');
         this.isLoading.set(false);
         this.step.set(3);
       }

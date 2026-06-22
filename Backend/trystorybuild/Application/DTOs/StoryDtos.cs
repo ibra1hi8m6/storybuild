@@ -43,7 +43,9 @@ namespace Application.DTOs
         string LetterName,
         string Title,
         string CoverImageUrl,
-        int PageCount);
+        int PageCount,
+        bool IsPublished = true,
+        string Status = "Published");
 
     public record LessonPageDto(
         Guid PageId,
@@ -134,7 +136,47 @@ namespace Application.DTOs
         string ExpectedSentence,
         double SimilarityScore,
         bool IsAccepted,
-        string Message);
+        string Message,
+        string DisplayMessage,
+        string SpokenFeedback,
+        List<WritingMistakeDto> Mistakes,
+        List<string> Tips);
+
+    public record WritingMistakeDto(
+        string Type,
+        string Expected,
+        string Actual,
+        string Description);
+
+    public record WritingAttemptHistoryDto(
+        Guid Id,
+        Guid LessonPageId,
+        string ExpectedSentence,
+        string ExtractedText,
+        double SimilarityScore,
+        bool IsAccepted,
+        int AttemptNumber,
+        string DisplayMessage,
+        List<WritingMistakeDto> Mistakes,
+        List<string> Tips,
+        string ImageUrl,
+        DateTime AttemptedAt);
+
+    public record ReadingAttemptHistoryDto(
+        Guid RecordingId,
+        Guid PageId,
+        string PageType,
+        string ExpectedText,
+        string ExtractedText,
+        double WCPM,
+        double AccuracyScore,
+        bool IsAccepted,
+        int AttemptNumber,
+        string DisplayMessage,
+        List<string> MispronouncedWords,
+        List<string> Tips,
+        string AudioUrl,
+        DateTime CreatedAt);
 
     // ── Student Groups ─────────────────────────────────────────────────────────────
     public record StudentGroupDto(
@@ -207,4 +249,22 @@ namespace Application.DTOs
         int CorrectAnswers,
         double ScorePercentage,
         bool ExamCompleted);
+
+    public record MarkPageRequest(
+        string ChildName,
+        Guid LessonId,
+        Guid LessonPageId,
+        bool WritingSubmitted);
+
+    public record LessonPageProgressResponse(
+        List<Guid> CompletedPageIds,
+        int CompletedCount,
+        int TotalPages);
+
+    public record CurrentLessonResponse(
+        Guid? LessonId,
+        string? LessonTitle,
+        int CurrentPage,
+        int TotalPages,
+        int Level);
 }

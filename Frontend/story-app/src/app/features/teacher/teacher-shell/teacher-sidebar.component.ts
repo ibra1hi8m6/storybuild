@@ -29,6 +29,20 @@ import { AppStateService } from '../../../services/app-state-service';
         </button>
       </div>
     </aside>
+
+    <!-- Mobile bottom nav -->
+    <nav class="teacher-mobile-nav" dir="rtl">
+      @for (item of mobileNavItems; track item.route) {
+        <a class="tmn-item" [routerLink]="item.route" routerLinkActive="tmn-active">
+          <span class="tmn-icon">{{ item.icon }}</span>
+          <span class="tmn-label">{{ item.label }}</span>
+        </a>
+      }
+      <button class="tmn-item tmn-logout" type="button" (click)="logout()">
+        <span class="tmn-icon">🚪</span>
+        <span class="tmn-label">خروج</span>
+      </button>
+    </nav>
   `,
   styles: [`
     .teacher-sidebar {
@@ -65,6 +79,30 @@ import { AppStateService } from '../../../services/app-state-service';
     }
     .ts-logout:hover { background: #FFF5F5; }
     @media (max-width: 900px) { .teacher-sidebar { display: none; } }
+
+    .teacher-mobile-nav {
+      display: none;
+    }
+    @media (max-width: 900px) {
+      .teacher-mobile-nav {
+        display: flex; position: fixed; bottom: 0; right: 0; left: 0; z-index: 1000;
+        background: var(--bg-card); border-top: 1.5px solid rgba(244,120,138,.12);
+        padding: 4px 0; box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+        justify-content: space-around; align-items: center;
+      }
+    }
+    .tmn-item {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      text-decoration: none; color: var(--text-muted); padding: 4px 6px;
+      border-radius: 10px; font-size: 13px; font-weight: 700; flex: 1;
+      background: none; border: none; cursor: pointer; font-family: 'Cairo', sans-serif;
+      transition: color .2s;
+    }
+    .tmn-item.tmn-active, .tmn-item:hover { color: var(--primary); }
+    .tmn-icon { font-size: 20px; line-height: 1; }
+    .tmn-label { font-size: 10px; font-weight: 700; }
+    .tmn-logout { color: #EF4444; }
+    .tmn-logout:hover { color: #DC2626; }
   `]
 })
 export class TeacherSidebarComponent {
@@ -72,6 +110,14 @@ export class TeacherSidebarComponent {
   private readonly router = inject(Router);
 
   readonly isSchoolTeacher = computed(() => !!this.state.currentUser()?.schoolCode);
+
+  readonly mobileNavItems = [
+    { icon: '🏠', label: 'لوحتي',      route: '/teacher/students' },
+    { icon: '📚', label: 'الدروس',     route: '/teacher/lessons' },
+    { icon: '➕', label: 'طالب',       route: '/auth/create-student' },
+    { icon: '📊', label: 'التقارير',   route: '/teacher/reports' },
+    { icon: '📈', label: 'التحليلات',  route: '/teacher/analytics' },
+  ];
 
   readonly navItems = computed(() => {
     if (this.isSchoolTeacher()) {
@@ -82,6 +128,7 @@ export class TeacherSidebarComponent {
         { icon: '📚', label: 'الدروس',          route: '/teacher/lessons' },
         { icon: '✨', label: 'المولّد الذكي',   route: '/teacher/ai-generator' },
         { icon: '📊', label: 'التقارير',        route: '/teacher/reports' },
+        { icon: '📈', label: 'التحليلات',       route: '/teacher/analytics' },
         { icon: '💬', label: 'إرسال تشجيع',   route: '/teacher/students' },
       ];
     }
@@ -94,6 +141,7 @@ export class TeacherSidebarComponent {
       { icon: '✨', label: 'المولّد الذكي',     route: '/teacher/ai-generator' },
       { icon: '📝', label: 'إنشاء درس',        route: '/teacher/lessons/create' },
       { icon: '📊', label: 'التقارير',          route: '/teacher/reports' },
+      { icon: '📈', label: 'التحليلات',         route: '/teacher/analytics' },
       { icon: '💬', label: 'إرسال تشجيع',     route: '/teacher/students' },
     ];
   });

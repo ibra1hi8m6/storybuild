@@ -68,6 +68,43 @@ namespace storybuild.API.Controllers
             return Ok(result);
         }
 
+        // GET /api/fluency/history/{childName}  — named-based reading history (teacher/parent use)
+        [HttpGet("history/{childName}")]
+        public async Task<ActionResult<List<ReadingAttemptHistoryDto>>> GetChildReadingHistory(
+            string childName, [FromQuery] int take = 30)
+        {
+            var recordings = await recordingRepository.GetByChildNameAsync(childName, Math.Min(take, 100));
+            var result = recordings.Select(r =>
+            {
+                var report = r.Report;
+                var tips = ParseStringList(report?.TipsJson ?? "[]");
+                var mispronounced = ParseStringList(report?.MispronouncedWordsJson ?? "[]");
+                return new ReadingAttemptHistoryDto(
+                    r.Id, r.PageId, r.PageType,
+                    report?.ExpectedText ?? string.Empty,
+                    report?.ExtractedText ?? string.Empty,
+                    report?.WCPM ?? 0,
+                    report?.AccuracyScore ?? 0,
+                    report?.IsAccepted ?? (report?.AccuracyScore ?? 0) >= 70,
+                    report?.AttemptNumber ?? 1,
+                    report?.DisplayMessage ?? string.Empty,
+                    mispronounced,
+                    tips,
+                    r.AudioFileUrl,
+                    r.CreatedAt);
+            }).ToList();
+            return Ok(result);
+        }
+
+        private static List<string> ParseStringList(string json)
+        {
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [];
+            }
+            catch { return []; }
+        }
+
         private Guid CurrentUserId() =>
             Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     }

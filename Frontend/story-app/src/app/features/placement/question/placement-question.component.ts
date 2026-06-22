@@ -106,10 +106,10 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
 
   private advance(): void {
     const idx = this.currentIdx();
+    this.showFeedback.set(false);
+    this.selected.set(null);
     if (idx < this.total() - 1) {
       this.currentIdx.set(idx + 1);
-      this.selected.set(null);
-      this.showFeedback.set(false);
       this.speakQuestion();
     } else {
       this.submitAll();
@@ -154,16 +154,20 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
     });
   }
 
+  isCorrect(key: string): boolean {
+    const correct = (this.currentQ()?.correctAnswer ?? '').trim().toUpperCase();
+    return key.trim().toUpperCase() === correct;
+  }
+
   optionClass(key: string): string {
     if (!this.showFeedback()) return 'opt-btn';
-    const correct = this.currentQ()?.correctAnswer;
-    if (key === correct)                     return 'opt-btn correct';
-    if (key === this.selected() && key !== correct) return 'opt-btn wrong';
+    if (this.isCorrect(key)) return 'opt-btn correct';
+    if ((this.selected() ?? '').trim().toUpperCase() === key.trim().toUpperCase()) return 'opt-btn wrong';
     return 'opt-btn';
   }
 
   feedbackText(): string {
-    return this.selected() === this.currentQ()?.correctAnswer ? 'ممتاز! 🌟' : 'إجابة خاطئة، لكنك تتعلم! 💪';
+    return this.isCorrect(this.selected() ?? '') ? 'ممتاز! 🌟' : 'حاول مجدداً 💙';
   }
 
   speakQuestion(): void {

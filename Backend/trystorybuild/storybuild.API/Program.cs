@@ -94,10 +94,150 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE Stories ADD Source int NOT NULL DEFAULT 0;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'CoverImagePath')
                 ALTER TABLE Stories ADD CoverImagePath nvarchar(max) NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Students') AND name = 'WeaknessMapJson')
+                ALTER TABLE Students ADD WeaknessMapJson nvarchar(max) NOT NULL DEFAULT '{}';
             """);
         logger.LogInformation("Story columns ensured.");
     }
     catch (Exception ex) { logger.LogError(ex, "Story column migration failed."); }
+
+    // ── Phase 7: StudentLevelHistories ───────────────────────────────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'StudentLevelHistories')
+                CREATE TABLE StudentLevelHistories (
+                    Id uniqueidentifier NOT NULL DEFAULT newsequentialid() PRIMARY KEY,
+                    StudentId uniqueidentifier NOT NULL,
+                    ChildName nvarchar(200) NOT NULL DEFAULT '',
+                    PreviousLevel int NOT NULL DEFAULT 0,
+                    NewLevel int NOT NULL DEFAULT 0,
+                    ChangedByUserId uniqueidentifier NOT NULL,
+                    ChangedByRole nvarchar(50) NOT NULL DEFAULT '',
+                    Reason nvarchar(500) NOT NULL DEFAULT '',
+                    ChangedAt datetime2 NOT NULL DEFAULT GETUTCDATE()
+                );
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Students') AND name = 'AvatarEmoji')
+                ALTER TABLE Students ADD AvatarEmoji nvarchar(10) NULL;
+            """);
+        logger.LogInformation("Phase 7 tables and columns ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 7 migration failed."); }
+
+    // ── Phase 6: AssignmentSubmissions + WeakLetterRecords ───────────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'AssignmentSubmissions')
+                CREATE TABLE AssignmentSubmissions (
+                    Id uniqueidentifier NOT NULL DEFAULT newsequentialid() PRIMARY KEY,
+                    AssignmentId uniqueidentifier NOT NULL,
+                    StudentId uniqueidentifier NOT NULL,
+                    ChildName nvarchar(200) NOT NULL DEFAULT '',
+                    PagesCompleted int NOT NULL DEFAULT 0,
+                    TotalPages int NOT NULL DEFAULT 0,
+                    WritingScore float NOT NULL DEFAULT 0,
+                    IsComplete bit NOT NULL DEFAULT 0,
+                    SubmittedAt datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                    NotesJson nvarchar(max) NOT NULL DEFAULT '{}'
+                );
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WeakLetterRecords')
+                CREATE TABLE WeakLetterRecords (
+                    Id uniqueidentifier NOT NULL DEFAULT newsequentialid() PRIMARY KEY,
+                    StudentId uniqueidentifier NOT NULL,
+                    ChildName nvarchar(200) NOT NULL DEFAULT '',
+                    Letter nvarchar(10) NOT NULL DEFAULT '',
+                    Attempts int NOT NULL DEFAULT 0,
+                    Correct int NOT NULL DEFAULT 0,
+                    ActivityType nvarchar(50) NOT NULL DEFAULT 'Writing',
+                    LastSeenAt datetime2 NOT NULL DEFAULT GETUTCDATE()
+                );
+            """);
+        logger.LogInformation("Phase 6 tables ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 6 table migration failed."); }
+
+    // ── Phase 5b: RAG tracking columns on LessonPages ────────────────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LessonPages') AND name = 'IsEmbedded')
+                ALTER TABLE LessonPages ADD IsEmbedded bit NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LessonPages') AND name = 'ChromaId')
+                ALTER TABLE LessonPages ADD ChromaId nvarchar(100) NULL;
+            """);
+        logger.LogInformation("Phase 5b LessonPage RAG columns ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 5b column migration failed."); }
+
+    // ── Phase 5: content lifecycle columns on Lessons & Stories ──────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Lessons') AND name = 'IsPublished')
+                ALTER TABLE Lessons ADD IsPublished bit NOT NULL DEFAULT 1;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Lessons') AND name = 'Status')
+                ALTER TABLE Lessons ADD Status int NOT NULL DEFAULT 3;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'IsPublished')
+                ALTER TABLE Stories ADD IsPublished bit NOT NULL DEFAULT 1;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'Status')
+                ALTER TABLE Stories ADD Status int NOT NULL DEFAULT 3;
+            """);
+        logger.LogInformation("Phase 5 content lifecycle columns ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 5 column migration failed."); }
+
+    // ── Phase 3: structured feedback columns on WritingAttempts & FluencyReports ──
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'LessonId')
+                ALTER TABLE WritingAttempts ADD LessonId uniqueidentifier NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'StudentId')
+                ALTER TABLE WritingAttempts ADD StudentId uniqueidentifier NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'AttemptNumber')
+                ALTER TABLE WritingAttempts ADD AttemptNumber int NOT NULL DEFAULT 1;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'DisplayMessage')
+                ALTER TABLE WritingAttempts ADD DisplayMessage nvarchar(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'SpokenFeedback')
+                ALTER TABLE WritingAttempts ADD SpokenFeedback nvarchar(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'MistakesJson')
+                ALTER TABLE WritingAttempts ADD MistakesJson nvarchar(max) NOT NULL DEFAULT '[]';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('WritingAttempts') AND name = 'TipsJson')
+                ALTER TABLE WritingAttempts ADD TipsJson nvarchar(max) NOT NULL DEFAULT '[]';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('FluencyReports') AND name = 'IsAccepted')
+                ALTER TABLE FluencyReports ADD IsAccepted bit NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('FluencyReports') AND name = 'AttemptNumber')
+                ALTER TABLE FluencyReports ADD AttemptNumber int NOT NULL DEFAULT 1;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('FluencyReports') AND name = 'DisplayMessage')
+                ALTER TABLE FluencyReports ADD DisplayMessage nvarchar(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('FluencyReports') AND name = 'SpokenFeedback')
+                ALTER TABLE FluencyReports ADD SpokenFeedback nvarchar(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('FluencyReports') AND name = 'TipsJson')
+                ALTER TABLE FluencyReports ADD TipsJson nvarchar(max) NOT NULL DEFAULT '[]';
+            """);
+        logger.LogInformation("Phase 3 feedback columns ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 3 column migration failed."); }
+
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'LessonPageCompletions')
+                CREATE TABLE LessonPageCompletions (
+                    Id uniqueidentifier NOT NULL DEFAULT newsequentialid() PRIMARY KEY,
+                    ChildName nvarchar(200) NOT NULL,
+                    LessonId uniqueidentifier NOT NULL,
+                    LessonPageId uniqueidentifier NOT NULL,
+                    WritingSubmitted bit NOT NULL DEFAULT 0,
+                    CompletedAt datetime2 NOT NULL DEFAULT GETUTCDATE()
+                );
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('LessonPageCompletions') AND name = 'IX_LessonPageCompletions_Child_Lesson')
+                CREATE INDEX IX_LessonPageCompletions_Child_Lesson ON LessonPageCompletions (ChildName, LessonId);
+            """);
+        logger.LogInformation("LessonPageCompletions table ensured.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "LessonPageCompletions migration failed."); }
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────

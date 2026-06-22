@@ -142,6 +142,16 @@ export class AdminImportComponent implements OnInit {
     });
   }
 
+  togglePublish(book: LessonSummary): void {
+    const call = book.isPublished
+      ? this.svc.unpublishLesson(book.id)
+      : this.svc.publishLesson(book.id);
+    call.subscribe({
+      next: () => this.loadBooks(),
+      error: () => alert('فشل تغيير حالة النشر.')
+    });
+  }
+
   startEditSentence(page: LessonPage): void {
     this.editingPageId.set(page.pageId);
     this.editSentence = page.sentence;

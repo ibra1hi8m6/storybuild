@@ -10,7 +10,9 @@ namespace Application.DTOs
         string ExtractedText,
         List<string> MispronouncedWords,
         bool Passed,
-        DateTime CreatedAt
+        DateTime CreatedAt,
+        string DisplayMessage = "",
+        List<string>? Tips = null
     );
 
     public record FluencyHistoryDto(

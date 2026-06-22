@@ -39,6 +39,15 @@ export class SchoolTeachersComponent implements OnInit {
   formError  = '';
   formSuccess = '';
 
+  // Password reset
+  readonly showResetModal = signal(false);
+  readonly isResetting    = signal(false);
+  resetTeacherId   = '';
+  resetTeacherName = '';
+  resetNewPassword = '';
+  resetError       = '';
+  resetSuccess     = '';
+
   readonly filtered = computed(() => {
     const q = this.searchTerm().toLowerCase();
     return !q ? this.teachers() : this.teachers().filter(t =>
@@ -122,4 +131,36 @@ export class SchoolTeachersComponent implements OnInit {
 
   setSearch(v: string) { this.searchTerm.set(v); }
   scoreColor(s: number): string { return s >= 80 ? '#22C55E' : s >= 60 ? '#F59E0B' : '#EF4444'; }
+
+  openResetModal(t: TeacherRow): void {
+    this.resetTeacherId   = t.id;
+    this.resetTeacherName = t.name;
+    this.resetNewPassword = '';
+    this.resetError       = '';
+    this.resetSuccess     = '';
+    this.showResetModal.set(true);
+  }
+
+  closeResetModal(): void { this.showResetModal.set(false); }
+
+  confirmReset(): void {
+    this.resetError   = '';
+    this.resetSuccess = '';
+    if (this.resetNewPassword.length < 6) {
+      this.resetError = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+      return;
+    }
+    this.isResetting.set(true);
+    this.auth.resetTeacherPassword(this.resetTeacherId, this.resetNewPassword).subscribe({
+      next: res => {
+        this.resetSuccess = res.message;
+        this.isResetting.set(false);
+        setTimeout(() => this.showResetModal.set(false), 2000);
+      },
+      error: (err: any) => {
+        this.resetError = err?.error?.error ?? 'تعذّر إعادة تعيين كلمة المرور.';
+        this.isResetting.set(false);
+      }
+    });
+  }
 }

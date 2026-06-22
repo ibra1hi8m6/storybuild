@@ -1,7 +1,10 @@
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -9,7 +12,11 @@ namespace storybuild.API.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController(IAuthService authService, IUserRepository userRepository) : ControllerBase
+    public class AuthController(
+        IAuthService authService,
+        IUserRepository userRepository,
+        IEmailService emailService,
+        AppDbContext db) : ControllerBase
     {
         // ── Adult register ──────────────────────────────────────────────────────
         [HttpPost("register")]
@@ -17,7 +24,14 @@ namespace storybuild.API.Controllers
         [ProducesResponseType(400)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            try   { return Ok(await authService.RegisterAsync(request)); }
+            try
+            {
+                var result = await authService.RegisterAsync(request);
+                // If a school admin creates a teacher, send welcome email with credentials
+                if (request.Role?.ToLower() == "teacher" && !string.IsNullOrWhiteSpace(request.SchoolCode))
+                    await emailService.SendTeacherWelcomeAsync(request.Email, request.FullName, request.Password);
+                return Ok(result);
+            }
             catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
             catch (ArgumentException         ex) { return BadRequest(new { error = ex.Message }); }
         }
@@ -90,9 +104,9 @@ namespace storybuild.API.Controllers
             return Ok(new { id, name, role });
         }
 
-        // ── Parent/teacher updates a specific child's level ────────────────────
+        // ── Teacher adjusts a specific student's level ────────────────────────
         [HttpPatch("students/{id:guid}/level")]
-        [Authorize(Roles = "Parent,Teacher")]
+        [Authorize(Roles = "Teacher,SystemAdmin")]
         [ProducesResponseType(typeof(StudentAuthResponse), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> UpdateChildLevel(Guid id, [FromBody] UpdateLevelRequest request)
@@ -123,6 +137,33 @@ namespace storybuild.API.Controllers
             catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
         }
 
+        // ── School admin: reset a teacher's password ────────────────────────────
+        [HttpPost("school/teachers/{teacherId:guid}/reset-password")]
+        [Authorize(Roles = "SchoolAdmin")]
+        public async Task<IActionResult> ResetTeacherPassword(Guid teacherId, [FromBody] ResetPasswordRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
+                return BadRequest(new { error = "كلمة المرور يجب أن تكون 6 أحرف على الأقل." });
+
+            var adminId    = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+            var schoolCode = adminId.ToString("N")[..8].ToUpper();
+
+            // Verify teacher belongs to this school
+            var teacher = await db.Teachers
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Id == teacherId && t.SchoolCode == schoolCode);
+            if (teacher is null) return NotFound(new { error = "المعلم غير موجود أو لا ينتمي لمدرستك." });
+
+            teacher.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+            await db.SaveChangesAsync();
+
+            await emailService.SendTeacherPasswordResetAsync(teacher.User.Email, teacher.User.Name, req.NewPassword);
+            return Ok(new { message = "تم إعادة تعيين كلمة المرور وإرسالها للمعلم بالبريد الإلكتروني." });
+        }
+
         // ── School admin: list teachers belonging to this school ─────────────────
         [HttpGet("school/teachers")]
         [Authorize(Roles = "SchoolAdmin")]
@@ -149,4 +190,5 @@ namespace storybuild.API.Controllers
     }
 
     public record UpdateLevelRequest(int Level);
+    public record ResetPasswordRequest(string NewPassword);
 }
