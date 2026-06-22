@@ -29,5 +29,6 @@ namespace Application.Interfaces
         Task<Domain.Entities.FluencyReport> SaveReportAsync(Domain.Entities.FluencyReport report);
         Task<List<Domain.Entities.AudioRecording>> GetByStudentIdAsync(Guid studentId);
         Task<List<Domain.Entities.AudioRecording>> GetByPageIdAsync(Guid pageId, Guid studentId);
+        Task<List<Domain.Entities.AudioRecording>> GetByChildNameAsync(string childName, int take = 50);
     }
 }

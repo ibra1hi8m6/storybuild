@@ -169,6 +169,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/lesson-reader/lesson-reader').then(m => m.LessonReaderComponent)
   },
+  {
+    path: 'lessons/:id/complete',
+    loadComponent: () =>
+      import('./features/lesson-complete/lesson-complete.component').then(m => m.LessonCompleteComponent)
+  },
 
   // ── Parent ───────────────────────────────────────────────────────────────────
   {
@@ -250,6 +255,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/teacher/teacher-classes/teacher-classes.component')
         .then(m => m.TeacherClassesComponent),
+    canActivate: [teacherGuard]
+  },
+  {
+    path: 'teacher/analytics',
+    loadComponent: () =>
+      import('./features/teacher/analytics/teacher-analytics.component')
+        .then(m => m.TeacherAnalyticsComponent),
     canActivate: [teacherGuard]
   },
 

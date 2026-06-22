@@ -11,6 +11,7 @@ namespace Domain.Entities
         public int? ImagePin2 { get; set; }
         public string? PasswordHash { get; set; }
         public string? AvatarUrl { get; set; }
+        public string? AvatarEmoji { get; set; }
         public int Level { get; set; } = 1;
         public bool PlacementDone { get; set; } = false;
 
@@ -19,6 +20,9 @@ namespace Domain.Entities
 
         public Guid? TeacherId { get; set; }
         public Teacher? Teacher { get; set; }
+
+        // Per-letter weakness tracking: {"ب":{"attempts":5,"correct":2}, ...}
+        public string WeaknessMapJson { get; set; } = "{}";
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

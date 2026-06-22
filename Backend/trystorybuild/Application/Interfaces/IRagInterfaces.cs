@@ -9,14 +9,20 @@ namespace Application.Interfaces
 
     public interface IVectorStoreService
     {
-        Task EnsureCollectionAsync();
-        Task DeleteBySourceAsync(string sourceFile);
+        // Predefined collection names for this platform
+        public const string CollectionLessons    = "arabic_lessons";
+        public const string CollectionStories    = "arabic_stories";
+        public const string CollectionActivities = "arabic_activities";
+
+        Task EnsureCollectionAsync(string? collectionName = null);
+        Task DeleteBySourceAsync(string sourceFile, string? collectionName = null);
         Task AddChunksAsync(
             List<string> ids,
             List<float[]> embeddings,
             List<string> texts,
-            List<Dictionary<string, string>> metadatas);
-        Task<List<RagSearchResult>> SearchAsync(float[] queryEmbedding, int topK = 5);
+            List<Dictionary<string, string>> metadatas,
+            string? collectionName = null);
+        Task<List<RagSearchResult>> SearchAsync(float[] queryEmbedding, int topK = 5, string? collectionName = null);
     }
 
     public interface IDocumentProcessor

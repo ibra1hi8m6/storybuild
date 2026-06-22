@@ -4,7 +4,7 @@
   <aside class="d-none d-lg-flex flex-column gap-3 bg-white p-3 border-start flex-shrink-0" style="width:240px;position:sticky;top:0;height:100vh;overflow-y:auto;border-color:rgba(244,120,138,.1)!important">
     <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(244,120,138,.05)">
       <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
-           style="width:52px;height:52px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:26px">🦁</div>
+           style="width:52px;height:52px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:26px">{{ state.currentUser()?.avatar || '🦁' }}</div>
       <div>
         <div class="fw-800">{{ data()?.childName || nameInput || 'الطالب' }}</div>
         <span class="badge rounded-pill mt-1" style="background:var(--primary);font-size:11px">
@@ -133,6 +133,7 @@
         </div>
       </div>
 
+
       <!-- Achievements + Weekly chart -->
       <div class="row g-3">
         <div class="col-md-6">
@@ -175,7 +176,7 @@
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="fw-800 mb-0">✨ موصى به لك</h5>
-          <a routerLink="/lessons-list" class="fw-bold text-decoration-none small" style="color:var(--primary)">الدروس ›</a>
+          <a routerLink="/levels" class="fw-bold text-decoration-none small" style="color:var(--primary)">الدروس ›</a>
         </div>
         @if ((d.inProgressLessons ?? []).length === 0) {
           <p class="text-muted small mb-0">لا توجد دروس قيد التقدم حالياً — ابدأ درساً جديداً!</p>
@@ -184,7 +185,7 @@
           @for (lesson of (d.inProgressLessons ?? []); track lesson.id) {
             <div class="card-hover rounded-4 overflow-hidden flex-shrink-0 border"
                  style="width:160px;cursor:pointer;border-color:#F3E8FF!important"
-                 (click)="openBook(lesson.id)">
+                 (click)="openLesson(lesson.id)">
               @if (lesson.coverImageUrl) {
                 <img [src]="lesson.coverImageUrl" alt="{{ lesson.title }}" style="width:100%;height:100px;object-fit:cover" />
               } @else {

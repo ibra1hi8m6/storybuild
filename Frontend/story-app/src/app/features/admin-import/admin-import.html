@@ -76,11 +76,22 @@
               <div class="ab-card-body">
                 <h3 class="ab-card-title">{{ book.title }}</h3>
                 <p class="ab-card-meta">{{ book.letterName }} · {{ book.pageCount }} صفحة</p>
+                <span class="badge rounded-pill fw-semibold"
+                  [class.bg-success]="book.isPublished"
+                  [class.bg-secondary]="!book.isPublished">
+                  {{ book.isPublished ? 'منشور' : 'مسودة' }}
+                </span>
               </div>
               <!-- Actions -->
               <div class="ab-card-actions">
                 <button class="ab-btn ab-btn-sm ab-btn-outline" (click)="openEdit(book)">
                   ✏️ تعديل
+                </button>
+                <button class="ab-btn ab-btn-sm"
+                  [class.ab-btn-warning]="book.isPublished"
+                  [class.ab-btn-success]="!book.isPublished"
+                  (click)="togglePublish(book)">
+                  {{ book.isPublished ? '🔒 إخفاء' : '🌐 نشر' }}
                 </button>
                 <button class="ab-btn ab-btn-sm ab-btn-danger" (click)="deleteBook(book)">
                   🗑 حذف

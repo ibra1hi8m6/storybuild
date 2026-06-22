@@ -48,9 +48,6 @@
             <button class="btn btn-primary read-aloud-btn" type="button" (click)="playAudio()">
               🔊 {{ isPlaying() ? 'إيقاف' : 'استمع' }}
             </button>
-            <button class="btn journey-btn" type="button" (click)="startJourney()">
-              🎤 ابدأ رحلة القراءة
-            </button>
           </div>
 
           <!-- Writing panel -->
@@ -90,7 +87,7 @@
                   <span class="check-icon">{{ r.isAccepted ? '🌟' : '💪' }}</span>
                   <div class="check-fb-body">
                     <div class="check-fb-row">
-                      <span class="check-fb-msg">{{ r.message }}</span>
+                      <span class="check-fb-msg">{{ r.displayMessage || r.message }}</span>
                       <span class="check-fb-score">{{ r.similarityScore | number:'1.0-0' }}٪</span>
                     </div>
                     @if (!r.isAccepted && r.extractedText) {
@@ -105,13 +102,50 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Mistakes -->
+                @if (r.mistakes.length > 0) {
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    @for (m of r.mistakes; track m.description) {
+                      <span class="badge rounded-pill bg-danger-subtle text-danger fw-semibold" style="font-size:12px">
+                        {{ m.description }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- Tips -->
+                @if (r.tips.length > 0) {
+                  <div class="d-flex flex-wrap gap-1 mt-2">
+                    @for (tip of r.tips; track tip) {
+                      <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold" style="font-size:12px">
+                        💡 {{ tip }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                @if (r.spokenFeedback || r.message) {
+                  <button type="button" class="btn btn-link btn-sm p-0 mt-2 d-flex align-items-center gap-1 opacity-75"
+                          (click)="speakFeedback(r.spokenFeedback || r.message)">
+                    🔊 اسمع التعليق
+                  </button>
+                }
               </div>
             }
           </div>
 
+          <!-- Writing gate warning -->
+          @if (showWritingWarning()) {
+            <div class="alert alert-warning fw-bold text-center mt-2 mb-0 rounded-3 amiri" style="font-size:17px">
+              ✏️ اكتب الجملة أولاً ثم تحقق من كتابتك قبل المتابعة!
+            </div>
+          }
+
           <!-- Navigation -->
           <div class="nav-row">
-            <button class="nav-arrow next" type="button" (click)="next()">
+            <button class="nav-arrow next" type="button" (click)="next()"
+              [class.opacity-50]="pageNeedsWriting() && !writingCheckedOnPage()">
               @if (isLast()) { إنهاء الدرس } @else { التالي } ‹
             </button>
             <div class="page-dots">

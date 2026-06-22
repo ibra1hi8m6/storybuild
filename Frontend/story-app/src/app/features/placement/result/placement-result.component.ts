@@ -1,6 +1,8 @@
 import { Component, signal, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../services/auth.service';
+import { AppStateService } from '../../../services/app-state-service';
 
 interface PlacementResult {
   score: number; total: number; level: number;
@@ -16,9 +18,12 @@ interface PlacementResult {
 })
 export class PlacementResultComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly auth   = inject(AuthService);
+  private readonly state  = inject(AppStateService);
 
-  readonly result   = signal<PlacementResult | null>(null);
-  readonly confetti = signal<{ x: number; y: number; color: string; delay: number }[]>([]);
+  readonly result    = signal<PlacementResult | null>(null);
+  readonly confetti  = signal<{ x: number; y: number; color: string; delay: number }[]>([]);
+  readonly saved     = signal(false);
 
   readonly levelInfo = [
     { level: 1, name: 'الحروف والأصوات',   icon: '📖', color: '#F4788A', desc: 'ستتعلم الحروف العربية والأصوات الأساسية' },
@@ -30,8 +35,23 @@ export class PlacementResultComponent implements OnInit {
 
   ngOnInit(): void {
     const raw = sessionStorage.getItem('placement_result');
-    this.result.set(raw ? JSON.parse(raw) : { score: 10, total: 15, level: 1, p1: 4, p2: 3, p3: 3 });
+    const r: PlacementResult = raw ? JSON.parse(raw) : { score: 10, total: 15, level: 1, p1: 4, p2: 3, p3: 3 };
+    this.result.set(r);
     this.generateConfetti();
+    this.persistLevel(r.level);
+  }
+
+  private persistLevel(level: number): void {
+    const user = this.state.currentUser();
+    if (!user?.id) return;
+    this.auth.updateMyLevel(level).subscribe({
+      next: () => {
+        this.state.setUser({ ...user, level });
+        this.saved.set(true);
+        sessionStorage.removeItem('placement_result');
+      },
+      error: () => {}
+    });
   }
 
   private generateConfetti(): void {

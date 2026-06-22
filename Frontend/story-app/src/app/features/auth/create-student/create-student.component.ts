@@ -24,13 +24,20 @@ export class CreateStudentComponent implements OnInit {
   readonly done      = signal(false);
 
   form = {
-    name:      '',
-    age:       6,
-    username:  '',
-    imagePin1: 0,
-    imagePin2: null as number | null,
-    level:     1,
+    name:        '',
+    age:         6,
+    username:    '',
+    imagePin1:   0,
+    imagePin2:   null as number | null,
+    level:       1,
+    avatarEmoji: '🐰',
   };
+
+  readonly avatarOptions = [
+    '🐰','🦆','🐟','🐢','🐱','🦎','🚗','🚀',
+    '🦈','🍓','🍎','🦋','🌸','⭐','🎈','🌙',
+    '🦁','🐘','🦊','🐸','🦜','🦄','🐙','🌟',
+  ];
 
   readonly icons = [
     { id:  1, emoji: '🐰', label: 'أرنب' }, { id:  2, emoji: '🦆', label: 'بطة' },
@@ -93,12 +100,13 @@ export class CreateStudentComponent implements OnInit {
     this.error.set(null);
 
     this.auth.createStudent({
-      name:      this.form.name.trim(),
-      age:       this.form.age,
-      username:  this.form.username.trim().toLowerCase(),
-      imagePin1: pins[0],
-      imagePin2: pins[1] ?? null,
-      level:     this.form.level,
+      name:        this.form.name.trim(),
+      age:         this.form.age,
+      username:    this.form.username.trim().toLowerCase(),
+      imagePin1:   pins[0],
+      imagePin2:   pins[1] ?? null,
+      level:       this.form.level,
+      avatarEmoji: this.form.avatarEmoji || undefined,
     }).subscribe({
       next: () => {
         this.isLoading.set(false);

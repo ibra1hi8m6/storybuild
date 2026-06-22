@@ -52,8 +52,12 @@
 
           <!-- Add member -->
           <div class="add-member-row">
-            <input [(ngModel)]="addStudentId[group.id]" class="form-control form-sm"
-                   placeholder="معرّف الطالب (UUID)" />
+            <select [(ngModel)]="addStudentId[group.id]" class="form-control form-sm">
+              <option value="">-- اختر طالباً --</option>
+              @for (s of myStudents(); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
             <button class="btn-outline-sm" (click)="addMember(group.id)">إضافة طالب</button>
           </div>
 
@@ -72,8 +76,12 @@
                   <option value="Student">لطالب محدد</option>
                 </select>
                 @if (assignForm[group.id].type === 'Student') {
-                  <input [(ngModel)]="assignForm[group.id].studentId" class="form-control form-sm"
-                         placeholder="معرّف الطالب" />
+                  <select [(ngModel)]="assignForm[group.id].studentId" class="form-control form-sm">
+                    <option value="">-- اختر طالباً --</option>
+                    @for (s of myStudents(); track s.id) {
+                      <option [value]="s.id">{{ s.name }}</option>
+                    }
+                  </select>
                 }
                 <button class="btn-primary-sm" (click)="assignLesson(group.id)">تعيين</button>
               </div>

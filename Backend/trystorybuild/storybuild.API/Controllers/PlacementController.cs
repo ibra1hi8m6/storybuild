@@ -1,14 +1,19 @@
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace storybuild.API.Controllers
 {
     [ApiController]
     [Route("api/placement")]
-    public class PlacementController(IPlacementRepository repository) : ControllerBase
+    public class PlacementController(IPlacementRepository repository, AppDbContext db) : ControllerBase
     {
         [HttpGet("questions")]
         [ProducesResponseType(typeof(List<PlacementQuestionDto>), 200)]
@@ -70,6 +75,74 @@ namespace storybuild.API.Controllers
                 options.Select(o => new PlacementOptionDto(o.Key, o.Emoji, o.Label)).ToList(),
                 q.AudioText,
                 q.CorrectAnswer);
+        }
+
+        // ── POST /api/placement/retake ─────────────────────────────────────────
+        // Student can retake placement ONLY after completing all lessons in their level
+        [HttpPost("retake")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> RequestRetake()
+        {
+            var studentIdStr = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(studentIdStr, out var studentId))
+                return Unauthorized();
+
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return NotFound();
+
+            // Count total lessons in the student's current level
+            int totalLessons = await db.Lessons.CountAsync(l => l.Level == student.Level);
+            if (totalLessons == 0)
+                return BadRequest(new { error = "لا توجد دروس في مستواك الحالي." });
+
+            // Count lessons the student has completed (exam passed)
+            int completedLessons = await db.StudentProgress
+                .Where(p => p.ChildName == student.Name && p.LessonId != null && p.ExamCompleted)
+                .Select(p => p.LessonId)
+                .Distinct()
+                .Join(db.Lessons.Where(l => l.Level == student.Level), p => p, l => l.Id, (p, l) => p)
+                .CountAsync();
+
+            if (completedLessons < totalLessons)
+                return BadRequest(new
+                {
+                    error = $"يجب إكمال جميع دروس المستوى الحالي أولاً ({completedLessons}/{totalLessons} دروس مكتملة).",
+                    completed = completedLessons,
+                    total = totalLessons
+                });
+
+            // Allow re-test
+            student.PlacementDone = false;
+            await db.SaveChangesAsync();
+
+            return Ok(new { message = "يمكنك الآن إعادة اختبار تحديد المستوى.", studentName = student.Name });
+        }
+
+        // ── GET /api/placement/level-completion/{childName} ────────────────────
+        // Returns level completion info for a child (used by parent/student dashboard)
+        [HttpGet("level-completion/{childName}")]
+        public async Task<IActionResult> GetLevelCompletion(string childName)
+        {
+            var student = await db.Students.FirstOrDefaultAsync(s => s.Name == childName);
+            if (student is null) return NotFound();
+
+            int totalLessons = await db.Lessons.CountAsync(l => l.Level == student.Level);
+            int completedLessons = await db.StudentProgress
+                .Where(p => p.ChildName == student.Name && p.LessonId != null && p.ExamCompleted)
+                .Select(p => p.LessonId)
+                .Distinct()
+                .Join(db.Lessons.Where(l => l.Level == student.Level), p => p, l => l.Id, (p, l) => p)
+                .CountAsync();
+
+            return Ok(new
+            {
+                level            = student.Level,
+                totalLessons,
+                completedLessons,
+                isLevelComplete  = totalLessons > 0 && completedLessons >= totalLessons,
+                placementDone    = student.PlacementDone
+            });
         }
 
         private sealed class OptionRaw

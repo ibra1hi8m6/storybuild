@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AppStateService } from '../../services/app-state-service';
 import { StoryService } from '../../services/story';
 import { SimpleLoadingComponent } from '../../shared/simple-loading/simple-loading';
@@ -21,6 +21,7 @@ export class Exam implements OnInit {
   private readonly storyService = inject(StoryService);
   private readonly state        = inject(AppStateService);
   private readonly router       = inject(Router);
+  private readonly route        = inject(ActivatedRoute);
 
   readonly QuizType = QuizType;
 
@@ -40,16 +41,25 @@ export class Exam implements OnInit {
   isLessonExam = false;
 
   ngOnInit(): void {
+    const lessonIdParam = this.route.snapshot.queryParamMap.get('lessonId');
+    const storyIdParam  = this.route.snapshot.queryParamMap.get('storyId');
     const story  = this.state.currentStory();
     const lesson = this.state.currentLesson();
-    if (!story && !lesson) { this.router.navigate(['/']); return; }
 
-    if (story) {
+    if (lessonIdParam) {
+      this.isLessonExam = true;
+      this.loadLessonExam(lessonIdParam);
+    } else if (storyIdParam) {
+      this.isLessonExam = false;
+      this.loadExam(storyIdParam);
+    } else if (story) {
       this.isLessonExam = false;
       this.loadExam(story.id);
     } else if (lesson) {
       this.isLessonExam = true;
       this.loadLessonExam(lesson.id);
+    } else {
+      this.router.navigate(['/']);
     }
   }
 
@@ -195,11 +205,13 @@ export class Exam implements OnInit {
         this.result.set(res);
         this.state.setExamResult(res);
         this.isLoading.set(false);
-        const story  = this.state.currentStory();
-        const lesson = this.state.currentLesson();
-        if (story && !this.isLessonExam) {
+        const story    = this.state.currentStory();
+        const lesson   = this.state.currentLesson();
+        const storyIdParam = this.route.snapshot.queryParamMap.get('storyId');
+        const effectiveStoryId = story?.id ?? storyIdParam ?? null;
+        if (!this.isLessonExam && effectiveStoryId) {
           this.storyService.updateProgress({
-            storyId:         story.id,
+            storyId:         effectiveStoryId,
             childName,
             currentPage:     this.state.totalPages(),
             totalQuestions:  res.totalQuestions,
@@ -209,18 +221,27 @@ export class Exam implements OnInit {
           }).subscribe();
           sessionStorage.setItem('quiz_result', JSON.stringify({
             correct: res.correctAnswers,
-            total:   res.totalQuestions
+            total:   res.totalQuestions,
+            score:   res.scorePercentage
           }));
-          this.router.navigate(['/books', story.id, 'quiz-result']);
-        } else if (lesson && this.isLessonExam) {
-          this.storyService.updateLessonProgress({
-            lessonId:        lesson.id,
-            childName,
-            totalQuestions:  res.totalQuestions,
-            correctAnswers:  res.correctAnswers,
-            scorePercentage: res.scorePercentage,
-            examCompleted:   true
-          }).subscribe();
+          // Result is shown inline — no navigation needed
+        } else if (this.isLessonExam) {
+          const lessonId = lesson?.id ?? this.route.snapshot.queryParamMap.get('lessonId') ?? '';
+          if (lessonId) {
+            this.storyService.updateLessonProgress({
+              lessonId,
+              childName,
+              totalQuestions:  res.totalQuestions,
+              correctAnswers:  res.correctAnswers,
+              scorePercentage: res.scorePercentage,
+              examCompleted:   true
+            }).subscribe();
+          }
+          sessionStorage.setItem('quiz_result', JSON.stringify({
+            correct: res.correctAnswers,
+            total:   res.totalQuestions,
+            score:   res.scorePercentage
+          }));
         }
       },
       error: (err: Error) => { this.error.set(err.message); this.isLoading.set(false); }
@@ -299,11 +320,18 @@ export class Exam implements OnInit {
   goHome():  void { this.state.reset(); this.router.navigate(['/dashboard']); }
   goStory(): void {
     if (this.isLessonExam) {
-      this.router.navigate(['/lessons-list']);
+      const level = this.state.currentLesson()?.level ?? 1;
+      this.router.navigate(['/levels', level, 'books']);
     } else {
       const story = this.state.currentStory();
-      if (story) this.router.navigate(['/books', story.id, 'read']);
-      else       this.router.navigate(['/dashboard']);
+      const storyIdParam = this.route.snapshot.queryParamMap.get('storyId');
+      if (story) {
+        this.router.navigate(['/books', story.id, 'read']);
+      } else if (storyIdParam) {
+        this.router.navigate(['/uploaded-stories']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     }
   }
 }

@@ -13,7 +13,9 @@ public static class LessonMapper
          lesson.LetterName,
          lesson.Title,
          lesson.CoverImagePath,
-         lesson.Pages.Count);
+         lesson.Pages.Count,
+         lesson.IsPublished,
+         lesson.Status.ToString());
 
     public static LessonDetailResponse ToDetail(Lesson lesson) =>
         new(
