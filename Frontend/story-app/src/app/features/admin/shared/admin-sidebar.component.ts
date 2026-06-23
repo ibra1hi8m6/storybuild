@@ -26,6 +26,11 @@ import { AppStateService } from '../../../services/app-state-service';
           </a>
         </li>
         <li>
+          <a class="nav-link" routerLink="/admin/learning" routerLinkActive="active">
+            <span class="nav-icon">✏️</span> محتوى التعلم
+          </a>
+        </li>
+        <li>
           <a class="nav-link" routerLink="/admin/ai-settings" routerLinkActive="active">
             <span class="nav-icon">🤖</span> إعدادات الذكاء الاصطناعي
           </a>

@@ -1,0 +1,138 @@
+.letters-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 100%);
+  padding: 32px 20px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 1100px;
+  margin: 0 auto 32px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1E1B4B;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.back-btn {
+  padding: 8px 18px;
+  border: 2px solid #7C3AED;
+  border-radius: 10px;
+  background: transparent;
+  color: #7C3AED;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+}
+.back-btn:hover { background: #7C3AED; color: #fff; }
+
+.recognition-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: transform .2s;
+}
+.recognition-btn:hover { transform: scale(1.03); }
+
+.letters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.letter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px 14px;
+  background: #fff;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 2px 8px rgba(124,58,237,.1);
+  font-family: Cairo, sans-serif;
+}
+.letter-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(124,58,237,.2);
+}
+
+.letter-img {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.letter-placeholder {
+  width: 90px;
+  height: 90px;
+  background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 900;
+  color: #7C3AED;
+  margin-bottom: 10px;
+}
+
+.letter-symbol {
+  font-size: 30px;
+  font-weight: 900;
+  color: #7C3AED;
+  line-height: 1;
+}
+
+.letter-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin-top: 4px;
+}
+
+.letter-word {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin-top: 2px;
+}
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #9CA3AF;
+}
+.empty-icon {
+  font-size: 80px;
+  font-weight: 900;
+  color: #DDD6FE;
+  margin-bottom: 16px;
+}

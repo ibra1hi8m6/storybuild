@@ -1,0 +1,37 @@
+.practice-page { min-height: 100vh; background: linear-gradient(160deg, #EFF6FF 0%, #F0FDF4 100%); padding: 24px 20px 48px; }
+.back-btn { margin-bottom: 20px; padding: 8px 18px; border: 2px solid #0EA5E9; border-radius: 10px; background: transparent; color: #0EA5E9; font-weight: 700; font-size: 14px; font-family: Cairo, sans-serif; cursor: pointer; display: inline-block; transition: all .2s; }
+.back-btn:hover { background: #0EA5E9; color: #fff; }
+.practice-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1000px; margin: 0 auto; }
+@media (max-width: 700px) { .practice-layout { grid-template-columns: 1fr; } }
+.word-panel { background: #fff; border-radius: 24px; box-shadow: 0 4px 24px rgba(14,165,233,.12); overflow: hidden; display: flex; flex-direction: column; align-items: center; padding-bottom: 24px; }
+.word-image { width: 100%; height: 200px; object-fit: cover; }
+.word-image-placeholder { width: 100%; height: 200px; background: linear-gradient(135deg, #DBEAFE, #BAE6FD); display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 900; color: #0369A1; }
+.big-word { font-size: 52px; font-weight: 900; color: #0EA5E9; margin-top: 16px; }
+.word-letter-badge { font-size: 13px; background: #EFF6FF; color: #0369A1; border-radius: 99px; padding: 3px 12px; font-weight: 700; margin-top: 6px; }
+.audio-btn { margin-top: 16px; padding: 10px 22px; background: linear-gradient(135deg, #0EA5E9, #38BDF8); color: #fff; border: none; border-radius: 12px; font-weight: 700; font-size: 14px; font-family: Cairo, sans-serif; cursor: pointer; transition: opacity .2s; }
+.audio-btn.playing { opacity: .7; }
+.section-title { font-weight: 700; font-size: 15px; color: #374151; padding: 0 20px; text-align: center; }
+.record-btn { margin: 10px 20px 0; padding: 12px 24px; border: 2px solid #10B981; background: transparent; color: #10B981; border-radius: 12px; font-weight: 700; font-size: 14px; font-family: Cairo, sans-serif; cursor: pointer; transition: all .2s; }
+.record-btn.recording { background: #10B981; color: #fff; }
+.record-btn:hover:not(.recording) { background: #F0FDF4; }
+.writing-panel { background: #fff; border-radius: 24px; box-shadow: 0 4px 24px rgba(14,165,233,.12); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.writing-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.writing-title { font-size: 18px; font-weight: 700; color: #1E1B4B; margin: 0; }
+.tool-row { display: flex; gap: 6px; }
+.tool-btn { padding: 6px 12px; border: 2px solid #E5E7EB; border-radius: 8px; background: #fff; font-size: 13px; font-weight: 700; font-family: Cairo, sans-serif; cursor: pointer; color: #374151; transition: all .15s; }
+.tool-btn.active { border-color: #0EA5E9; background: #EFF6FF; color: #0EA5E9; }
+.tool-btn.clear-btn { border-color: #EF4444; color: #EF4444; }
+.writing-canvas { width: 100%; height: 240px; border: 2px dashed #BAE6FD; border-radius: 16px; cursor: crosshair; touch-action: none; background: #FAFAFA; }
+.result-banner { padding: 12px; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center; }
+.result-banner.correct { background: #DCFCE7; color: #166534; }
+.result-banner.wrong   { background: #FEF3C7; color: #92400E; }
+.submit-btn { padding: 13px; background: linear-gradient(135deg, #0EA5E9, #38BDF8); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 15px; font-family: Cairo, sans-serif; cursor: pointer; width: 100%; transition: opacity .2s; }
+.submit-btn:hover { opacity: .9; }
+.done-card { max-width: 420px; margin: 60px auto; background: #fff; border-radius: 28px; box-shadow: 0 8px 40px rgba(14,165,233,.14); padding: 48px 32px; text-align: center; }
+.done-icon { font-size: 72px; margin-bottom: 16px; }
+.done-card h2 { font-size: 26px; font-weight: 900; color: #1E1B4B; margin-bottom: 12px; }
+.done-card p { font-size: 16px; color: #6B7280; margin-bottom: 28px; }
+.btn-primary-action { padding: 12px 28px; background: linear-gradient(135deg, #0EA5E9, #38BDF8); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 15px; font-family: Cairo, sans-serif; cursor: pointer; }
+.loading-wrap { display: flex; justify-content: center; padding: 80px 0; }
+.empty-state { display: flex; justify-content: center; align-items: center; min-height: 40vh; font-size: 16px; color: #6B7280; }
+.mt-3 { margin-top: 12px; }

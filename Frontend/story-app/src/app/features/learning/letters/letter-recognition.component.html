@@ -1,0 +1,54 @@
+<app-navbar />
+
+<div class="recognition-page" dir="rtl">
+  <button class="back-btn" (click)="goBack()">→ رجوع</button>
+
+  @if (isLoading()) {
+    <div class="loading-wrap"><div class="spinner-border text-primary"></div></div>
+  } @else if (done()) {
+    <div class="done-card">
+      <div class="done-icon">🏆</div>
+      <h2>أنهيت النشاط!</h2>
+      <p class="score-text">حصلت على {{ score() }} من {{ total() }}</p>
+      <div class="done-actions">
+        <button class="btn-primary-action" (click)="restart()">🔄 حاول مرة أخرى</button>
+        <button class="btn-secondary-action" (click)="goBack()">← الحروف</button>
+      </div>
+    </div>
+  } @else if (!questions().length) {
+    <div class="empty-state">يجب إضافة 4 حروف على الأقل لبدء النشاط.</div>
+  } @else {
+    <div class="activity-card">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" [style.width.%]="progress()"></div>
+      </div>
+      <p class="counter">{{ currentIdx() + 1 }} / {{ total() }}</p>
+
+      <!-- Image -->
+      @if (current().letter.imagePath) {
+        <img [src]="current().letter.imagePath" class="activity-img" [alt]="current().letter.exampleWord">
+      } @else {
+        <div class="activity-img-placeholder">{{ current().letter.exampleWord }}</div>
+      }
+
+      <p class="activity-word">{{ current().letter.exampleWord }}</p>
+      <p class="activity-question">ما الحرف الذي تبدأ به هذه الكلمة؟</p>
+
+      <button class="replay-btn" (click)="speak()">
+        {{ isPlaying() ? '⏸ يشتغل...' : '🔊 استمع' }}
+      </button>
+
+      <div class="options-grid">
+        @for (opt of current().options; track opt) {
+          <button [class]="optClass(opt)" (click)="select(opt)">{{ opt }}</button>
+        }
+      </div>
+
+      @if (showFeedback()) {
+        <div class="feedback-banner" [class.correct]="isCorrectOpt(selected()!)" [class.wrong]="!isCorrectOpt(selected()!)">
+          {{ isCorrectOpt(selected()!) ? '🌟 أحسنت!' : 'الإجابة الصحيحة: ' + current().letter.letter }}
+        </div>
+      }
+    </div>
+  }
+</div>

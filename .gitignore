@@ -9,6 +9,7 @@ obj/
 *.suo
 
 # Secrets — never commit
+appsettings.json
 appsettings.Development.json
 appsettings.*.local.json
 

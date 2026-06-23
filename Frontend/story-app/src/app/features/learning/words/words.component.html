@@ -1,0 +1,35 @@
+<app-navbar />
+<div class="words-page" dir="rtl">
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+    <h1 class="page-title">الكلمات</h1>
+  </div>
+
+  <!-- Letter filter -->
+  <div class="letter-filter">
+    <button class="filter-btn" [class.active]="!selectedLetter()" (click)="selectLetter(null)">الكل</button>
+    @for (l of letters(); track l) {
+      <button class="filter-btn" [class.active]="selectedLetter() === l" (click)="selectLetter(l)">{{ l }}</button>
+    }
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-wrap"><div class="spinner-border text-primary"></div></div>
+  } @else if (!filteredWords().length) {
+    <div class="empty-state">لا توجد كلمات لهذا الحرف بعد.</div>
+  } @else {
+    <div class="words-grid">
+      @for (w of filteredWords(); track w.id) {
+        <button class="word-card" (click)="openWord(w.id)">
+          @if (w.imagePath) {
+            <img [src]="w.imagePath" class="word-img" [alt]="w.displayWord">
+          } @else {
+            <div class="word-placeholder">{{ w.displayWord }}</div>
+          }
+          <div class="word-text">{{ w.displayWord }}</div>
+          <div class="word-letter">حرف {{ w.relatedLetter }}</div>
+        </button>
+      }
+    </div>
+  }
+</div>

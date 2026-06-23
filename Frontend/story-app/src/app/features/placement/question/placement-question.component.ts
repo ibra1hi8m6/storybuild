@@ -167,9 +167,9 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
   }
 
   feedbackText(): string {
-    return this.selected() === this.currentQ()?.correctAnswer
-  ? '🌟 ممتاز! 💪'
-  : 'إجابة خاطئة، لكنك تتعلم!';
+    return this.isCorrect(this.selected() ?? '')
+      ? '🌟 ممتاز! 💪'
+      : 'إجابة خاطئة، لكنك تتعلم! 💙';
   }
 
   speakQuestion(): void {

@@ -1,0 +1,26 @@
+<app-navbar />
+<div class="sentences-page" dir="rtl">
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+    <h1 class="page-title">الجمل</h1>
+  </div>
+  @if (isLoading()) {
+    <div class="loading-wrap"><div class="spinner-border text-success"></div></div>
+  } @else if (!sentences().length) {
+    <div class="empty-state">لم يتم إضافة أنشطة جمل بعد.</div>
+  } @else {
+    <div class="sentences-grid">
+      @for (s of sentences(); track s.id; let i = $index) {
+        <button class="sentence-card" (click)="open(s.id)">
+          @if (s.imagePath) {
+            <img [src]="s.imagePath" class="sentence-img" alt="صورة">
+          } @else {
+            <div class="sentence-img-placeholder">💬</div>
+          }
+          <div class="sentence-number">نشاط {{ i + 1 }}</div>
+          <div class="sentence-preview">{{ s.option1 }}</div>
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -1,7 +1,9 @@
 using Application.DTOs;
 using Application.Interfaces;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -9,7 +11,7 @@ namespace storybuild.API.Controllers
 {
     [ApiController]
     [Route("api/dashboard")]
-    public class DashboardController(IDashboardService dashboardService) : ControllerBase
+    public class DashboardController(IDashboardService dashboardService, AppDbContext db) : ControllerBase
     {
         [HttpGet("student/{childName}")]
         [ProducesResponseType(typeof(StudentDashboardDto), 200)]
@@ -48,17 +50,31 @@ namespace storybuild.API.Controllers
         }
 
         [HttpGet("school")]
-        [Authorize(Roles = "SchoolAdmin")]
+        [Authorize(Roles = "SchoolAdmin,Teacher,SystemAdmin")]
         [ProducesResponseType(typeof(SchoolDashboardDto), 200)]
         public async Task<IActionResult> GetSchool()
         {
-            var adminId = Guid.Parse(
+            var userId = Guid.Parse(
                 User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                 ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? throw new InvalidOperationException("Invalid token."));
 
-            // SchoolCode is deterministically derived from the admin's user ID
-            var schoolCode = adminId.ToString("N")[..8].ToUpper();
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            string schoolCode;
+
+            if (role == "Teacher")
+            {
+                var teacher = await db.Teachers.FindAsync(userId);
+                if (teacher is null || string.IsNullOrEmpty(teacher.SchoolCode))
+                    return Forbid();
+                schoolCode = teacher.SchoolCode;
+            }
+            else
+            {
+                // SchoolAdmin and SystemAdmin: schoolCode derived from userId
+                schoolCode = userId.ToString("N")[..8].ToUpper();
+            }
+
             var data = await dashboardService.GetSchoolDashboardAsync(schoolCode);
             return Ok(data);
         }

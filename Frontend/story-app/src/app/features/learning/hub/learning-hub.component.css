@@ -1,0 +1,91 @@
+.hub-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 60%, #EFF6FF 100%);
+  padding: 40px 20px;
+}
+
+.hub-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.hub-title {
+  font-size: 36px;
+  font-weight: 900;
+  color: #1E1B4B;
+  margin: 0;
+}
+
+.hub-subtitle {
+  font-size: 18px;
+  color: #6B7280;
+  margin: 8px 0 0;
+}
+
+.hub-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 28px 32px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: transform .25s, box-shadow .25s;
+  font-family: Cairo, sans-serif;
+}
+
+.hub-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 48px rgba(0,0,0,.15);
+}
+
+.card-letters {
+  background: linear-gradient(145deg, #7C3AED, #A855F7);
+  color: #fff;
+}
+
+.card-words {
+  background: linear-gradient(145deg, #0EA5E9, #38BDF8);
+  color: #fff;
+}
+
+.card-stories {
+  background: linear-gradient(145deg, #F4788A, #FB923C);
+  color: #fff;
+}
+
+.card-emoji {
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+
+.card-title {
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.card-desc {
+  font-size: 14px;
+  opacity: .85;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.card-arrow {
+  font-size: 22px;
+  opacity: .7;
+}

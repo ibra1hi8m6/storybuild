@@ -153,10 +153,11 @@ public class PdfImportService(
             var mimeType   = imagePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
 
             var prompt = """
-                You are an Arabic text extractor for children's educational books.
-                Look at this page image and extract ONLY the Arabic sentence written on the page.
-                Return ONLY the sentence text — no extra explanation, no punctuation from you.
-                If the page has no Arabic text, return an empty string.
+                أنت مستخرج نصوص عربية من كتب أطفال تعليمية.
+                انظر إلى صورة الصفحة واستخرج الجملة العربية المكتوبة فيها فقط.
+                أعد كتابة النص العربي كما هو تماماً مع الحفاظ على جميع التشكيل (الفتحة والضمة والكسرة والشدة والسكون وغيرها).
+                أعد الجملة فقط بدون أي شرح أو إضافات.
+                
                 """;
 
             var body = new

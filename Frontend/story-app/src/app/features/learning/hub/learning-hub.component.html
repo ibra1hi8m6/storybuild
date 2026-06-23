@@ -1,0 +1,33 @@
+<app-navbar />
+
+<div class="hub-page" dir="rtl">
+  <div class="hub-header">
+    <h1 class="hub-title">محتوى التعلم</h1>
+    <p class="hub-subtitle">اختر قسم التعلم الذي تريد</p>
+  </div>
+
+  <div class="hub-cards">
+
+    <button class="hub-card card-letters" (click)="go('/learning/letters')">
+      <div class="card-emoji">أ</div>
+      <div class="card-title">الحروف والأصوات</div>
+      <div class="card-desc">تعلم الحروف الأبجدية العربية وأصواتها</div>
+      <div class="card-arrow">←</div>
+    </button>
+
+    <button class="hub-card card-words" (click)="go('/learning/words-sentences')">
+      <div class="card-emoji">📝</div>
+      <div class="card-title">الكلمات والجمل</div>
+      <div class="card-desc">تعلم الكلمات وقراءة الجمل</div>
+      <div class="card-arrow">←</div>
+    </button>
+
+    <button class="hub-card card-stories" (click)="go('/learning/booklets-stories')">
+      <div class="card-emoji">📚</div>
+      <div class="card-title">الكتيبات والقصص</div>
+      <div class="card-desc">اقرأ الكتيبات والقصص الشيقة</div>
+      <div class="card-arrow">←</div>
+    </button>
+
+  </div>
+</div>

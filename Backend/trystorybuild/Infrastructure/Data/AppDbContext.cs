@@ -63,6 +63,12 @@ namespace Infrastructure.Data
         // Placement test
         public DbSet<PlacementQuestion> PlacementQuestions => Set<PlacementQuestion>();
 
+        // Learning content (letters, words, sentences, attempts)
+        public DbSet<LetterContent> LetterContents => Set<LetterContent>();
+        public DbSet<WordContent> WordContents => Set<WordContent>();
+        public DbSet<SentenceContent> SentenceContents => Set<SentenceContent>();
+        public DbSet<LearningAttempt> LearningAttempts => Set<LearningAttempt>();
+
         // Auth / Identity
         public DbSet<User> Users => Set<User>();
         public DbSet<Parent> Parents => Set<Parent>();

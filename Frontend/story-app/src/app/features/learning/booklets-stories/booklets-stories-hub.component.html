@@ -1,0 +1,19 @@
+<app-navbar />
+<div class="hub-page" dir="rtl">
+  <div class="hub-header">
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+    <h1 class="hub-title">الكتيبات والقصص</h1>
+  </div>
+  <div class="hub-cards">
+    <button class="hub-card card-booklets" (click)="go('/levels')">
+      <div class="card-emoji">📒</div>
+      <div class="card-title">الكتيبات</div>
+      <div class="card-desc">اقرأ واكتب مع الكتيبات التعليمية</div>
+    </button>
+    <button class="hub-card card-stories" (click)="go('/uploaded-stories')">
+      <div class="card-emoji">📖</div>
+      <div class="card-title">القصص</div>
+      <div class="card-desc">استمع واقرأ القصص الشيقة</div>
+    </button>
+  </div>
+</div>

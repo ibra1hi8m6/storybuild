@@ -181,7 +181,7 @@ namespace Infrastructure.Services
                 .OrderByDescending(t => t.CompletionCount).Take(5).ToList();
 
             var recentProgress = await db.StudentProgress
-                .Where(p => p.ExamCompleted)
+                .Where(p => p.ExamCompleted && schoolChildNames.Contains(p.ChildName))
                 .Include(p => p.Story).Include(p => p.Lesson)
                 .OrderByDescending(p => p.LastUpdatedAt)
                 .Take(15).ToListAsync();

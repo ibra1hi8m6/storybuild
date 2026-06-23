@@ -53,6 +53,68 @@ export const routes: Routes = [
         .then(m => m.StudentDashboardComponent),
     canActivate: [authGuard]
   },
+  // ── محتوى التعلم hub ──────────────────────────────────────────────────────
+  {
+    path: 'learning',
+    loadComponent: () =>
+      import('./features/learning/hub/learning-hub.component').then(m => m.LearningHubComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/letters',
+    loadComponent: () =>
+      import('./features/learning/letters/letters.component').then(m => m.LettersComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/letters/recognition',
+    loadComponent: () =>
+      import('./features/learning/letters/letter-recognition.component').then(m => m.LetterRecognitionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/letters/:id',
+    loadComponent: () =>
+      import('./features/learning/letters/letter-lesson.component').then(m => m.LetterLessonComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/words-sentences',
+    loadComponent: () =>
+      import('./features/learning/words/words-sentences-hub.component').then(m => m.WordsSentencesHubComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/words',
+    loadComponent: () =>
+      import('./features/learning/words/words.component').then(m => m.WordsComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/words/:id',
+    loadComponent: () =>
+      import('./features/learning/words/word-practice.component').then(m => m.WordPracticeComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/sentences',
+    loadComponent: () =>
+      import('./features/learning/sentences/sentences.component').then(m => m.SentencesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/sentences/:id',
+    loadComponent: () =>
+      import('./features/learning/sentences/sentence-practice.component').then(m => m.SentencePracticeComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'learning/booklets-stories',
+    loadComponent: () =>
+      import('./features/learning/booklets-stories/booklets-stories-hub.component').then(m => m.BookletsStoriesHubComponent),
+    canActivate: [authGuard]
+  },
+  // keep /levels so existing bookmarks still work
   {
     path: 'levels',
     loadComponent: () =>
@@ -405,6 +467,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/admin-uploaded-stories/admin-uploaded-stories.component')
         .then(m => m.AdminUploadedStoriesComponent),
+    canActivate: [adminGuard]
+  },
+  {
+    path: 'admin/learning',
+    loadComponent: () =>
+      import('./features/admin/learning/admin-learning.component')
+        .then(m => m.AdminLearningComponent),
     canActivate: [adminGuard]
   },
 

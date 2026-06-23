@@ -1,0 +1,62 @@
+<app-navbar />
+
+<div class="lesson-page" dir="rtl">
+  @if (isLoading()) {
+    <div class="loading-wrap"><div class="spinner-border text-primary"></div></div>
+  } @else if (!letter()) {
+    <div class="empty-state">لم يتم العثور على الحرف.</div>
+  } @else {
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+
+    <div class="lesson-layout">
+
+      <!-- Image + Info Panel -->
+      <div class="info-panel">
+        @if (letter()!.imagePath) {
+          <img [src]="letter()!.imagePath" class="letter-image" [alt]="letter()!.letter">
+        } @else {
+          <div class="letter-image-placeholder">{{ letter()!.letter }}</div>
+        }
+
+        <div class="info-body">
+          <div class="big-letter">{{ letter()!.letter }}</div>
+          <div class="letter-name-text">{{ letter()!.letterName }}</div>
+          <div class="example-word">{{ letter()!.exampleWord }}</div>
+          <div class="display-sentence">{{ letter()!.displaySentence }}</div>
+
+          <div class="audio-controls">
+            <button class="audio-btn" [class.playing]="isPlaying()" (click)="speak()">
+              <span>{{ isPlaying() ? '⏸' : '🔊' }}</span>
+              {{ isPlaying() ? 'يشتغل الصوت...' : 'استمع مرة أخرى' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Writing Panel -->
+      <div class="writing-panel">
+        <div class="writing-header">
+          <h3 class="writing-title">✏️ اكتب الحرف</h3>
+          <div class="tool-row">
+            <button class="tool-btn" [class.active]="activeTool() === 'pen'" (click)="activeTool.set('pen')">✏️ قلم</button>
+            <button class="tool-btn" [class.active]="activeTool() === 'eraser'" (click)="activeTool.set('eraser')">🗑️ ممحاة</button>
+            <button class="tool-btn clear-btn" (click)="clearCanvas()">🔄 مسح الكل</button>
+          </div>
+        </div>
+
+        <canvas #canvas class="writing-canvas"></canvas>
+
+        @if (result()) {
+          <div class="result-banner" [class.correct]="result()!.isCorrect" [class.wrong]="!result()!.isCorrect">
+            {{ result()!.feedback }}
+          </div>
+        }
+
+        <button class="submit-btn" [disabled]="isChecking()" (click)="submitWriting()">
+          {{ isChecking() ? 'جارٍ التحقق...' : '✅ إرسال الكتابة' }}
+        </button>
+      </div>
+
+    </div>
+  }
+</div>

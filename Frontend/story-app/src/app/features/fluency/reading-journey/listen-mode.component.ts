@@ -16,13 +16,10 @@ import { CommonModule } from '@angular/common';
   <p class="listen-sentence">
     @for (word of words(); track $index) {
       <span
+        dir="rtl"
         class="word"
         [class.word-active]="$index === activeWordIdx()"
-        [class.word-done]="$index < activeWordIdx()">
-        {{ word }}
-      </span>
-      <span> </span>
-    }
+        [class.word-done]="$index < activeWordIdx()">{{ word }}</span>&#x200f; }
   </p>
 
   <!-- Controls -->

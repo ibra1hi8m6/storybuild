@@ -1,0 +1,184 @@
+.recognition-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 100%);
+  padding: 24px 20px 48px;
+}
+
+.back-btn {
+  margin-bottom: 20px;
+  padding: 8px 18px;
+  border: 2px solid #7C3AED;
+  border-radius: 10px;
+  background: transparent;
+  color: #7C3AED;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+  display: inline-block;
+}
+.back-btn:hover { background: #7C3AED; color: #fff; }
+
+.activity-card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 8px 40px rgba(124,58,237,.14);
+  padding: 28px 28px 36px;
+  text-align: center;
+}
+
+.progress-bar-wrap {
+  height: 8px;
+  background: #EDE9FE;
+  border-radius: 99px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7C3AED, #A855F7);
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+
+.counter {
+  font-size: 13px;
+  color: #9CA3AF;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.activity-img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.1);
+}
+.activity-img-placeholder {
+  width: 180px;
+  height: 180px;
+  background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  font-weight: 700;
+  color: #7C3AED;
+  margin-bottom: 16px;
+}
+
+.activity-word {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1E1B4B;
+  margin-bottom: 4px;
+}
+.activity-question {
+  font-size: 16px;
+  color: #6B7280;
+  margin-bottom: 12px;
+}
+
+.replay-btn {
+  padding: 8px 20px;
+  background: #EDE9FE;
+  color: #7C3AED;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: background .2s;
+}
+.replay-btn:hover { background: #DDD6FE; }
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.opt-btn {
+  padding: 20px 12px;
+  font-size: 36px;
+  font-weight: 900;
+  background: #F9FAFB;
+  border: 3px solid #E5E7EB;
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: Cairo, sans-serif;
+  transition: all .15s;
+  color: #1E1B4B;
+}
+.opt-btn:hover:not(:disabled) { border-color: #7C3AED; background: #EDE9FE; transform: scale(1.04); }
+.opt-btn.correct { border-color: #22C55E; background: #DCFCE7; color: #166534; }
+.opt-btn.wrong   { border-color: #EF4444; background: #FEF2F2; color: #991B1B; }
+
+.feedback-banner {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 18px;
+}
+.feedback-banner.correct { background: #DCFCE7; color: #166534; }
+.feedback-banner.wrong   { background: #FEF3C7; color: #92400E; }
+
+/* Done screen */
+.done-card {
+  max-width: 420px;
+  margin: 60px auto;
+  background: #fff;
+  border-radius: 28px;
+  box-shadow: 0 8px 40px rgba(124,58,237,.14);
+  padding: 48px 32px;
+  text-align: center;
+}
+.done-icon { font-size: 72px; margin-bottom: 16px; }
+.done-card h2 { font-size: 26px; font-weight: 900; color: #1E1B4B; margin-bottom: 8px; }
+.score-text { font-size: 20px; color: #7C3AED; font-weight: 700; margin-bottom: 32px; }
+.done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.btn-primary-action {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.btn-primary-action:hover { opacity: .9; }
+
+.btn-secondary-action {
+  padding: 12px 28px;
+  background: #F3F4F6;
+  color: #374151;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+}
+.btn-secondary-action:hover { background: #E5E7EB; }
+
+.loading-wrap, .empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  font-size: 16px;
+  color: #6B7280;
+}

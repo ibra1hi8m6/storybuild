@@ -1,0 +1,212 @@
+.lesson-page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 100%);
+  padding: 24px 20px 40px;
+  position: relative;
+}
+
+.back-btn {
+  margin-bottom: 20px;
+  padding: 8px 18px;
+  border: 2px solid #7C3AED;
+  border-radius: 10px;
+  background: transparent;
+  color: #7C3AED;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+  display: inline-block;
+}
+.back-btn:hover { background: #7C3AED; color: #fff; }
+
+.lesson-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+@media (max-width: 700px) {
+  .lesson-layout { grid-template-columns: 1fr; }
+}
+
+/* Info Panel */
+.info-panel {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(124,58,237,.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.letter-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.letter-image-placeholder {
+  width: 100%;
+  height: 220px;
+  background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 100px;
+  font-weight: 900;
+  color: #7C3AED;
+}
+
+.info-body {
+  padding: 24px;
+  text-align: center;
+}
+
+.big-letter {
+  font-size: 64px;
+  font-weight: 900;
+  color: #7C3AED;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.letter-name-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E1B4B;
+  margin-bottom: 6px;
+}
+
+.example-word {
+  font-size: 26px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.display-sentence {
+  font-size: 16px;
+  color: #6B7280;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.audio-controls {
+  display: flex;
+  justify-content: center;
+}
+
+.audio-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: transform .2s, opacity .2s;
+}
+.audio-btn:hover { transform: scale(1.04); }
+.audio-btn.playing { opacity: .75; }
+
+/* Writing Panel */
+.writing-panel {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(124,58,237,.12);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.writing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.writing-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1E1B4B;
+  margin: 0;
+}
+
+.tool-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  padding: 6px 12px;
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: all .15s;
+  color: #374151;
+}
+.tool-btn.active { border-color: #7C3AED; background: #EDE9FE; color: #7C3AED; }
+.tool-btn.clear-btn { border-color: #EF4444; color: #EF4444; }
+.tool-btn.clear-btn:hover { background: #FEF2F2; }
+
+.writing-canvas {
+  width: 100%;
+  height: 260px;
+  border: 2px dashed #DDD6FE;
+  border-radius: 16px;
+  cursor: crosshair;
+  touch-action: none;
+  background: #FAFAFA;
+}
+
+.result-banner {
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+}
+.result-banner.correct { background: #DCFCE7; color: #166534; }
+.result-banner.wrong   { background: #FEF3C7; color: #92400E; }
+
+.submit-btn {
+  padding: 14px;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 16px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: opacity .2s;
+  width: 100%;
+}
+.submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+.submit-btn:not(:disabled):hover { opacity: .9; }
+
+.loading-wrap, .empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
+  font-size: 16px;
+  color: #6B7280;
+}

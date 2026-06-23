@@ -1,0 +1,299 @@
+<div class="admin-shell" dir="rtl">
+  <app-admin-sidebar />
+
+  <main class="admin-main">
+    <div class="page-header">
+      <h1 class="page-title">محتوى التعلم</h1>
+      <p class="page-subtitle">إدارة الحروف والكلمات والجمل</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-row mb-4">
+      <button class="tab-btn" [class.active]="activeTab() === 'letters'" (click)="setTab('letters')">الحروف والأصوات</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'words'"   (click)="setTab('words')">الكلمات</button>
+      <button class="tab-btn" [class.active]="activeTab() === 'sentences'" (click)="setTab('sentences')">الجمل</button>
+    </div>
+
+    @if (isLoading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    }
+
+    <!-- ══════════════════════ LETTERS TAB ══════════════════════ -->
+    @if (activeTab() === 'letters' && !isLoading()) {
+      <div class="content-panel">
+        <div class="panel-header">
+          <span>الحروف ({{ letters().length }})</span>
+          <button class="btn btn-primary btn-sm" (click)="startEditLetter(null)">+ إضافة حرف</button>
+        </div>
+
+        <!-- Form -->
+        @if (editingLetter() !== undefined) {
+          <div class="form-card mb-4">
+            <h5 class="form-title">{{ editingLetter() ? 'تعديل الحرف' : 'حرف جديد' }}</h5>
+
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label">الحرف</label>
+                <select class="form-select" [value]="letterForm().letter" (change)="updateLetterFormField('letter', $any($event.target).value)">
+                  <option value="">اختر</option>
+                  @for (l of arabicLetters; track l) {
+                    <option [value]="l">{{ l }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">اسم الحرف</label>
+                <input class="form-control" [value]="letterForm().letterName" (input)="updateLetterFormField('letterName', $any($event.target).value)" placeholder="مثال: حرف الألف" dir="rtl">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">مثال (بتشكيل)</label>
+                <input class="form-control" [value]="letterForm().exampleWord" (input)="updateLetterFormField('exampleWord', $any($event.target).value)" placeholder="أَرْنَب" dir="rtl">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">هدف الكتابة</label>
+                <input class="form-control" [value]="letterForm().writingTarget" (input)="updateLetterFormField('writingTarget', $any($event.target).value)" placeholder="أ" dir="rtl">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">جملة العرض</label>
+                <input class="form-control" [value]="letterForm().displaySentence" (input)="updateLetterFormField('displaySentence', $any($event.target).value)" placeholder="هذا حرف الألف" dir="rtl">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">نص الصوت (بتشكيل كامل)</label>
+                <input class="form-control" [value]="letterForm().audioText" (input)="updateLetterFormField('audioText', $any($event.target).value)" placeholder="هٰذَا حَرْفُ الأَلِف" dir="rtl">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">الترتيب</label>
+                <input type="number" class="form-control" [value]="letterForm().sortOrder" (input)="updateLetterFormField('sortOrder', +$any($event.target).value)">
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="letPub" [checked]="letterForm().isPublished" (change)="updateLetterFormField('isPublished', $any($event.target).checked)">
+                  <label class="form-check-label" for="letPub">منشور</label>
+                </div>
+              </div>
+              <div class="col-md-7">
+                <label class="form-label">صورة الحرف</label>
+                <input type="file" class="form-control" accept="image/*" (change)="onLetterImage($event)">
+                @if (letterImagePreview()) {
+                  <img [src]="letterImagePreview()!" class="img-preview mt-2">
+                }
+              </div>
+            </div>
+
+            @if (saveError()) {
+              <div class="alert alert-danger mt-3">{{ saveError() }}</div>
+            }
+            @if (saveSuccess()) {
+              <div class="alert alert-success mt-3">تم الحفظ بنجاح!</div>
+            }
+
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success" [disabled]="isSaving()" (click)="saveLetter()">
+                {{ isSaving() ? 'جارٍ الحفظ...' : 'حفظ' }}
+              </button>
+              <button class="btn btn-outline-secondary" (click)="editingLetter.set(null)">إلغاء</button>
+            </div>
+          </div>
+        }
+
+        <!-- List -->
+        <div class="items-grid">
+          @for (l of letters(); track l.id) {
+            <div class="item-card" [class.unpublished]="!l.isPublished">
+              @if (l.imagePath) {
+                <img [src]="l.imagePath" class="item-img" [alt]="l.letter">
+              } @else {
+                <div class="item-img-placeholder">{{ l.letter }}</div>
+              }
+              <div class="item-body">
+                <div class="item-title">{{ l.letter }} — {{ l.letterName }}</div>
+                <div class="item-sub">{{ l.exampleWord }}</div>
+                <div class="item-audio text-muted small">🔊 {{ l.audioText }}</div>
+              </div>
+              <div class="item-actions">
+                <button class="btn btn-sm btn-outline-primary" (click)="startEditLetter(l)">تعديل</button>
+                <button class="btn btn-sm" [class.btn-warning]="l.isPublished" [class.btn-success]="!l.isPublished"
+                        (click)="toggleLetterPublish(l)">
+                  {{ l.isPublished ? 'إخفاء' : 'نشر' }}
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteLetter(l.id)">حذف</button>
+              </div>
+            </div>
+          }
+          @if (!letters().length) {
+            <p class="text-muted p-3">لا توجد حروف بعد. أضف أول حرف!</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ══════════════════════ WORDS TAB ══════════════════════ -->
+    @if (activeTab() === 'words' && !isLoading()) {
+      <div class="content-panel">
+        <div class="panel-header">
+          <span>الكلمات ({{ words().length }})</span>
+          <button class="btn btn-primary btn-sm" (click)="startEditWord(null)">+ إضافة كلمة</button>
+        </div>
+
+        @if (editingWord() !== undefined) {
+          <div class="form-card mb-4">
+            <h5 class="form-title">{{ editingWord() ? 'تعديل الكلمة' : 'كلمة جديدة' }}</h5>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">الكلمة للعرض</label>
+                <input class="form-control" [value]="wordForm().displayWord" (input)="updateWordFormField('displayWord', $any($event.target).value)" placeholder="بَدَأَ" dir="rtl">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">نص الصوت (بتشكيل)</label>
+                <input class="form-control" [value]="wordForm().audioText" (input)="updateWordFormField('audioText', $any($event.target).value)" placeholder="بَدَأَ" dir="rtl">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">الحرف المرتبط</label>
+                <select class="form-select" [value]="wordForm().relatedLetter" (change)="updateWordFormField('relatedLetter', $any($event.target).value)">
+                  <option value="">اختر</option>
+                  @for (l of arabicLetters; track l) {
+                    <option [value]="l">{{ l }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">الترتيب</label>
+                <input type="number" class="form-control" [value]="wordForm().sortOrder" (input)="updateWordFormField('sortOrder', +$any($event.target).value)">
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="wordPub" [checked]="wordForm().isPublished" (change)="updateWordFormField('isPublished', $any($event.target).checked)">
+                  <label class="form-check-label" for="wordPub">منشور</label>
+                </div>
+              </div>
+              <div class="col-md-9">
+                <label class="form-label">صورة (اختياري)</label>
+                <input type="file" class="form-control" accept="image/*" (change)="onWordImage($event)">
+                @if (wordImagePreview()) {
+                  <img [src]="wordImagePreview()!" class="img-preview mt-2">
+                }
+              </div>
+            </div>
+
+            @if (saveError()) { <div class="alert alert-danger mt-3">{{ saveError() }}</div> }
+            @if (saveSuccess()) { <div class="alert alert-success mt-3">تم الحفظ بنجاح!</div> }
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success" [disabled]="isSaving()" (click)="saveWord()">{{ isSaving() ? 'جارٍ الحفظ...' : 'حفظ' }}</button>
+              <button class="btn btn-outline-secondary" (click)="editingWord.set(null)">إلغاء</button>
+            </div>
+          </div>
+        }
+
+        <div class="items-grid">
+          @for (w of words(); track w.id) {
+            <div class="item-card" [class.unpublished]="!w.isPublished">
+              @if (w.imagePath) {
+                <img [src]="w.imagePath" class="item-img" [alt]="w.displayWord">
+              } @else {
+                <div class="item-img-placeholder arabic-lg">{{ w.displayWord }}</div>
+              }
+              <div class="item-body">
+                <div class="item-title">{{ w.displayWord }}</div>
+                <div class="item-sub">حرف: {{ w.relatedLetter }}</div>
+                <div class="item-audio text-muted small">🔊 {{ w.audioText }}</div>
+              </div>
+              <div class="item-actions">
+                <button class="btn btn-sm btn-outline-primary" (click)="startEditWord(w)">تعديل</button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteWord(w.id)">حذف</button>
+              </div>
+            </div>
+          }
+          @if (!words().length) {
+            <p class="text-muted p-3">لا توجد كلمات بعد. أضف أول كلمة!</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ══════════════════════ SENTENCES TAB ══════════════════════ -->
+    @if (activeTab() === 'sentences' && !isLoading()) {
+      <div class="content-panel">
+        <div class="panel-header">
+          <span>الجمل ({{ sentences().length }})</span>
+          <button class="btn btn-primary btn-sm" (click)="startEditSentence(null)">+ إضافة نشاط</button>
+        </div>
+
+        @if (editingSentence() !== undefined) {
+          <div class="form-card mb-4">
+            <h5 class="form-title">{{ editingSentence() ? 'تعديل النشاط' : 'نشاط جديد' }}</h5>
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">صورة النشاط</label>
+                <input type="file" class="form-control" accept="image/*" (change)="onSentenceImage($event)">
+                @if (sentenceImagePreview()) {
+                  <img [src]="sentenceImagePreview()!" class="img-preview mt-2">
+                }
+              </div>
+
+              @for (opt of [1,2,3]; track opt) {
+                <div class="col-md-6">
+                  <label class="form-label">الجملة {{ opt }}</label>
+                  <input class="form-control mb-1" [value]="sentenceOptionText(opt)" (input)="updateSentenceFormField('option' + opt, $any($event.target).value)" [placeholder]="'الجملة ' + opt" dir="rtl">
+                  <input class="form-control" [value]="sentenceOptionAudio(opt)" (input)="updateSentenceFormField('option' + opt + 'Audio', $any($event.target).value)" [placeholder]="'نص الصوت للجملة ' + opt + ' (بتشكيل)'" dir="rtl">
+                </div>
+              }
+
+              <div class="col-md-3">
+                <label class="form-label">الإجابة الصحيحة</label>
+                <select class="form-select" [value]="sentenceForm().correctOptionIndex" (change)="updateSentenceFormField('correctOptionIndex', +$any($event.target).value)">
+                  <option [value]="1">الجملة 1</option>
+                  <option [value]="2">الجملة 2</option>
+                  <option [value]="3">الجملة 3</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">الترتيب</label>
+                <input type="number" class="form-control" [value]="sentenceForm().sortOrder" (input)="updateSentenceFormField('sortOrder', +$any($event.target).value)">
+              </div>
+              <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="senPub" [checked]="sentenceForm().isPublished" (change)="updateSentenceFormField('isPublished', $any($event.target).checked)">
+                  <label class="form-check-label" for="senPub">منشور</label>
+                </div>
+              </div>
+            </div>
+
+            @if (saveError()) { <div class="alert alert-danger mt-3">{{ saveError() }}</div> }
+            @if (saveSuccess()) { <div class="alert alert-success mt-3">تم الحفظ بنجاح!</div> }
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success" [disabled]="isSaving()" (click)="saveSentence()">{{ isSaving() ? 'جارٍ الحفظ...' : 'حفظ' }}</button>
+              <button class="btn btn-outline-secondary" (click)="editingSentence.set(null)">إلغاء</button>
+            </div>
+          </div>
+        }
+
+        <div class="items-grid">
+          @for (s of sentences(); track s.id) {
+            <div class="item-card" [class.unpublished]="!s.isPublished">
+              @if (s.imagePath) {
+                <img [src]="s.imagePath" class="item-img" alt="صورة">
+              } @else {
+                <div class="item-img-placeholder">🖼️</div>
+              }
+              <div class="item-body">
+                <div class="item-title small">الجملة {{ s.correctOptionIndex }} صحيحة</div>
+                <div class="item-sub small">{{ s.option1 }}</div>
+                <div class="item-sub small">{{ s.option2 }}</div>
+                <div class="item-sub small">{{ s.option3 }}</div>
+              </div>
+              <div class="item-actions">
+                <button class="btn btn-sm btn-outline-primary" (click)="startEditSentence(s)">تعديل</button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteSentence(s.id)">حذف</button>
+              </div>
+            </div>
+          }
+          @if (!sentences().length) {
+            <p class="text-muted p-3">لا توجد جمل بعد. أضف أول نشاط!</p>
+          }
+        </div>
+      </div>
+    }
+  </main>
+</div>

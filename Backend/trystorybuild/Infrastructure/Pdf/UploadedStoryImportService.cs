@@ -96,21 +96,13 @@ public class UploadedStoryImportService(
                 continue;
             }
 
-            // Try direct PDF text extraction first (free, instant, no API)
-            var sentence = ExtractTextFromPdfPage(pdfPath, i);
-
-            if (!string.IsNullOrWhiteSpace(sentence))
-            {
-                logger.LogInformation("[StoryImport] Page {N} text from PdfPig: {S}", pageNumber, sentence);
-            }
-            else
-            {
-                // Fall back to Gemini Vision OCR for image-based PDFs
-                if (i > SkipPages)
-                    await Task.Delay(4000, ct);
-                sentence = await ExtractSentenceAsync(imagePaths[i], ct);
-                logger.LogInformation("[StoryImport] Page {N} text from Gemini OCR: {S}", pageNumber, sentence);
-            }
+            // Arabic PDFs commonly store text in visual order (glyphs placed LTR),
+            // which makes PdfPig return garbled doubled characters. Always use
+            // Gemini Vision OCR which reads the rendered image directly.
+            if (i > SkipPages)
+                await Task.Delay(4000, ct);
+            var sentence = await ExtractSentenceAsync(imagePaths[i], ct);
+            logger.LogInformation("[StoryImport] Page {N} text from Gemini OCR: {S}", pageNumber, sentence);
 
             story.Pages.Add(new StoryPage
             {
@@ -164,22 +156,6 @@ public class UploadedStoryImportService(
         s.CreatedAt,
         s.Pages.OrderBy(p => p.PageNumber).Select(p => new StoryPageDto(
             p.Id, p.PageNumber, p.Sentence, p.ImagePath, p.IsUnlocked)).ToList());
-
-    private static string ExtractTextFromPdfPage(string pdfPath, int pageIndex)
-    {
-        try
-        {
-            using var doc = UglyToad.PdfPig.PdfDocument.Open(pdfPath);
-            // PdfPig pages are 1-based
-            var page = doc.GetPage(pageIndex + 1);
-            var text = string.Join(" ", page.GetWords().Select(w => w.Text));
-            return ExtractArabicOnly(text);
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
 
     private static string ExtractArabicOnly(string text)
     {
@@ -235,7 +211,7 @@ public class UploadedStoryImportService(
                         {
                             parts = new object[]
                             {
-                                new { text = "Look at this children's story page image. Extract ONLY the Arabic text (ignore any English text completely). Return ONLY the Arabic sentence or phrase as-is, with no translation, no explanation, and no additional text. If there is no Arabic text on the page, return an empty string." },
+                                new { text = "هذه صفحة من قصة أطفال عربية. استخرج الجملة العربية المكتوبة في الصورة فقط. أعد كتابة النص العربي كما هو تماماً مع الحفاظ على جميع التشكيل (الفتحة والضمة والكسرة والشدة والسكون وغيرها). لا تترجم ولا تشرح ولا تضف أي كلام إضافي. أعد الجملة العربية فقط. إذا لم يوجد نص عربي، أعد نصاً فارغاً." },
                                 new { inline_data = new { mime_type = "image/jpeg", data = base64 } }
                             }
                         }

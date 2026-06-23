@@ -1,0 +1,37 @@
+<app-navbar />
+
+<div class="letters-page" dir="rtl">
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+    <h1 class="page-title">الحروف والأصوات</h1>
+    <button class="recognition-btn" (click)="goRecognition()">
+      🔤 نشاط التعرف على الحروف
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-wrap">
+      <div class="spinner-border text-primary"></div>
+    </div>
+  } @else if (!letters().length) {
+    <div class="empty-state">
+      <div class="empty-icon">أ</div>
+      <p>لم يتم إضافة حروف بعد.</p>
+    </div>
+  } @else {
+    <div class="letters-grid">
+      @for (l of letters(); track l.id) {
+        <button class="letter-card" (click)="openLetter(l.id)">
+          @if (l.imagePath) {
+            <img [src]="l.imagePath" class="letter-img" [alt]="l.letter">
+          } @else {
+            <div class="letter-placeholder">{{ l.letter }}</div>
+          }
+          <div class="letter-symbol">{{ l.letter }}</div>
+          <div class="letter-name">{{ l.letterName }}</div>
+          <div class="letter-word">{{ l.exampleWord }}</div>
+        </button>
+      }
+    </div>
+  }
+</div>

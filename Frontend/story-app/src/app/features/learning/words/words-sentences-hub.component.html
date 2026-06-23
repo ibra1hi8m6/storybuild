@@ -1,0 +1,19 @@
+<app-navbar />
+<div class="hub-page" dir="rtl">
+  <div class="hub-header">
+    <button class="back-btn" (click)="goBack()">→ رجوع</button>
+    <h1 class="hub-title">الكلمات والجمل</h1>
+  </div>
+  <div class="hub-cards">
+    <button class="hub-card card-words" (click)="go('/learning/words')">
+      <div class="card-emoji">📖</div>
+      <div class="card-title">الكلمات</div>
+      <div class="card-desc">تعلم الكلمات مرتبة بالحرف</div>
+    </button>
+    <button class="hub-card card-sentences" (click)="go('/learning/sentences')">
+      <div class="card-emoji">💬</div>
+      <div class="card-title">الجمل</div>
+      <div class="card-desc">اختر الجملة الصحيحة للصورة</div>
+    </button>
+  </div>
+</div>

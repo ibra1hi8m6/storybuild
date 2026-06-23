@@ -10,6 +10,7 @@ namespace Domain.Entities
         public string ImagePrompt { get; set; } = string.Empty;
         public bool IsCoverPage { get; set; } = false;
         public bool IsUnlocked { get; set; } = false;
+        public string? AudioText { get; set; }
 
         // RAG embedding tracking
         public bool IsEmbedded { get; set; } = false;
