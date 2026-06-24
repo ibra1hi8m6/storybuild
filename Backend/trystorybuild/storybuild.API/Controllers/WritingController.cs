@@ -1,4 +1,4 @@
-using Application.Agent;
+using Application.Agents;
 using Application.DTOs;
 using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;

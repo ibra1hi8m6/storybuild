@@ -1,4 +1,4 @@
-using Application.Agent;
+using Application.Agents;
 using Application.Interfaces;
 using Infrastructure.AI;
 using Infrastructure.Auth;

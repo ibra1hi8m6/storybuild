@@ -1,5 +1,5 @@
 using storybuild.API.Middleware;
-using Application.Agent;
+using Application.Agents;
 using Infrastructure;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -56,7 +56,7 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.Co
 builder.Services.AddScoped<StoryAgent>();
 builder.Services.AddScoped<ExamAgent>();
 builder.Services.AddScoped<WritingCorrectionAgent>();
-builder.Services.AddScoped<Application.Agent.LessonGenerationAgent>();
+builder.Services.AddScoped<Application.Agents.LessonGenerationAgent>();
 
 // ── File upload limit: 20 MB ──────────────────────────────────────────────────
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>

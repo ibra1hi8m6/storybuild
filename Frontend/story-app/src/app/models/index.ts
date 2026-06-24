@@ -1,6 +1,3 @@
-// Barrel re-export — all consumers of story.models continue to work unchanged.
-// The actual definitions now live in focused domain files.
-
 export * from './story-content.models';
 export * from './lesson.models';
 export * from './exam.models';

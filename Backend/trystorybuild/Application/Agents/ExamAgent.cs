@@ -5,7 +5,7 @@ using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace Application.Agent
+namespace Application.Agents
 {
     public sealed class ExamAgent(
         IExamGeneratorService examGenerator,

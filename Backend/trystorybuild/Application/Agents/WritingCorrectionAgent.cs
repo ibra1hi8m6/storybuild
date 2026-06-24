@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace Application.Agent
+namespace Application.Agents
 {
     public sealed class WritingCorrectionAgent(
         ILessonRepository lessonRepository,

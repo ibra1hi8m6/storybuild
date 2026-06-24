@@ -1,559 +1,175 @@
+// Facade — delegates to focused feature services.
+// All existing components that inject StoryService continue to work unchanged.
+
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map } from 'rxjs';
+import { Observable } from 'rxjs';
+
+import { StoryContentService }  from './story-content.service';
+import { ExamService }          from './exam.service';
+import { WritingService }       from './writing.service';
+import { LessonService }        from './lesson.service';
+import { AdminService }         from './admin.service';
+import { ProgressService }      from './progress.service';
+import { RagService }           from './rag.service';
+import { DashboardService }     from './dashboard.service';
+import { PdfLibraryService }    from './pdf-library.service';
+import { GroupsService }        from './groups.service';
+import { AssignmentsService }   from './assignments.service';
+import { AnalyticsService }     from './analytics.service';
+
 import {
-  GenerateStoryRequest, StoryResponse,
+  GenerateStoryRequest, StoryResponse, UploadedStoryDto,
   ExamResponse, SubmitExamRequest, ExamResult,
-  WritingCorrectionResponse, ProgressResponse,
-  LessonSummary, LessonDetail, ImportBookResponse,
+  WritingCorrectionResponse, WritingAttemptHistory, ReadingAttemptHistory,
+  LessonSummary, LessonDetail, ImportBookResponse, AdminBooksPageDto, CreateManualBookRequest,
+  ProgressResponse, WeaknessMap,
   KnowledgeDocumentDto, RagSearchResult, GenerateLessonRequest,
-  IngestDocumentResponse,
-  StudentDashboardDto, ParentDashboardDto, TeacherDashboardDto, SchoolDashboardDto, LevelProgressDto, WeaknessMap,
+  IngestDocumentResponse, RagPageChunkDto, GenerateLessonV2Request,
+  StudentDashboardDto, ParentDashboardDto, TeacherDashboardDto, SchoolDashboardDto, LevelProgressDto,
   PdfDocumentDto, PdfDocumentDetailDto, EmbedResultDto, PdfLibraryStatsDto,
-  AdminBooksPageDto, CreateManualBookRequest,
-  RagPageChunkDto, GenerateLessonV2Request,
   StudentGroupDto, AssignLessonRequest, LessonAssignmentDto,
-  UploadedStoryDto,
-  WritingAttemptHistory, ReadingAttemptHistory,
-  AssignmentDto, AssignmentSubmissionDto, AnalyticsSummaryDto, WeakLetterDto, TeacherAssignmentOverview
+  AssignmentDto, AssignmentSubmissionDto, TeacherAssignmentOverview,
+  WeakLetterDto, AnalyticsSummaryDto
 } from '../models/story.models';
-import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class StoryService {
-  private readonly http = inject(HttpClient);
-  private readonly api  = environment.apiUrl;
+  private readonly stories     = inject(StoryContentService);
+  private readonly exams       = inject(ExamService);
+  private readonly writing     = inject(WritingService);
+  private readonly lessons     = inject(LessonService);
+  private readonly admin       = inject(AdminService);
+  private readonly progress    = inject(ProgressService);
+  private readonly rag         = inject(RagService);
+  private readonly dashboard   = inject(DashboardService);
+  private readonly pdfLibrary  = inject(PdfLibraryService);
+  private readonly groups      = inject(GroupsService);
+  private readonly assignments = inject(AssignmentsService);
+  private readonly analytics   = inject(AnalyticsService);
 
   // ── Story ──────────────────────────────────────────────────────────────────
-  generateStory(req: GenerateStoryRequest): Observable<StoryResponse> {
-    return this.http.post<StoryResponse>(`${this.api}/api/story/generate`, req);
-  }
-
-  getStory(id: string): Observable<StoryResponse> {
-    return this.http.get<any>(`${this.api}/api/story/${id}`).pipe(
-      map(s => ({
-        ...s,
-        pages: (s.pages ?? []).map((p: any) => ({
-          ...p,
-          pageId:   p.pageId   ?? p.id,
-          imageUrl: p.imageUrl ?? p.imagePath ?? ''
-        }))
-      }))
-    );
-  }
-
-  getAllStories(): Observable<StoryResponse[]> {
-    return this.http.get<StoryResponse[]>(`${this.api}/api/story`);
-  }
-
-  getMyStories(childName: string): Observable<StoryResponse[]> {
-    return this.http.get<StoryResponse[]>(`${this.api}/api/story/mine/${encodeURIComponent(childName)}`);
-  }
-
-  deleteStory(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/story/${id}`);
-  }
+  generateStory(req: GenerateStoryRequest): Observable<StoryResponse> { return this.stories.generateStory(req); }
+  getStory(id: string): Observable<StoryResponse>                     { return this.stories.getStory(id); }
+  getAllStories(): Observable<StoryResponse[]>                        { return this.stories.getAllStories(); }
+  getMyStories(childName: string): Observable<StoryResponse[]>       { return this.stories.getMyStories(childName); }
+  deleteStory(id: string): Observable<void>                          { return this.stories.deleteStory(id); }
+  uploadStoryPdf(title: string, file: File): Observable<UploadedStoryDto>   { return this.stories.uploadStoryPdf(title, file); }
+  getUploadedStories(): Observable<UploadedStoryDto[]>               { return this.stories.getUploadedStories(); }
+  getUploadedStory(id: string): Observable<UploadedStoryDto>         { return this.stories.getUploadedStory(id); }
+  deleteUploadedStory(id: string): Observable<void>                  { return this.stories.deleteUploadedStory(id); }
 
   // ── Exam ───────────────────────────────────────────────────────────────────
-  generateExam(storyId: string): Observable<ExamResponse> {
-    return this.http.post<ExamResponse>(`${this.api}/api/exam/generate/${storyId}`, {});
-  }
-
-  generateLessonExam(lessonId: string): Observable<ExamResponse> {
-    return this.http.post<ExamResponse>(`${this.api}/api/exam/generate/lesson/${lessonId}`, {});
-  }
-
-  getOrGenerateExam(storyId: string): Observable<ExamResponse> {
-    return this.http.get<ExamResponse>(`${this.api}/api/exam/story/${storyId}`).pipe(
-      catchError((err: HttpErrorResponse) => {
-        if (err.status === 404)
-          return this.http.post<ExamResponse>(`${this.api}/api/exam/generate/${storyId}`, {});
-        throw err;
-      })
-    );
-  }
-
-  submitExam(req: SubmitExamRequest): Observable<ExamResult> {
-    return this.http.post<ExamResult>(`${this.api}/api/exam/submit`, req);
-  }
+  generateExam(storyId: string): Observable<ExamResponse>            { return this.exams.generateExam(storyId); }
+  generateLessonExam(lessonId: string): Observable<ExamResponse>     { return this.exams.generateLessonExam(lessonId); }
+  getOrGenerateExam(storyId: string): Observable<ExamResponse>       { return this.exams.getOrGenerateExam(storyId); }
+  submitExam(req: SubmitExamRequest): Observable<ExamResult>         { return this.exams.submitExam(req); }
 
   // ── Writing ────────────────────────────────────────────────────────────────
-  submitLessonWriting(
-    lessonId:     string,
-    lessonPageId: string,
-    childName:    string,
-    imageBlob:    Blob,
-    fileName:     string = 'drawing.png'
-  ): Observable<WritingCorrectionResponse> {
-    const form = new FormData();
-    form.append('lessonId',     lessonId);
-    form.append('lessonPageId', lessonPageId);
-    form.append('childName',    childName);
-    form.append('image',        imageBlob, fileName);
-    return this.http.post<WritingCorrectionResponse>(
-      `${this.api}/api/writing/evaluate`, form);
+  submitLessonWriting(lessonId: string, lessonPageId: string, childName: string, imageBlob: Blob, fileName = 'drawing.png'): Observable<WritingCorrectionResponse> {
+    return this.writing.submitLessonWriting(lessonId, lessonPageId, childName, imageBlob, fileName);
   }
-
   evaluateCanvasWriting(imageBase64: string, expectedText: string): Observable<WritingCorrectionResponse> {
-    return this.http.post<WritingCorrectionResponse>(`${this.api}/api/writing/canvas`, {
-      imageBase64,
-      expectedText
-    });
+    return this.writing.evaluateCanvasWriting(imageBase64, expectedText);
   }
-
-  getWritingHistory(childName: string, take = 30): Observable<WritingAttemptHistory[]> {
-    return this.http.get<WritingAttemptHistory[]>(
-      `${this.api}/api/writing/history/${encodeURIComponent(childName)}?take=${take}`);
-  }
-
-  getReadingHistory(childName: string, take = 30): Observable<ReadingAttemptHistory[]> {
-    return this.http.get<ReadingAttemptHistory[]>(
-      `${this.api}/api/fluency/history/${encodeURIComponent(childName)}?take=${take}`);
-  }
+  getWritingHistory(childName: string, take = 30): Observable<WritingAttemptHistory[]>  { return this.writing.getWritingHistory(childName, take); }
+  getReadingHistory(childName: string, take = 30): Observable<ReadingAttemptHistory[]>  { return this.writing.getReadingHistory(childName, take); }
 
   // ── Lessons ────────────────────────────────────────────────────────────────
-  getLessonsByLevel(level: number): Observable<LessonSummary[]> {
-    return this.http.get<LessonSummary[]>(`${this.api}/api/lessons?level=${level}`);
-  }
-
-  deleteLesson(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/lessons/${id}`);
-  }
-
-  createManualLesson(req: { title: string; level: number; letter: string; creatorId?: string; pages: { content: string; type: string }[] }): Observable<any> {
-    return this.http.post<any>(`${this.api}/api/lessons/manual`, req);
-  }
-
-  getLesson(id: string): Observable<LessonDetail> {
-    return this.http.get<any>(`${this.api}/api/lessons/${id}`).pipe(
-      map(l => ({
-        ...l,
-        pages: (l.pages ?? []).map((p: any) => ({
-          ...p,
-          pageId:   p.pageId   ?? p.id,
-          imageUrl: p.imageUrl ?? p.imagePath ?? ''
-        }))
-      }))
-    );
-  }
+  getLessonsByLevel(level: number): Observable<LessonSummary[]>      { return this.lessons.getLessonsByLevel(level); }
+  getLesson(id: string): Observable<LessonDetail>                    { return this.lessons.getLesson(id); }
+  deleteLesson(id: string): Observable<void>                         { return this.lessons.deleteLesson(id); }
+  createManualLesson(req: any): Observable<any>                      { return this.lessons.createManualLesson(req); }
+  generateLesson(req: GenerateLessonV2Request): Observable<LessonDetail> { return this.lessons.generateLesson(req); }
+  getMyLessons(creatorId: string): Observable<LessonSummary[]>       { return this.lessons.getMyLessons(creatorId); }
 
   // ── Admin ──────────────────────────────────────────────────────────────────
-  importBook(
-    level: number, letter: string, letterName: string, pdfFile: File
-  ): Observable<ImportBookResponse> {
-    const form = new FormData();
-    form.append('level',      String(level));
-    form.append('letter',     letter);
-    form.append('letterName', letterName);
-    form.append('pdfFile',    pdfFile);
-    return this.http.post<ImportBookResponse>(`${this.api}/api/admin/import-book`, form);
-  }
-
-  importBookV2(
-    level: number, letter: string, letterName: string, title: string, pdfFile: File
-  ): Observable<ImportBookResponse> {
-    const form = new FormData();
-    form.append('level',      String(level));
-    form.append('letter',     letter);
-    form.append('letterName', letterName);
-    form.append('title',      title);
-    form.append('pdfFile',    pdfFile);
-    return this.http.post<ImportBookResponse>(`${this.api}/api/admin/import-book`, form);
-  }
-
-  getAllBooksAdmin(level?: number, page = 1, pageSize = 9): Observable<AdminBooksPageDto> {
-    let url = `${this.api}/api/admin/books?page=${page}&pageSize=${pageSize}`;
-    if (level != null) url += `&level=${level}`;
-    return this.http.get<AdminBooksPageDto>(url);
-  }
-
-  getBookDetailAdmin(id: string): Observable<LessonDetail> {
-    return this.http.get<any>(`${this.api}/api/admin/books/${id}`).pipe(
-      map(l => ({
-        ...l,
-        pages: (l.pages ?? []).map((p: any) => ({
-          ...p,
-          pageId:   p.pageId   ?? p.id,
-          imageUrl: p.imageUrl ?? p.imagePath ?? ''
-        }))
-      }))
-    );
-  }
-
-  deleteBook(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/admin/books/${id}`);
-  }
-
-  publishLesson(id: string): Observable<any> {
-    return this.http.post(`${this.api}/api/admin/books/${id}/publish`, {});
-  }
-
-  unpublishLesson(id: string): Observable<any> {
-    return this.http.post(`${this.api}/api/admin/books/${id}/unpublish`, {});
-  }
-
-  publishStory(id: string): Observable<any> {
-    return this.http.post(`${this.api}/api/admin/stories/${id}/publish`, {});
-  }
-
-  unpublishStory(id: string): Observable<any> {
-    return this.http.post(`${this.api}/api/admin/stories/${id}/unpublish`, {});
-  }
-
-  updateBookPageSentence(bookId: string, pageId: string, sentence: string): Observable<void> {
-    return this.http.patch<void>(
-      `${this.api}/api/admin/books/${bookId}/pages/${pageId}/sentence`,
-      { sentence }
-    );
-  }
-
-  createManualBook(req: CreateManualBookRequest): Observable<ImportBookResponse> {
-    return this.http.post<ImportBookResponse>(`${this.api}/api/admin/books/manual`, req);
-  }
+  importBook(level: number, letter: string, letterName: string, pdfFile: File): Observable<ImportBookResponse>              { return this.admin.importBook(level, letter, letterName, pdfFile); }
+  importBookV2(level: number, letter: string, letterName: string, title: string, pdfFile: File): Observable<ImportBookResponse> { return this.admin.importBookV2(level, letter, letterName, title, pdfFile); }
+  getAllBooksAdmin(level?: number, page = 1, pageSize = 9): Observable<AdminBooksPageDto>                                    { return this.admin.getAllBooksAdmin(level, page, pageSize); }
+  getBookDetailAdmin(id: string): Observable<LessonDetail>           { return this.admin.getBookDetailAdmin(id); }
+  deleteBook(id: string): Observable<void>                           { return this.admin.deleteBook(id); }
+  publishLesson(id: string): Observable<any>                         { return this.admin.publishLesson(id); }
+  unpublishLesson(id: string): Observable<any>                       { return this.admin.unpublishLesson(id); }
+  publishStory(id: string): Observable<any>                          { return this.admin.publishStory(id); }
+  unpublishStory(id: string): Observable<any>                        { return this.admin.unpublishStory(id); }
+  updateBookPageSentence(bookId: string, pageId: string, sentence: string): Observable<void> { return this.admin.updateBookPageSentence(bookId, pageId, sentence); }
+  createManualBook(req: CreateManualBookRequest): Observable<ImportBookResponse>             { return this.admin.createManualBook(req); }
+  getAiSettings(): Observable<any>                                   { return this.admin.getAiSettings(); }
+  saveAiSettings(settings: any): Observable<any>                     { return this.admin.saveAiSettings(settings); }
+  getSubscriptionStats(): Observable<any>                            { return this.admin.getSubscriptionStats(); }
+  getAllUsers(): Observable<any[]>                                    { return this.admin.getAllUsers(); }
+  blockUser(id: string): Observable<void>                            { return this.admin.blockUser(id); }
+  unblockUser(id: string): Observable<void>                          { return this.admin.unblockUser(id); }
+  getSchools(): Observable<any[]>                                    { return this.admin.getSchools(); }
+  createSchool(body: { schoolName: string; adminEmail: string; adminPassword: string }): Observable<any> { return this.admin.createSchool(body); }
 
   // ── Progress ───────────────────────────────────────────────────────────────
-  getProgress(storyId: string, childName: string): Observable<ProgressResponse> {
-    return this.http.get<ProgressResponse>(`${this.api}/api/progress/${storyId}/${childName}`);
-  }
-
-  updateProgress(progress: ProgressResponse): Observable<ProgressResponse> {
-    return this.http.put<ProgressResponse>(`${this.api}/api/progress`, progress);
-  }
-
-  updateLessonProgress(req: {
-    lessonId: string; childName: string;
-    totalQuestions: number; correctAnswers: number;
-    scorePercentage: number; examCompleted: boolean;
-  }): Observable<any> {
-    return this.http.put<any>(`${this.api}/api/progress/lesson`, req);
-  }
-
-  markPageDone(childName: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> {
-    return this.http.post<void>(`${this.api}/api/progress/page`, {
-      childName, lessonId, lessonPageId, writingSubmitted
-    });
-  }
-
-  getLessonPageProgress(lessonId: string, childName: string): Observable<{ completedPageIds: string[]; completedCount: number; totalPages: number }> {
-    return this.http.get<any>(`${this.api}/api/progress/lesson/${lessonId}/${childName}`);
-  }
-
-  getCurrentLesson(childName: string): Observable<{ lessonId: string | null; lessonTitle: string | null; currentPage: number; totalPages: number; level: number }> {
-    return this.http.get<any>(`${this.api}/api/progress/current/${childName}`);
-  }
+  getProgress(storyId: string, childName: string): Observable<ProgressResponse>            { return this.progress.getProgress(storyId, childName); }
+  updateProgress(p: ProgressResponse): Observable<ProgressResponse>                        { return this.progress.updateProgress(p); }
+  updateLessonProgress(req: any): Observable<any>                                           { return this.progress.updateLessonProgress(req); }
+  markPageDone(childName: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> { return this.progress.markPageDone(childName, lessonId, lessonPageId, writingSubmitted); }
+  getLessonPageProgress(lessonId: string, childName: string): Observable<any>              { return this.progress.getLessonPageProgress(lessonId, childName); }
+  getCurrentLesson(childName: string): Observable<any>                                     { return this.progress.getCurrentLesson(childName); }
+  getWeaknessMap(childName: string): Observable<WeaknessMap>                               { return this.progress.getWeaknessMap(childName); }
 
   // ── RAG ────────────────────────────────────────────────────────────────────
-  ingestDocument(
-    file: File, letter?: string, level?: number, tags?: string
-  ): Observable<IngestDocumentResponse> {
-    const form = new FormData();
-    form.append('file', file);
-    if (letter) form.append('letter', letter);
-    if (level  != null) form.append('level', String(level));
-    if (tags)  form.append('tags', tags);
-    return this.http.post<IngestDocumentResponse>(`${this.api}/api/rag/ingest`, form);
-  }
-
-  getKnowledgeDocuments(): Observable<KnowledgeDocumentDto[]> {
-    return this.http.get<KnowledgeDocumentDto[]>(`${this.api}/api/rag/documents`);
-  }
-
-  deleteKnowledgeDocument(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/rag/documents/${id}`);
-  }
-
-  ragSearch(query: string): Observable<RagSearchResult[]> {
-    return this.http.post<RagSearchResult[]>(`${this.api}/api/rag/search`, JSON.stringify(query), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  generateRagLesson(req: GenerateLessonRequest): Observable<LessonDetail> {
-    return this.http.post<LessonDetail>(`${this.api}/api/rag/generate-lesson`, req);
-  }
+  ingestDocument(file: File, letter?: string, level?: number, tags?: string): Observable<IngestDocumentResponse> { return this.rag.ingestDocument(file, letter, level, tags); }
+  getKnowledgeDocuments(): Observable<KnowledgeDocumentDto[]>        { return this.rag.getKnowledgeDocuments(); }
+  deleteKnowledgeDocument(id: string): Observable<void>              { return this.rag.deleteKnowledgeDocument(id); }
+  ragSearch(query: string): Observable<RagSearchResult[]>            { return this.rag.ragSearch(query); }
+  generateRagLesson(req: GenerateLessonRequest): Observable<LessonDetail> { return this.rag.generateRagLesson(req); }
+  ingestEducationalPdf(file: File, level: number, letter: string, letterName: string): Observable<IngestDocumentResponse> { return this.rag.ingestEducationalPdf(file, level, letter, letterName); }
+  getRagPageChunks(level?: number, letter?: string): Observable<RagPageChunkDto[]>         { return this.rag.getRagPageChunks(level, letter); }
+  uploadKnowledgeDocument(file: File, name: string, description: string): Observable<any> { return this.rag.uploadKnowledgeDocument(file, name, description); }
 
   // ── Dashboards ────────────────────────────────────────────────────────────
-  getStudentDashboard(childName: string): Observable<StudentDashboardDto> {
-    return this.http.get<StudentDashboardDto>(`${this.api}/api/dashboard/student/${childName}`);
-  }
-
-  getParentDashboard(childName: string): Observable<ParentDashboardDto> {
-    return this.http.get<ParentDashboardDto>(`${this.api}/api/dashboard/parent/${childName}`);
-  }
-
-  getWeaknessMap(childName: string): Observable<WeaknessMap> {
-    return this.http.get<WeaknessMap>(`${this.api}/api/progress/weakness/${childName}`);
-  }
-
-  requestPlacementRetake(): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.api}/api/placement/retake`, {});
-  }
-
-  getTeacherDashboard(): Observable<TeacherDashboardDto> {
-    return this.http.get<TeacherDashboardDto>(`${this.api}/api/dashboard/teacher`);
-  }
-
-  getSchoolDashboard(): Observable<SchoolDashboardDto> {
-    return this.http.get<SchoolDashboardDto>(`${this.api}/api/dashboard/school`);
-  }
-
-  getSchoolClassrooms(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/classrooms`);
-  }
-
-  createClassroom(body: { name: string; level: number; teacherId: string }): Observable<any> {
-    return this.http.post<any>(`${this.api}/api/classrooms`, body);
-  }
-
-  addStudentToClassroom(classroomId: string, studentId: string): Observable<any> {
-    return this.http.post<any>(`${this.api}/api/classrooms/${classroomId}/students`, { studentId });
-  }
-
-  getMyTeacherClassrooms(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/classrooms/my`);
-  }
-
-  getClassroomDetail(id: string): Observable<any> {
-    return this.http.get<any>(`${this.api}/api/classrooms/${id}`);
-  }
-
-  editClassroom(id: string, body: { name?: string; level?: number; teacherId?: string }): Observable<any> {
-    return this.http.put<any>(`${this.api}/api/classrooms/${id}`, body);
-  }
-
-  deleteClassroom(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/classrooms/${id}`);
-  }
-
-  removeStudentFromClassroom(classroomId: string, studentId: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/classrooms/${classroomId}/students/${studentId}`);
-  }
-
-  searchSchoolStudents(q: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/classrooms/school-students?q=${encodeURIComponent(q)}`);
-  }
-
-  getClassroomsReport(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/classrooms/report`);
-  }
-
-  getKnownStudentNames(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.api}/api/dashboard/students`);
-  }
-
-  getLevelProgress(childName: string): Observable<LevelProgressDto[]> {
-    return this.http.get<LevelProgressDto[]>(`${this.api}/api/dashboard/levels/progress/${encodeURIComponent(childName)}`);
-  }
-
-  // ── Knowledge document upload ─────────────────────────────────────────────
-  uploadKnowledgeDocument(file: File, name: string, description: string): Observable<any> {
-    const form = new FormData();
-    form.append('file',        file);
-    form.append('name',        name);
-    form.append('description', description);
-    return this.http.post<any>(`${this.api}/api/rag/documents`, form);
-  }
-
-  // ── Admin ─────────────────────────────────────────────────────────────────
-  getAiSettings(): Observable<any> {
-    return this.http.get<any>(`${this.api}/api/admin/ai-settings`);
-  }
-
-  saveAiSettings(settings: any): Observable<any> {
-    return this.http.put<any>(`${this.api}/api/admin/ai-settings`, settings);
-  }
-
-  getSubscriptionStats(): Observable<any> {
-    return this.http.get<any>(`${this.api}/api/admin/subscriptions/stats`);
-  }
-
-  getAllUsers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/admin/users`);
-  }
-
-  blockUser(id: string): Observable<void> {
-    return this.http.post<void>(`${this.api}/api/admin/users/${id}/block`, {});
-  }
-
-  unblockUser(id: string): Observable<void> {
-    return this.http.post<void>(`${this.api}/api/admin/users/${id}/unblock`, {});
-  }
-
-  getSchools(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/admin/schools`);
-  }
-
-  createSchool(body: { schoolName: string; adminEmail: string; adminPassword: string }): Observable<any> {
-    return this.http.post<any>(`${this.api}/api/admin/schools`, body);
-  }
-
-  // ── Placement ─────────────────────────────────────────────────────────────
-  getPlacementQuestions(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/api/placement/questions`);
-  }
-
-  submitPlacement(request: { answers: { questionId: string; answer: string }[] }): Observable<any> {
-    return this.http.post<any>(`${this.api}/api/placement/submit`, request);
-  }
-
-  updateStudentLevel(level: number): Observable<any> {
-    return this.http.patch<any>(`${this.api}/api/auth/students/me/level`, { level });
-  }
+  getStudentDashboard(childName: string): Observable<StudentDashboardDto>  { return this.dashboard.getStudentDashboard(childName); }
+  getParentDashboard(childName: string): Observable<ParentDashboardDto>    { return this.dashboard.getParentDashboard(childName); }
+  getTeacherDashboard(): Observable<TeacherDashboardDto>                   { return this.dashboard.getTeacherDashboard(); }
+  getSchoolDashboard(): Observable<SchoolDashboardDto>                     { return this.dashboard.getSchoolDashboard(); }
+  getKnownStudentNames(): Observable<string[]>                             { return this.dashboard.getKnownStudentNames(); }
+  getLevelProgress(childName: string): Observable<LevelProgressDto[]>      { return this.dashboard.getLevelProgress(childName); }
+  requestPlacementRetake(): Observable<{ message: string }>                { return this.dashboard.requestPlacementRetake(); }
+  updateStudentLevel(level: number): Observable<any>                       { return this.dashboard.updateStudentLevel(level); }
+  getPlacementQuestions(): Observable<any[]>                               { return this.dashboard.getPlacementQuestions(); }
+  submitPlacement(request: { answers: { questionId: string; answer: string }[] }): Observable<any> { return this.dashboard.submitPlacement(request); }
+  getSchoolClassrooms(): Observable<any[]>                                 { return this.dashboard.getSchoolClassrooms(); }
+  createClassroom(body: { name: string; level: number; teacherId: string }): Observable<any> { return this.dashboard.createClassroom(body); }
+  addStudentToClassroom(classroomId: string, studentId: string): Observable<any>             { return this.dashboard.addStudentToClassroom(classroomId, studentId); }
+  getMyTeacherClassrooms(): Observable<any[]>                              { return this.dashboard.getMyTeacherClassrooms(); }
+  getClassroomDetail(id: string): Observable<any>                          { return this.dashboard.getClassroomDetail(id); }
+  editClassroom(id: string, body: { name?: string; level?: number; teacherId?: string }): Observable<any> { return this.dashboard.editClassroom(id, body); }
+  deleteClassroom(id: string): Observable<void>                            { return this.dashboard.deleteClassroom(id); }
+  removeStudentFromClassroom(classroomId: string, studentId: string): Observable<void>       { return this.dashboard.removeStudentFromClassroom(classroomId, studentId); }
+  searchSchoolStudents(q: string): Observable<any[]>                       { return this.dashboard.searchSchoolStudents(q); }
+  getClassroomsReport(): Observable<any[]>                                 { return this.dashboard.getClassroomsReport(); }
 
   // ── PDF Library ───────────────────────────────────────────────────────────
-  uploadPdfDocument(file: File, letter: string, level: number): Observable<PdfDocumentDto> {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('letter', letter);
-    fd.append('level', level.toString());
-    return this.http.post<PdfDocumentDto>(`${this.api}/api/pdf-library/upload`, fd);
-  }
-
-  generatePdfEmbeddings(id: string): Observable<EmbedResultDto> {
-    return this.http.post<EmbedResultDto>(`${this.api}/api/pdf-library/${id}/embed`, {});
-  }
-
-  getPdfDocuments(): Observable<PdfDocumentDto[]> {
-    return this.http.get<PdfDocumentDto[]>(`${this.api}/api/pdf-library`);
-  }
-
-  getPdfDocument(id: string): Observable<PdfDocumentDetailDto> {
-    return this.http.get<PdfDocumentDetailDto>(`${this.api}/api/pdf-library/${id}`);
-  }
-
-  deletePdfDocument(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/pdf-library/${id}`);
-  }
-
-  getPdfLibraryStats(): Observable<PdfLibraryStatsDto> {
-    return this.http.get<PdfLibraryStatsDto>(`${this.api}/api/pdf-library/stats`);
-  }
-
-  // ── Educational PDF RAG ingestion ─────────────────────────────────────────
-  ingestEducationalPdf(
-    file: File, level: number, letter: string, letterName: string
-  ): Observable<IngestDocumentResponse> {
-    const form = new FormData();
-    form.append('file',       file);
-    form.append('level',      String(level));
-    form.append('letter',     letter);
-    form.append('letterName', letterName);
-    return this.http.post<IngestDocumentResponse>(`${this.api}/api/rag/ingest-educational`, form);
-  }
-
-  getRagPageChunks(level?: number, letter?: string): Observable<RagPageChunkDto[]> {
-    let url = `${this.api}/api/rag/page-chunks`;
-    const params: string[] = [];
-    if (level  != null) params.push(`level=${level}`);
-    if (letter)         params.push(`letter=${encodeURIComponent(letter)}`);
-    if (params.length)  url += '?' + params.join('&');
-    return this.http.get<RagPageChunkDto[]>(url);
-  }
-
-  // ── Lesson generation (teacher/student prompt) ────────────────────────────
-  generateLesson(req: GenerateLessonV2Request): Observable<LessonDetail> {
-    return this.http.post<LessonDetail>(`${this.api}/api/lessons/generate`, req);
-  }
-
-  getMyLessons(creatorId: string): Observable<LessonSummary[]> {
-    return this.http.get<LessonSummary[]>(`${this.api}/api/lessons/my/${creatorId}`);
-  }
+  uploadPdfDocument(file: File, letter: string, level: number): Observable<PdfDocumentDto>  { return this.pdfLibrary.uploadPdfDocument(file, letter, level); }
+  generatePdfEmbeddings(id: string): Observable<EmbedResultDto>            { return this.pdfLibrary.generatePdfEmbeddings(id); }
+  getPdfDocuments(): Observable<PdfDocumentDto[]>                          { return this.pdfLibrary.getPdfDocuments(); }
+  getPdfDocument(id: string): Observable<PdfDocumentDetailDto>             { return this.pdfLibrary.getPdfDocument(id); }
+  deletePdfDocument(id: string): Observable<void>                          { return this.pdfLibrary.deletePdfDocument(id); }
+  getPdfLibraryStats(): Observable<PdfLibraryStatsDto>                     { return this.pdfLibrary.getPdfLibraryStats(); }
 
   // ── Student Groups ────────────────────────────────────────────────────────
-  getTeacherGroups(teacherId: string): Observable<StudentGroupDto[]> {
-    return this.http.get<StudentGroupDto[]>(`${this.api}/api/groups/teacher/${teacherId}`);
-  }
-
-  createGroup(teacherId: string, name: string): Observable<StudentGroupDto> {
-    return this.http.post<StudentGroupDto>(
-      `${this.api}/api/groups/teacher/${teacherId}`, { name }
-    );
-  }
-
-  addGroupMember(groupId: string, studentId: string): Observable<void> {
-    return this.http.post<void>(`${this.api}/api/groups/${groupId}/members`, { studentId });
-  }
-
-  removeGroupMember(groupId: string, studentId: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/groups/${groupId}/members/${studentId}`);
-  }
-
-  deleteGroup(groupId: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/groups/${groupId}`);
-  }
-
-  // ── Lesson Assignments ────────────────────────────────────────────────────
-  assignLesson(req: AssignLessonRequest): Observable<{ id: string; message: string }> {
-    return this.http.post<{ id: string; message: string }>(`${this.api}/api/groups/assign`, req);
-  }
-
-  getAssignedLessons(studentId: string): Observable<LessonAssignmentDto[]> {
-    return this.http.get<LessonAssignmentDto[]>(`${this.api}/api/groups/assigned/student/${studentId}`);
-  }
-
-  getTeacherAssignments(teacherId: string): Observable<LessonAssignmentDto[]> {
-    return this.http.get<LessonAssignmentDto[]>(`${this.api}/api/groups/assignments/teacher/${teacherId}`);
-  }
-
-  // ── Admin-Uploaded PDF Stories ─────────────────────────────────────────────
-  uploadStoryPdf(title: string, file: File): Observable<UploadedStoryDto> {
-    const fd = new FormData();
-    fd.append('title', title);
-    fd.append('pdfFile', file);
-    return this.http.post<UploadedStoryDto>(`${this.api}/api/admin/uploaded-stories`, fd);
-  }
-
-  getUploadedStories(): Observable<UploadedStoryDto[]> {
-    return this.http.get<UploadedStoryDto[]>(`${this.api}/api/story/uploaded`);
-  }
-
-  getUploadedStory(id: string): Observable<UploadedStoryDto> {
-    return this.http.get<UploadedStoryDto>(`${this.api}/api/story/uploaded/${id}`);
-  }
-
-  deleteUploadedStory(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.api}/api/admin/uploaded-stories/${id}`);
-  }
+  getTeacherGroups(teacherId: string): Observable<StudentGroupDto[]>       { return this.groups.getTeacherGroups(teacherId); }
+  createGroup(teacherId: string, name: string): Observable<StudentGroupDto> { return this.groups.createGroup(teacherId, name); }
+  addGroupMember(groupId: string, studentId: string): Observable<void>     { return this.groups.addGroupMember(groupId, studentId); }
+  removeGroupMember(groupId: string, studentId: string): Observable<void>  { return this.groups.removeGroupMember(groupId, studentId); }
+  deleteGroup(groupId: string): Observable<void>                           { return this.groups.deleteGroup(groupId); }
+  assignLesson(req: AssignLessonRequest): Observable<{ id: string; message: string }> { return this.groups.assignLesson(req); }
+  getAssignedLessons(studentId: string): Observable<LessonAssignmentDto[]> { return this.groups.getAssignedLessons(studentId); }
+  getTeacherAssignments(teacherId: string): Observable<LessonAssignmentDto[]> { return this.groups.getTeacherAssignments(teacherId); }
 
   // ── Assignments ────────────────────────────────────────────────────────────
-  getStudentAssignments(studentId: string): Observable<AssignmentDto[]> {
-    return this.http.get<AssignmentDto[]>(`${this.api}/api/assignments/student/${studentId}`);
-  }
-
-  submitAssignment(assignmentId: string, body: {
-    studentId: string; childName: string;
-    pagesCompleted: number; totalPages: number;
-    writingScore: number; isComplete: boolean;
-  }): Observable<AssignmentSubmissionDto> {
-    return this.http.post<AssignmentSubmissionDto>(
-      `${this.api}/api/assignments/${assignmentId}/submit`, body);
-  }
-
-  getAssignmentSubmissions(assignmentId: string): Observable<AssignmentSubmissionDto[]> {
-    return this.http.get<AssignmentSubmissionDto[]>(
-      `${this.api}/api/assignments/${assignmentId}/submissions`);
-  }
-
-  getTeacherAssignmentOverview(teacherId: string): Observable<TeacherAssignmentOverview[]> {
-    return this.http.get<TeacherAssignmentOverview[]>(
-      `${this.api}/api/assignments/teacher/${teacherId}/overview`);
-  }
+  getStudentAssignments(studentId: string): Observable<AssignmentDto[]>    { return this.assignments.getStudentAssignments(studentId); }
+  submitAssignment(assignmentId: string, body: any): Observable<AssignmentSubmissionDto> { return this.assignments.submitAssignment(assignmentId, body); }
+  getAssignmentSubmissions(assignmentId: string): Observable<AssignmentSubmissionDto[]>  { return this.assignments.getAssignmentSubmissions(assignmentId); }
+  getTeacherAssignmentOverview(teacherId: string): Observable<TeacherAssignmentOverview[]> { return this.assignments.getTeacherAssignmentOverview(teacherId); }
 
   // ── Analytics ──────────────────────────────────────────────────────────────
-  getStudentWeakLetters(studentId: string): Observable<WeakLetterDto[]> {
-    return this.http.get<WeakLetterDto[]>(
-      `${this.api}/api/analytics/student/${studentId}/weak-letters`);
-  }
-
-  getClassAnalytics(teacherId: string): Observable<AnalyticsSummaryDto> {
-    return this.http.get<AnalyticsSummaryDto>(
-      `${this.api}/api/analytics/teacher/${teacherId}/class`);
-  }
-
-  recordActivity(body: {
-    studentId: string; childName: string;
-    letter: string; correct: boolean; activityType: string;
-  }): Observable<void> {
-    return this.http.post<void>(`${this.api}/api/analytics/record`, body);
-  }
+  getStudentWeakLetters(studentId: string): Observable<WeakLetterDto[]>    { return this.analytics.getStudentWeakLetters(studentId); }
+  getClassAnalytics(teacherId: string): Observable<AnalyticsSummaryDto>    { return this.analytics.getClassAnalytics(teacherId); }
+  recordActivity(body: { studentId: string; childName: string; letter: string; correct: boolean; activityType: string; }): Observable<void> { return this.analytics.recordActivity(body); }
 }

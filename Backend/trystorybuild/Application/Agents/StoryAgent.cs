@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Agent
+namespace Application.Agents
 {
     /// <summary>
     /// StoryAgent orchestrates the full pipeline:
