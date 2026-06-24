@@ -22,6 +22,12 @@
         </div>
 
         <div class="mb-3">
+          <label class="form-label fw-bold small mb-1">الرقم التعريفي للطفل</label>
+          <input class="form-control" [(ngModel)]="form.nationalId" name="nationalId" placeholder="مثال: 12345678901234" dir="ltr" required />
+          <div class="form-text">الرقم القومي أو رقم تعريف الطفل — لا يمكن تكراره</div>
+        </div>
+
+        <div class="mb-3">
           <label class="form-label fw-bold small mb-1">العمر</label>
           <input class="form-control" type="number" [(ngModel)]="form.age" name="age" min="4" max="16" />
         </div>

@@ -10,6 +10,9 @@ namespace Infrastructure.Repositories
         public Task<Student?> FindByUsernameAsync(string username) =>
             db.Students.FirstOrDefaultAsync(s => s.Username == username);
 
+        public Task<Student?> FindByNationalIdAsync(string nationalId) =>
+            db.Students.FirstOrDefaultAsync(s => s.NationalId == nationalId);
+
         public Task<Student?> FindByIdAsync(Guid id) =>
             db.Students.FirstOrDefaultAsync(s => s.Id == id);
 

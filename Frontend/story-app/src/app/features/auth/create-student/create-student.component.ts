@@ -27,6 +27,7 @@ export class CreateStudentComponent implements OnInit {
     name:        '',
     age:         6,
     username:    '',
+    nationalId:  '',
     imagePin1:   0,
     imagePin2:   null as number | null,
     level:       1,
@@ -92,9 +93,10 @@ export class CreateStudentComponent implements OnInit {
 
   submit(): void {
     const pins = this.selectedPins();
-    if (!this.form.name.trim())     { this.error.set('يرجى إدخال اسم الطفل.'); return; }
-    if (!this.form.username.trim()) { this.error.set('يرجى إدخال اسم المستخدم.'); return; }
-    if (pins.length < 1)            { this.error.set('يرجى اختيار رمز صورة واحد على الأقل.'); return; }
+    if (!this.form.name.trim())       { this.error.set('يرجى إدخال اسم الطفل.'); return; }
+    if (!this.form.nationalId.trim()) { this.error.set('يرجى إدخال الرقم التعريفي للطفل.'); return; }
+    if (!this.form.username.trim())   { this.error.set('يرجى إدخال اسم المستخدم.'); return; }
+    if (pins.length < 1)              { this.error.set('يرجى اختيار رمز صورة واحد على الأقل.'); return; }
 
     this.isLoading.set(true);
     this.error.set(null);
@@ -103,6 +105,7 @@ export class CreateStudentComponent implements OnInit {
       name:        this.form.name.trim(),
       age:         this.form.age,
       username:    this.form.username.trim().toLowerCase(),
+      nationalId:  this.form.nationalId.trim(),
       imagePin1:   pins[0],
       imagePin2:   pins[1] ?? null,
       level:       this.form.level,

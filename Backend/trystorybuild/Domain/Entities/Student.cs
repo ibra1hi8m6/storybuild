@@ -6,6 +6,7 @@ namespace Domain.Entities
         public string Name { get; set; } = string.Empty;
         public int Age { get; set; }
         public string Username { get; set; } = string.Empty;
+        public string? NationalId { get; set; }
         public StudentLoginMethod LoginMethod { get; set; } = StudentLoginMethod.ImagePin;
         public int ImagePin1 { get; set; }
         public int? ImagePin2 { get; set; }

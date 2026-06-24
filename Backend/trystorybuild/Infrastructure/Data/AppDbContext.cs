@@ -92,6 +92,13 @@ namespace Infrastructure.Data
                 .Property(c => c.Level)
                 .ValueGeneratedNever();
 
+            // Unique filtered index on NationalId — only enforced on non-null values
+            // so existing students with null NationalId don't conflict.
+            modelBuilder.Entity<Student>()
+                .HasIndex(s => s.NationalId)
+                .IsUnique()
+                .HasFilter("[NationalId] IS NOT NULL");
+
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             base.OnModelCreating(modelBuilder);
         }

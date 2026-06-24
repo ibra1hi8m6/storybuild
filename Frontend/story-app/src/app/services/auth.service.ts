@@ -38,6 +38,7 @@ export interface CreateStudentRequest {
   name:         string;
   age:          number;
   username:     string;
+  nationalId:   string;
   imagePin1:    number;
   imagePin2:    number | null;
   level:        number;

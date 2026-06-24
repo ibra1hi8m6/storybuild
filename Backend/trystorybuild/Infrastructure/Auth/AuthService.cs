@@ -74,9 +74,17 @@ namespace Infrastructure.Auth
         // ── Create student (by parent/teacher) ──────────────────────────────────
         public async Task<StudentAuthResponse> CreateStudentAsync(Guid creatorId, CreateStudentRequest request)
         {
-            var normalised = request.Username.Trim().ToLower();
+            var normalised   = request.Username.Trim().ToLower();
+            var nationalId   = request.NationalId.Trim();
+
+            if (string.IsNullOrWhiteSpace(nationalId))
+                throw new InvalidOperationException("الرقم التعريفي للطفل مطلوب.");
+
             if (await studentRepo.FindByUsernameAsync(normalised) is not null)
                 throw new InvalidOperationException("اسم المستخدم مستخدم بالفعل.");
+
+            if (await studentRepo.FindByNationalIdAsync(nationalId) is not null)
+                throw new InvalidOperationException("هذا الطفل مسجل بالفعل.");
 
             if (request.ImagePin1 < 1 || request.ImagePin1 > 20)
                 throw new ArgumentException("رمز الصورة يجب أن يكون بين 1 و 20.");
@@ -89,6 +97,7 @@ namespace Infrastructure.Auth
                 Name         = request.Name,
                 Age          = request.Age,
                 Username     = normalised,
+                NationalId   = nationalId,
                 ImagePin1    = request.ImagePin1,
                 ImagePin2    = request.ImagePin2,
                 Level        = request.Level,
@@ -213,6 +222,6 @@ namespace Infrastructure.Auth
         }
 
         private static StudentProfileDto ToSummary(Student s) =>
-            new(s.Id, s.Name, s.Age, s.Username, s.Level, s.PlacementDone, s.AvatarUrl, s.AvatarEmoji);
+            new(s.Id, s.Name, s.Age, s.Username, s.NationalId, s.Level, s.PlacementDone, s.AvatarUrl, s.AvatarEmoji);
     }
 }

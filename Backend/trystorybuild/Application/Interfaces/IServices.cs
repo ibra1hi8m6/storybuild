@@ -141,6 +141,7 @@ namespace Application.Interfaces
     public interface IStudentRepository
     {
         Task<Student?>       FindByUsernameAsync(string username);
+        Task<Student?>       FindByNationalIdAsync(string nationalId);
         Task<Student?>       FindByIdAsync(Guid id);
         Task<Student>        SaveAsync(Student student);
         Task<List<Student>>  GetByParentIdAsync(Guid parentId);
