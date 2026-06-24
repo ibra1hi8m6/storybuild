@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VocabularyService, WordJournalDto } from '../services/vocabulary.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 
 @Component({
   selector: 'app-word-journal',
@@ -58,7 +59,8 @@ export class WordJournalComponent implements OnInit {
   loading = signal(true);
 
   private vocabService = inject(VocabularyService);
-  private appState = inject(AppStateService);
+  private appState     = inject(AppStateService);
+  private tts          = inject(TtsService);
 
   async ngOnInit(): Promise<void> {
     const user = this.appState.currentUser();
@@ -72,9 +74,7 @@ export class WordJournalComponent implements OnInit {
   }
 
   speak(word: string): void {
-    const utt = new SpeechSynthesisUtterance(word);
-    utt.lang = 'ar-SA';
-    speechSynthesis.speak(utt);
+    void this.tts.play(word);
   }
 
   async remove(entry: WordJournalDto): Promise<void> {

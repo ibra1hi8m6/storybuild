@@ -41,6 +41,10 @@ namespace Infrastructure
             services.AddScoped<ITextSimilarityService,  ArabicSimilarityService>();
             services.AddScoped<IAiTextCleanupService,   GeminiTextCleanupService>();
 
+            // ── TTS Cache ─────────────────────────────────────────────────────────
+            services.AddScoped<ITtsAudioCacheRepository, TtsAudioCacheRepository>();
+            services.AddScoped<ITtsService,              GeminiTtsService>();
+
             // ── Module A: Fluency ──────────────────────────────────────────────────
             services.AddScoped<IAudioStorageService,      CloudinaryAudioStorageService>();
             services.AddScoped<IImageStorageService,      CloudinaryImageStorageService>();

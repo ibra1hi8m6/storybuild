@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 import { SentenceContentDto } from '../../../models/learning.models';
 
 type Stage = 'choose' | 'reading' | 'writing' | 'done';
@@ -23,6 +24,7 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   private readonly router = inject(Router);
   private readonly svc    = inject(LearningService);
   private readonly state  = inject(AppStateService);
+  private readonly tts    = inject(TtsService);
 
   readonly sentence    = signal<SentenceContentDto | null>(null);
   readonly isLoading   = signal(true);
@@ -72,7 +74,7 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   ngAfterViewInit(): void { this.initCanvas(); }
-  ngOnDestroy(): void { window.speechSynthesis.cancel(); this.stopRecording(); }
+  ngOnDestroy(): void { this.tts.stop(); this.stopRecording(); }
 
   enterWritingStage(): void {
     this.stage.set('writing');
@@ -82,13 +84,9 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   listenOption(audio: string): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(audio);
-    u.lang = 'ar-SA'; u.rate = 0.85;
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
+    if (!audio) return;
+    this.isPlaying.set(true);
+    void this.tts.play(audio).finally(() => this.isPlaying.set(false));
   }
 
   choose(idx: number): void {

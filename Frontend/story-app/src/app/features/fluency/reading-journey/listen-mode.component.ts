@@ -1,8 +1,9 @@
 import {
-  Component, Input, Output, EventEmitter, signal, computed,
+  Component, Input, Output, EventEmitter, signal,
   OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TtsService } from '../../../services/tts.service';
 
 @Component({
   selector: 'app-listen-mode',
@@ -12,29 +13,21 @@ import { CommonModule } from '@angular/common';
   template: `
 <div class="listen-panel" dir="rtl">
 
-  <!-- Sentence with highlighted word -->
+  <!-- Sentence display -->
   <p class="listen-sentence">
     @for (word of words(); track $index) {
-      <span
-        dir="rtl"
-        class="word"
-        [class.word-active]="$index === activeWordIdx()"
-        [class.word-done]="$index < activeWordIdx()">{{ word }}</span>&#x200f; }
+      <span dir="rtl" class="word">{{ word }}</span>&#x200f; }
   </p>
 
   <!-- Controls -->
   <div class="listen-controls">
     <button class="btn-listen" [class.playing]="isPlaying()"
-            (click)="toggle()" [disabled]="!supported">
+            (click)="toggle()">
       <i class="bi" [class.bi-play-circle-fill]="!isPlaying()"
                     [class.bi-pause-circle-fill]="isPlaying()"></i>
       {{ isPlaying() ? 'إيقاف' : 'استمع للجملة' }}
     </button>
   </div>
-
-  @if (!supported) {
-    <p class="warn-text">المتصفح لا يدعم الصوت. انتقل مباشرة للقراءة.</p>
-  }
 
   <!-- Next step -->
   <button class="btn-next" (click)="onNext()">
@@ -49,67 +42,44 @@ export class ListenModeComponent implements OnDestroy {
   @Input() set sentence(v: string) {
     this._sentence = v;
     this.words.set(v.trim().split(/\s+/).filter(w => w.length > 0));
-    this.stop();
+    this.tts.stop();
+    this.isPlaying.set(false);
   }
   @Output() next = new EventEmitter<void>();
 
-  private cdr = inject(ChangeDetectorRef);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly tts = inject(TtsService);
   private _sentence = '';
-  private utterance: SpeechSynthesisUtterance | null = null;
 
-  readonly words = signal<string[]>([]);
-  readonly activeWordIdx = signal(-1);
+  readonly words     = signal<string[]>([]);
   readonly isPlaying = signal(false);
-  readonly supported = typeof speechSynthesis !== 'undefined';
 
   toggle() {
-    if (this.isPlaying()) this.stop();
-    else this.speak();
+    if (this.isPlaying()) {
+      this.tts.stop();
+      this.isPlaying.set(false);
+    } else {
+      void this.speak();
+    }
   }
 
-  private speak() {
-    if (!this.supported || !this._sentence) return;
-    speechSynthesis.cancel();
-
-    this.utterance = new SpeechSynthesisUtterance(this._sentence);
-    this.utterance.lang = 'ar-SA';
-    this.utterance.rate = 0.75;
-
-    // Word-boundary highlighting
-    this.utterance.onboundary = (e) => {
-      if (e.name !== 'word') return;
-      // Find which word index corresponds to the charIndex
-      const upTo = this._sentence.substring(0, e.charIndex);
-      const idx = upTo.trim().split(/\s+/).filter(w => w.length > 0).length;
-      this.activeWordIdx.set(idx);
-      this.cdr.markForCheck();
-    };
-
-    this.utterance.onend = () => {
-      this.isPlaying.set(false);
-      this.activeWordIdx.set(-1);
-      this.cdr.markForCheck();
-    };
-    this.utterance.onerror = () => {
-      this.isPlaying.set(false);
-      this.activeWordIdx.set(-1);
-      this.cdr.markForCheck();
-    };
-
+  private async speak() {
+    if (!this._sentence) return;
     this.isPlaying.set(true);
-    speechSynthesis.speak(this.utterance);
-  }
-
-  private stop() {
-    if (this.supported) speechSynthesis.cancel();
-    this.isPlaying.set(false);
-    this.activeWordIdx.set(-1);
+    this.cdr.markForCheck();
+    try {
+      await this.tts.play(this._sentence);
+    } finally {
+      this.isPlaying.set(false);
+      this.cdr.markForCheck();
+    }
   }
 
   onNext() {
-    this.stop();
+    this.tts.stop();
+    this.isPlaying.set(false);
     this.next.emit();
   }
 
-  ngOnDestroy() { this.stop(); }
+  ngOnDestroy() { this.tts.stop(); }
 }

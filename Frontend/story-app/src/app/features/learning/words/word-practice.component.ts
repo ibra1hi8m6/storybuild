@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 import { WordContentDto } from '../../../models/learning.models';
 
 type Tool = 'pen' | 'eraser';
@@ -26,6 +27,7 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   private readonly svc    = inject(LearningService);
   private readonly state  = inject(AppStateService);
+  private readonly tts    = inject(TtsService);
 
   readonly word       = signal<WordContentDto | null>(null);
   readonly isLoading  = signal(true);
@@ -58,7 +60,7 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void { this.initCanvas(); }
   ngOnDestroy(): void {
-    window.speechSynthesis.cancel();
+    this.tts.stop();
     this.stopRecording();
   }
 
@@ -123,16 +125,11 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   speak(text?: string): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
     const w = this.word();
     const t = text ?? w?.audioText ?? w?.displayWord ?? '';
     if (!t) return;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'ar-SA'; u.rate = 0.85;
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
+    this.isPlaying.set(true);
+    void this.tts.play(t).finally(() => this.isPlaying.set(false));
   }
 
   startRecording(): void {

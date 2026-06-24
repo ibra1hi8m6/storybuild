@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 
 @Component({
   selector: 'app-placement-question',
@@ -15,6 +16,7 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
   private readonly router  = inject(Router);
   private readonly service = inject(StoryService);
   private readonly state   = inject(AppStateService);
+  private readonly tts     = inject(TtsService);
 
   readonly questions    = signal<any[]>([]);
   readonly currentIdx   = signal(0);
@@ -77,7 +79,7 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void { window.speechSynthesis.cancel(); }
+  ngOnDestroy(): void { this.tts.stop(); }
 
   private normalizeQuestions(qs: any[]): any[] {
     return qs.map(q => ({
@@ -173,16 +175,11 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
   }
 
   speakQuestion(): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
     const q = this.currentQ();
     if (!q) return;
     const text = q.audioText || q.questionText;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang  = 'ar-SA';
-    u.rate  = 0.85;
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
+    if (!text) return;
+    this.isPlaying.set(true);
+    void this.tts.play(text).finally(() => this.isPlaying.set(false));
   }
 }

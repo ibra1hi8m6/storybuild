@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, Input, OnChanges, Output, signal } fro
 import { CommonModule } from '@angular/common';
 import { VocabularyService } from '../../services/vocabulary.service';
 import { AppStateService } from '../../../../services/app-state-service';
+import { TtsService } from '../../../../services/tts.service';
 
 @Component({
   selector: 'app-vocabulary-popup',
@@ -39,16 +40,15 @@ export class VocabularyPopupComponent implements OnChanges {
   addedToJournal = signal(false);
 
   private vocabService = inject(VocabularyService);
-  private appState = inject(AppStateService);
+  private appState     = inject(AppStateService);
+  private tts          = inject(TtsService);
 
   ngOnChanges(): void {
     this.addedToJournal.set(false);
   }
 
   speak(): void {
-    const utt = new SpeechSynthesisUtterance(this.word());
-    utt.lang = 'ar-SA';
-    speechSynthesis.speak(utt);
+    void this.tts.play(this.word());
   }
 
   async addToJournal(): Promise<void> {

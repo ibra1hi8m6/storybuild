@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 import { LetterContentDto } from '../../../models/learning.models';
 import { environment } from '../../../../environments/environment';
 
@@ -26,6 +27,7 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly router = inject(Router);
   private readonly svc    = inject(LearningService);
   private readonly state  = inject(AppStateService);
+  private readonly tts    = inject(TtsService);
   readonly api = environment.apiUrl;
 
   readonly letter     = signal<LetterContentDto | null>(null);
@@ -65,7 +67,7 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
     this.initCanvas();
   }
 
-  ngOnDestroy(): void { window.speechSynthesis.cancel(); }
+  ngOnDestroy(): void { this.tts.stop(); }
 
   private initCanvas(): void {
     const el = this.canvasRef?.nativeElement;
@@ -189,16 +191,11 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   speak(text?: string): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
     const l = this.letter();
     const t = text ?? l?.audioText ?? l?.displaySentence ?? '';
     if (!t) return;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'ar-SA'; u.rate = 0.85;
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
+    this.isPlaying.set(true);
+    void this.tts.play(t).finally(() => this.isPlaying.set(false));
   }
 
   goBack(): void { this.router.navigate(['/learning/letters']); }

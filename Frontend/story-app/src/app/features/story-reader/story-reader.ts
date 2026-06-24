@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
+import { TtsService } from '../../services/tts.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -19,6 +20,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   private readonly route        = inject(ActivatedRoute);
   private readonly storyService = inject(StoryService);
   private readonly state        = inject(AppStateService);
+  private readonly tts          = inject(TtsService);
 
   readonly isLoading   = signal(false);
   readonly story       = signal<any>(null);
@@ -26,8 +28,6 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   readonly isPlaying   = signal(false);
   readonly imageLoaded = signal(false);
   readonly storyId     = signal('');
-
-  private utterance: SpeechSynthesisUtterance | null = null;
 
   readonly activePage = computed(() => {
     const s = this.story();
@@ -48,7 +48,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
     this.loadStory(id);
   }
 
-  ngOnDestroy(): void { this.stopAudio(); }
+  ngOnDestroy(): void { this.tts.stop(); }
 
   @HostListener('window:keydown', ['$event'])
   onKey(e: KeyboardEvent): void {
@@ -75,14 +75,16 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
 
   prev(): void {
     if (this.isFirst()) return;
-    this.stopAudio();
+    this.tts.stop();
+    this.isPlaying.set(false);
     this.imageLoaded.set(false);
     this.pageNum.update(p => p - 1);
   }
 
   next(): void {
     if (this.isLast()) { this.router.navigate(['/dashboard']); return; }
-    this.stopAudio();
+    this.tts.stop();
+    this.isPlaying.set(false);
     this.imageLoaded.set(false);
     this.pageNum.update(p => p + 1);
   }
@@ -90,21 +92,19 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   playAudio(): void {
     const page = this.activePage();
     if (!page) return;
-    if (this.isPlaying()) { this.stopAudio(); return; }
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    this.utterance = new SpeechSynthesisUtterance(page.sentence);
-    this.utterance.lang = 'ar-SA';
-    this.utterance.rate = 0.8;
-    this.utterance.onstart = () => this.isPlaying.set(true);
-    this.utterance.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(this.utterance);
+    if (this.isPlaying()) {
+      this.tts.stop();
+      this.isPlaying.set(false);
+      return;
+    }
+    void this.speakText(page.sentence);
   }
 
-  stopAudio(): void {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window)
-      window.speechSynthesis.cancel();
-    this.isPlaying.set(false);
+  private async speakText(text: string): Promise<void> {
+    if (!text) return;
+    this.isPlaying.set(true);
+    try { await this.tts.play(text); }
+    finally { this.isPlaying.set(false); }
   }
 
   imageUrl(url: string): string {

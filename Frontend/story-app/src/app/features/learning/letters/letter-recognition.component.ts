@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { TtsService } from '../../../services/tts.service';
 import { LetterContentDto } from '../../../models/learning.models';
 
 interface RecognitionQuestion {
@@ -22,6 +23,7 @@ export class LetterRecognitionComponent implements OnInit, OnDestroy {
   private readonly svc    = inject(LearningService);
   private readonly router = inject(Router);
   private readonly state  = inject(AppStateService);
+  private readonly tts    = inject(TtsService);
 
   readonly isLoading    = signal(true);
   readonly questions    = signal<RecognitionQuestion[]>([]);
@@ -52,7 +54,7 @@ export class LetterRecognitionComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void { window.speechSynthesis.cancel(); }
+  ngOnDestroy(): void { this.tts.stop(); }
 
   private buildQuestions(letters: LetterContentDto[]): void {
     if (letters.length < 4) return;
@@ -110,14 +112,10 @@ export class LetterRecognitionComponent implements OnInit, OnDestroy {
   }
 
   speak(text?: string): void {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
     const t = text ?? `ما الحرف الذي تبدأ به كلمة ${this.current()?.letter.exampleWord ?? ''}؟`;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'ar-SA'; u.rate = 0.85;
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
+    if (!t) return;
+    this.isPlaying.set(true);
+    void this.tts.play(t).finally(() => this.isPlaying.set(false));
   }
 
   isCorrectOpt(opt: string): boolean { return opt === this.current()?.letter.letter; }

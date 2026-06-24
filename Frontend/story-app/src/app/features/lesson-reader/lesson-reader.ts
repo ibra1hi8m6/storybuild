@@ -7,6 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
+import { TtsService } from '../../services/tts.service';
 import { WritingCorrectionResponse } from '../../models/story.models';
 import { environment } from '../../../environments/environment';
 
@@ -24,6 +25,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route   = inject(ActivatedRoute);
   private readonly service = inject(StoryService);
   private readonly state   = inject(AppStateService);
+  private readonly tts     = inject(TtsService);
 
   readonly isLoading            = signal(false);
   readonly lesson               = signal<any>(null);
@@ -94,7 +96,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void { /* canvas set up after lesson loads */ }
-  ngOnDestroy(): void { window.speechSynthesis.cancel(); }
+  ngOnDestroy(): void { this.tts.stop(); }
 
   @HostListener('window:keydown', ['$event'])
   onKey(e: KeyboardEvent): void {
@@ -110,7 +112,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     this.writingCheckedOnPage.set(false);
     this.showWritingWarning.set(false);
     this.clearCanvas();
-    window.speechSynthesis.cancel();
+    this.tts.stop();
     this.isPlaying.set(false);
     setTimeout(() => this.autoPlayCurrentPage(), 200);
   }
@@ -144,7 +146,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     this.saveProgress(next, this.totalPages(), false);
     this.imageLoaded.set(false);
     this.clearCanvas();
-    window.speechSynthesis.cancel();
+    this.tts.stop();
     this.isPlaying.set(false);
     setTimeout(() => this.autoPlayCurrentPage(), 200);
   }
@@ -157,58 +159,29 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   playAudio(): void {
     const page = this.activePage();
     if (!page) return;
-    if (this.isPlaying()) { window.speechSynthesis.cancel(); this.isPlaying.set(false); return; }
-    this.speakText(page.sentence);
+    if (this.isPlaying()) {
+      this.tts.stop();
+      this.isPlaying.set(false);
+      return;
+    }
+    void this.speakText(page.sentence);
   }
 
   private autoPlayCurrentPage(): void {
     const page = this.activePage();
     if (!page?.sentence) return;
-    // Voices may not be loaded yet on first call — wait for them
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        this.speakText(page.sentence);
-      };
-    } else {
-      this.speakText(page.sentence);
-    }
+    void this.speakText(page.sentence);
   }
 
-  private speakText(text: string, rate = 0.8): void {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang  = 'ar-SA';
-    u.rate  = rate;
-    u.voice = this.getBestArabicVoice();
-    u.onstart = () => this.isPlaying.set(true);
-    u.onend   = () => this.isPlaying.set(false);
-    u.onerror  = () => this.isPlaying.set(false);
-    window.speechSynthesis.speak(u);
-  }
-
-  private getBestArabicVoice(): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices();
-    // Priority list: best quality Arabic voices available in browsers
-    const preferred = [
-      'Microsoft Hamed Online',   // Windows high-quality
-      'Microsoft Naayf Online',
-      'Microsoft Hamed',
-      'Microsoft Naayf',
-      'Majed',                     // macOS Arabic voice
-      'Maged',
-    ];
-    for (const name of preferred) {
-      const v = voices.find(v => v.name.includes(name));
-      if (v) return v;
-    }
-    // Fallback: any Arabic voice
-    return voices.find(v => v.lang.startsWith('ar')) ?? null;
+  private async speakText(text: string): Promise<void> {
+    if (!text) return;
+    this.isPlaying.set(true);
+    try { await this.tts.play(text); }
+    finally { this.isPlaying.set(false); }
   }
 
   speakFeedback(text: string): void {
-    this.speakText(text, 0.85);
+    void this.speakText(text);
   }
 
   private setupCanvas(): void {

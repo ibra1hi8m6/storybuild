@@ -60,6 +60,9 @@ namespace Infrastructure.Data
         // Phase 7 — Level history
         public DbSet<StudentLevelHistory> StudentLevelHistories => Set<StudentLevelHistory>();
 
+        // TTS cache
+        public DbSet<TtsAudioCache> TtsAudioCaches => Set<TtsAudioCache>();
+
         // Placement test
         public DbSet<PlacementQuestion> PlacementQuestions => Set<PlacementQuestion>();
 
@@ -98,6 +101,10 @@ namespace Infrastructure.Data
                 .HasIndex(s => s.NationalId)
                 .IsUnique()
                 .HasFilter("[NationalId] IS NOT NULL");
+
+            modelBuilder.Entity<TtsAudioCache>()
+                .HasIndex(t => t.TextHash)
+                .IsUnique();
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             base.OnModelCreating(modelBuilder);
