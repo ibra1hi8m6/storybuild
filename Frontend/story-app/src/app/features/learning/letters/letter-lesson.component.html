@@ -50,6 +50,14 @@
           <div class="result-banner" [class.correct]="result()!.isCorrect" [class.wrong]="!result()!.isCorrect">
             {{ result()!.feedback }}
           </div>
+          @if (result()!.isCorrect) {
+            <div class="result-actions">
+              <button class="btn-next" (click)="goNext()">انتقل إلى الحرف التالي ←</button>
+              <button class="btn-back-small" (click)="goBack()">العودة للحروف</button>
+            </div>
+          } @else {
+            <button class="try-again-btn" (click)="tryAgain()">🔄 حاول مرة أخرى</button>
+          }
         }
 
         <button class="submit-btn" [disabled]="isChecking()" (click)="submitWriting()">

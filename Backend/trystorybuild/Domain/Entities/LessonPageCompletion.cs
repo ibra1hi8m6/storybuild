@@ -3,6 +3,7 @@ namespace Domain.Entities
     public class LessonPageCompletion
     {
         public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid? StudentId { get; set; }
         public string ChildName { get; set; } = "";
         public Guid LessonId { get; set; }
         public Guid LessonPageId { get; set; }

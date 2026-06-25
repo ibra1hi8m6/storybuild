@@ -20,8 +20,9 @@ export class ParentDashboardComponent implements OnInit {
   private readonly router      = inject(Router);
 
   readonly isLoading      = signal(false);
-  readonly childNames     = signal<string[]>([]);
+  readonly students       = signal<{ id: string; name: string }[]>([]);
   readonly activeChild    = signal<string>('');
+  readonly activeChildId  = signal<string>('');
   readonly data           = signal<any>(null);
   readonly error          = signal<string | null>(null);
   readonly weaknessMap    = signal<WeaknessMap | null>(null);
@@ -45,34 +46,34 @@ export class ParentDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.getMyStudents().subscribe({
-      next: students => {
-        const names = students.map(s => s.name);
-        this.childNames.set(names);
-        if (names.length > 0) this.selectChild(names[0]);
+      next: studentList => {
+        this.students.set(studentList.map(s => ({ id: s.id, name: s.name })));
+        if (studentList.length > 0) this.selectChild(studentList[0].id, studentList[0].name);
       }
     });
   }
 
-  selectChild(name: string): void {
+  selectChild(studentId: string, name: string): void {
     this.activeChild.set(name);
+    this.activeChildId.set(studentId);
     this.isLoading.set(true);
     this.error.set(null);
     this.weaknessMap.set(null);
     this.writingHistory.set([]);
     this.readingHistory.set([]);
-    this.service.getParentDashboard(name).subscribe({
+    this.service.getParentDashboard(studentId).subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => { this.isLoading.set(false); this.error.set('لم يتم العثور على بيانات.'); }
     });
-    this.service.getWeaknessMap(name).subscribe({
+    this.service.getWeaknessMap(studentId).subscribe({
       next:  wm => this.weaknessMap.set(wm),
       error: () => {}
     });
-    this.service.getWritingHistory(name, 10).subscribe({
+    this.service.getWritingHistory(studentId, 10).subscribe({
       next:  h => this.writingHistory.set(h),
       error: () => {}
     });
-    this.service.getReadingHistory(name, 10).subscribe({
+    this.service.getReadingHistory(studentId, 10).subscribe({
       next:  h => this.readingHistory.set(h),
       error: () => {}
     });

@@ -7,73 +7,104 @@
   } @else {
     <button class="back-btn" (click)="goBack()">→ رجوع</button>
 
-    @if (stage() === 'done') {
-      <div class="done-card">
-        <div class="done-icon">🏆</div>
-        <h2>أحسنت يا بطل!</h2>
-        <p>أنهيت النشاط بنجاح</p>
-        <button class="btn-primary-action" (click)="goBack()">← العودة للجمل</button>
-      </div>
+    <!-- Image -->
+    @if (sentence()!.imagePath) {
+      <img [src]="sentence()!.imagePath" class="activity-img" alt="صورة">
     } @else {
-      <!-- Image -->
-      @if (sentence()!.imagePath) {
-        <img [src]="sentence()!.imagePath" class="activity-img" alt="صورة">
-      } @else {
-        <div class="activity-img-placeholder">🖼️</div>
-      }
+      <div class="activity-img-placeholder">🖼️</div>
+    }
 
-      <!-- STAGE: Choose -->
-      @if (stage() === 'choose') {
-        <h3 class="stage-title">اختر الجملة الصحيحة للصورة</h3>
-        <div class="options-list">
-          @for (opt of options(); track opt.index) {
-            <div class="opt-row">
-              <button class="listen-mini" (click)="listenOption(opt.audio)" title="استمع">🔊</button>
-              <button [class]="optClass(opt.index)" (click)="choose(opt.index)">
-                {{ opt.text }}
-              </button>
+    <!-- STAGE: Choose -->
+    @if (stage() === 'choose') {
+      <h3 class="stage-title">اختر الجملة الصحيحة للصورة</h3>
+      <div class="options-list">
+        @for (opt of options(); track opt.index) {
+          <div class="opt-row">
+            <button class="listen-mini" (click)="listenOption(opt.audio)" title="استمع">🔊</button>
+            <button [class]="optClass(opt.index)" (click)="choose(opt.index)">
+              {{ opt.text }}
+            </button>
+          </div>
+        }
+      </div>
+
+      @if (showResult()) {
+        @if (selected() === sentence()!.correctOptionIndex) {
+          <div class="result-actions mt-4">
+            <button class="btn-next" (click)="goToReading()">انتقل إلى القراءة ←</button>
+          </div>
+        } @else {
+          <div class="result-actions mt-4">
+            <button class="try-again-btn-wide" (click)="tryAgainChoose()">🔄 حاول مرة أخرى</button>
+          </div>
+        }
+      }
+    }
+
+    <!-- STAGE: Reading -->
+    @if (stage() === 'reading') {
+      <div class="stage-box">
+        <h3 class="stage-title">🎤 اقرأ الجملة بصوت عالٍ</h3>
+        <p class="correct-sentence">{{ correctText() }}</p>
+        <div class="reading-actions">
+          <button class="audio-btn" [class.playing]="isPlaying()" (click)="listenOption(correctAudio())">
+            {{ isPlaying() ? '⏸ يشتغل...' : '🔊 استمع أولاً' }}
+          </button>
+          <button class="record-btn" [class.recording]="isRecording()" (click)="isRecording() ? stopRecording() : startRecording()">
+            {{ isRecording() ? '⏹ إيقاف' : '🎙️ ابدأ القراءة' }}
+          </button>
+          <button class="skip-btn" (click)="goToWriting()">تخطى ←</button>
+        </div>
+
+        @if (readingResult()) {
+          <div class="result-banner mt-3" [class.correct]="readingResult()!.isCorrect">
+            {{ readingResult()!.feedback }}
+          </div>
+          @if (readingResult()!.isCorrect) {
+            <div class="result-actions mt-3">
+              <button class="btn-next" (click)="goToWriting()">انتقل إلى الكتابة ←</button>
+            </div>
+          } @else {
+            <div class="result-actions mt-3">
+              <button class="try-again-btn-wide" (click)="tryAgainReading()">🔄 حاول مرة أخرى</button>
             </div>
           }
+        }
+      </div>
+    }
+
+    <!-- STAGE: Writing -->
+    @if (stage() === 'writing') {
+      <div class="stage-box">
+        <h3 class="stage-title">✏️ اكتب الجملة</h3>
+        <p class="correct-sentence">{{ correctText() }}</p>
+        <div class="tool-row mb-2">
+          <button class="tool-btn" [class.active]="activeTool() === 'pen'"    (click)="activeTool.set('pen')">✏️ قلم</button>
+          <button class="tool-btn" [class.active]="activeTool() === 'eraser'" (click)="activeTool.set('eraser')">🗑️ ممحاة</button>
+          <button class="tool-btn clear-btn" (click)="clearCanvas()">🔄 مسح</button>
         </div>
-      }
+        <canvas #canvas class="writing-canvas"></canvas>
 
-      <!-- STAGE: Reading -->
-      @if (stage() === 'reading') {
-        <div class="stage-box">
-          <h3 class="stage-title">🎤 اقرأ الجملة بصوت عالٍ</h3>
-          <p class="correct-sentence">{{ correctText() }}</p>
-          <div class="reading-actions">
-            <button class="audio-btn" [class.playing]="isPlaying()" (click)="listenOption(correctAudio())">
-              {{ isPlaying() ? '⏸ يشتغل...' : '🔊 استمع أولاً' }}
-            </button>
-            <button class="record-btn" [class.recording]="isRecording()" (click)="isRecording() ? stopRecording() : startRecording()">
-              {{ isRecording() ? '⏹ إيقاف' : '🎙️ ابدأ القراءة' }}
-            </button>
-            <button class="skip-btn" (click)="enterWritingStage()">تخطى ←</button>
+        @if (writingResult()) {
+          <div class="result-banner mt-2" [class.correct]="writingResult()!.isCorrect">
+            {{ writingResult()!.feedback }}
           </div>
-        </div>
-      }
-
-      <!-- STAGE: Writing -->
-      @if (stage() === 'writing') {
-        <div class="stage-box">
-          <h3 class="stage-title">✏️ اكتب الجملة</h3>
-          <p class="correct-sentence">{{ correctText() }}</p>
-          <div class="tool-row mb-2">
-            <button class="tool-btn" [class.active]="activeTool() === 'pen'"    (click)="activeTool.set('pen')">✏️ قلم</button>
-            <button class="tool-btn" [class.active]="activeTool() === 'eraser'" (click)="activeTool.set('eraser')">🗑️ ممحاة</button>
-            <button class="tool-btn clear-btn" (click)="clearCanvas()">🔄 مسح</button>
-          </div>
-          <canvas #canvas class="writing-canvas"></canvas>
-
-          @if (writingResult()) {
-            <div class="result-banner" [class.correct]="writingResult()!.isCorrect">{{ writingResult()!.feedback }}</div>
+          @if (writingResult()!.isCorrect) {
+            <div class="result-actions mt-3">
+              <button class="btn-next" (click)="goNext()">انتقل إلى الجملة التالية ←</button>
+              <button class="btn-back-small" (click)="goBack()">العودة للجمل</button>
+            </div>
+          } @else {
+            <div class="result-actions mt-3">
+              <button class="try-again-btn-wide" (click)="tryAgainWriting()">🔄 حاول مرة أخرى</button>
+            </div>
           }
-          <button class="submit-btn" [disabled]="isWritingChecking()" (click)="submitWriting()">
-            {{ isWritingChecking() ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
-          </button>
-        </div>
-      }
+        }
+
+        <button class="submit-btn" [disabled]="isWritingChecking()" (click)="submitWriting()">
+          {{ isWritingChecking() ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
+        </button>
+      </div>
     }
   }
 </div>

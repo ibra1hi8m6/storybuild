@@ -12,15 +12,18 @@ namespace Infrastructure.Services
         ILogger<DashboardService> logger) : IDashboardService
     {
         // ── Student ───────────────────────────────────────────────────────────
-        public async Task<StudentDashboardDto?> GetStudentDashboardAsync(string childName)
+        public async Task<StudentDashboardDto?> GetStudentDashboardAsync(Guid studentId)
         {
-            var name     = childName.Trim();
-            var progress = await db.StudentProgress.Where(p => p.ChildName == name).ToListAsync();
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return null;
+            var name = student.Name;
 
-            if (progress.Count == 0 && !await HasAnyActivityAsync(name))
+            var progress = await db.StudentProgress.Where(p => p.StudentId == studentId).ToListAsync();
+
+            if (progress.Count == 0 && !await HasAnyActivityAsync(studentId))
                 return null;
 
-            var writing = await db.WritingAttempts.Where(w => w.ChildName == name).ToListAsync();
+            var writing = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
 
             int storiesRead      = progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted);
             int lessonsCompleted = progress.Count(p => p.LessonId.HasValue && p.ExamCompleted);
@@ -33,7 +36,7 @@ namespace Infrastructure.Services
 
             var today          = DateTime.UtcNow.Date;
             int dailyPagesDone = await db.LessonPageCompletions
-                .CountAsync(c => c.ChildName == name && c.CompletedAt >= today);
+                .CountAsync(c => c.StudentId == studentId && c.CompletedAt >= today);
 
             var badges = ComputeBadges(storiesRead, lessonsCompleted, writingAccepted, stars, xp);
 
@@ -44,13 +47,13 @@ namespace Infrastructure.Services
                 writing.Count, writingAccepted,
                 writing.Count > 0 ? Math.Round((double)writingAccepted / writing.Count * 100, 1) : 0,
                 GetPerformanceLevel(avgScore),
-                await CalculateStreakAsync(name),
-                await BuildWeeklyActivityAsync(name),
-                await GetInProgressLessonsAsync(name),
-                await GetStudentTopContentAsync(name, storyOnly: true),
-                await GetStudentTopContentAsync(name, storyOnly: false),
-                await BuildExamHistoryAsync(name),
-                await BuildRecentActivityAsync(name),
+                await CalculateStreakAsync(studentId),
+                await BuildWeeklyActivityAsync(studentId),
+                await GetInProgressLessonsAsync(studentId),
+                await GetStudentTopContentAsync(studentId, storyOnly: true),
+                await GetStudentTopContentAsync(studentId, storyOnly: false),
+                await BuildExamHistoryAsync(studentId),
+                await BuildRecentActivityAsync(studentId, name),
                 Xp: xp,
                 DailyPagesGoal: 3,
                 DailyPagesDone: dailyPagesDone,
@@ -58,15 +61,15 @@ namespace Infrastructure.Services
         }
 
         // ── Parent ────────────────────────────────────────────────────────────
-        public async Task<ParentDashboardDto?> GetParentDashboardAsync(string childName)
+        public async Task<ParentDashboardDto?> GetParentDashboardAsync(Guid studentId)
         {
-            var name     = childName.Trim();
-            var progress = await db.StudentProgress.Where(p => p.ChildName == name).ToListAsync();
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return null;
+            var name = student.Name;
 
-            if (progress.Count == 0 && !await HasAnyActivityAsync(name))
-                return null;
+            var progress = await db.StudentProgress.Where(p => p.StudentId == studentId).ToListAsync();
 
-            var writing      = await db.WritingAttempts.Where(w => w.ChildName == name).ToListAsync();
+            var writing      = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
             int storiesRead  = progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted);
             int lessonsComp  = progress.Count(p => p.LessonId.HasValue && p.ExamCompleted);
             int examsComp    = progress.Count(p => p.ExamCompleted);
@@ -82,14 +85,14 @@ namespace Infrastructure.Services
                 writingAcc,
                 writing.Count > 0 ? Math.Round((double)writingAcc / writing.Count * 100, 1) : 0,
                 GetPerformanceLevel(avgScore),
-                await CalculateStreakAsync(name),
-                await BuildWeeklyActivityAsync(name),
-                await GetInProgressLessonsAsync(name),
-                new List<LessonAssignmentDto>(),  // assignments require student Guid — left for future
+                await CalculateStreakAsync(studentId),
+                await BuildWeeklyActivityAsync(studentId),
+                await GetInProgressLessonsAsync(studentId),
+                new List<LessonAssignmentDto>(),
                 BuildSkillBars(progress, writing),
-                await GetStudentTopContentAsync(name, storyOnly: true),
-                await BuildExamHistoryAsync(name),
-                await BuildRecentActivityAsync(name));
+                await GetStudentTopContentAsync(studentId, storyOnly: true),
+                await BuildExamHistoryAsync(studentId),
+                await BuildRecentActivityAsync(studentId, name));
         }
 
         // ── Teacher ───────────────────────────────────────────────────────────
@@ -116,26 +119,26 @@ namespace Infrastructure.Services
 
             var childEntries = directStudents
                 .Concat(classroomStudents)
-                .DistinctBy(e => e.Name)
+                .DistinctBy(e => e.Id)
                 .ToList();
-            var childNames   = childEntries.Select(e => e.Name).ToList();
+            var childIds     = childEntries.Select(e => e.Id).ToList();
             var allProgress  = await db.StudentProgress
-                .Where(p => p.ExamCompleted && childNames.Contains(p.ChildName))
+                .Where(p => p.ExamCompleted && p.StudentId.HasValue && childIds.Contains(p.StudentId.Value))
                 .ToListAsync();
             var cutoff       = DateTime.UtcNow.AddDays(-7);
             int activeWeek   = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff && childNames.Contains(p.ChildName))
-                .Select(p => p.ChildName).Distinct().CountAsync();
+                .Where(p => p.LastUpdatedAt >= cutoff && p.StudentId.HasValue && childIds.Contains(p.StudentId.Value))
+                .Select(p => p.StudentId).Distinct().CountAsync();
             double avgScore  = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
 
-            logger.LogInformation("[Dashboard] Teacher — {Count} students, avg {Avg}%", childNames.Count, Math.Round(avgScore,1));
+            logger.LogInformation("[Dashboard] Teacher — {Count} students, avg {Avg}%", childIds.Count, Math.Round(avgScore,1));
 
             var students = new List<StudentSummaryDto>();
             foreach (var entry in childEntries)
                 students.Add(await BuildStudentSummaryAsync(entry.Id, entry.Name, entry.Level));
 
             return new TeacherDashboardDto(
-                childNames.Count,
+                childIds.Count,
                 activeWeek,
                 Math.Round(avgScore, 1),
                 await BuildTopStoriesAsync(),
@@ -159,19 +162,19 @@ namespace Infrastructure.Services
             int totalStudents = await db.Students
                 .CountAsync(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value));
 
-            var schoolChildNames = await db.Students
+            var schoolStudentIds = await db.Students
                 .Where(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value))
-                .Select(s => s.Name)
+                .Select(s => s.Id)
                 .ToListAsync();
 
             var allProgress = await db.StudentProgress
-                .Where(p => p.ExamCompleted && schoolChildNames.Contains(p.ChildName))
+                .Where(p => p.ExamCompleted && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
                 .ToListAsync();
 
             var cutoff     = DateTime.UtcNow.AddDays(-7);
             int activeWeek = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff && schoolChildNames.Contains(p.ChildName))
-                .Select(p => p.ChildName).Distinct().CountAsync();
+                .Where(p => p.LastUpdatedAt >= cutoff && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
+                .Select(p => p.StudentId).Distinct().CountAsync();
 
             double avgScore = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
 
@@ -181,7 +184,7 @@ namespace Infrastructure.Services
                 .OrderByDescending(t => t.CompletionCount).Take(5).ToList();
 
             var recentProgress = await db.StudentProgress
-                .Where(p => p.ExamCompleted && schoolChildNames.Contains(p.ChildName))
+                .Where(p => p.ExamCompleted && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
                 .Include(p => p.Story).Include(p => p.Lesson)
                 .OrderByDescending(p => p.LastUpdatedAt)
                 .Take(15).ToListAsync();
@@ -204,16 +207,13 @@ namespace Infrastructure.Services
         }
 
         // ── Level Progress ────────────────────────────────────────────────────
-        public async Task<List<LevelProgressDto>> GetLevelProgressAsync(string childName)
+        public async Task<List<LevelProgressDto>> GetLevelProgressAsync(Guid studentId)
         {
-            var name = childName.Trim();
-
-            // Placement level unlocks all levels up to and including it
-            var student      = await db.Students.FirstOrDefaultAsync(s => s.Name == name);
+            var student      = await db.Students.FindAsync(studentId);
             int placementLvl = student?.Level ?? 1;
 
             var doneProgress = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.LessonId.HasValue && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId.HasValue && p.ExamCompleted)
                 .Include(p => p.Lesson)
                 .ToListAsync();
 
@@ -225,9 +225,9 @@ namespace Infrastructure.Services
 
             var defs = new[]
             {
-                new { Level=1, Title="الحروف والأصوات",   Subtitle="أتقن كل 28 حرفاً عربياً", Icon="📖", Tag="حروف" },
-                new { Level=2, Title="الكلمات والمفردات", Subtitle="تعلم أكثر من 200 كلمة",   Icon="📝", Tag="كلمات" },
-                new { Level=3, Title="الجمل والقصص",      Subtitle="اقرأ واكتب جملاً وقصصاً", Icon="📚", Tag="جمل"  },
+                new { Level=1, Title="الحروف",   Subtitle="أتقن كل 28 حرفاً عربياً", Icon="📖", Tag="حروف" },
+                new { Level=2, Title="الكلمات والجمل", Subtitle="تعلم أكثر من 200 كلمة",   Icon="📝", Tag="كلمات" },
+                new { Level=3, Title=" كتيبات والقصص",      Subtitle="اقرأ واكتب جملاً وقصصاً", Icon="📚", Tag="جمل"  },
             };
 
             var result = new List<LevelProgressDto>();
@@ -262,18 +262,18 @@ namespace Infrastructure.Services
 
         // ── Internals ─────────────────────────────────────────────────────────
 
-        private async Task<bool> HasAnyActivityAsync(string name) =>
-            await db.WritingAttempts.AnyAsync(w => w.ChildName == name)
-            || await db.StudentProgress.AnyAsync(p => p.ChildName == name);
+        private async Task<bool> HasAnyActivityAsync(Guid studentId) =>
+            await db.WritingAttempts.AnyAsync(w => w.StudentId == studentId)
+            || await db.StudentProgress.AnyAsync(p => p.StudentId == studentId);
 
-        private async Task<int[]> BuildWeeklyActivityAsync(string name)
+        private async Task<int[]> BuildWeeklyActivityAsync(Guid studentId)
         {
             var since = DateTime.UtcNow.AddDays(-6);
             var eDates = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.ExamCompleted && p.LastUpdatedAt >= since)
+                .Where(p => p.StudentId == studentId && p.ExamCompleted && p.LastUpdatedAt >= since)
                 .Select(p => p.LastUpdatedAt).ToListAsync();
             var wDates = await db.WritingAttempts
-                .Where(w => w.ChildName == name && w.AttemptedAt >= since)
+                .Where(w => w.StudentId == studentId && w.AttemptedAt >= since)
                 .Select(w => w.AttemptedAt).ToListAsync();
 
             var act = new int[7];
@@ -282,13 +282,13 @@ namespace Infrastructure.Services
             return act;
         }
 
-        private async Task<int> CalculateStreakAsync(string name)
+        private async Task<int> CalculateStreakAsync(Guid studentId)
         {
             var eDates = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.ExamCompleted)
                 .Select(p => p.LastUpdatedAt.Date).ToListAsync();
             var wDates = await db.WritingAttempts
-                .Where(w => w.ChildName == name)
+                .Where(w => w.StudentId == studentId)
                 .Select(w => w.AttemptedAt.Date).ToListAsync();
 
             var days = eDates.Concat(wDates).Distinct()
@@ -308,10 +308,10 @@ namespace Infrastructure.Services
             return streak;
         }
 
-        private async Task<List<LessonSummaryDto>> GetInProgressLessonsAsync(string name)
+        private async Task<List<LessonSummaryDto>> GetInProgressLessonsAsync(Guid studentId)
         {
             var startedIds = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.LessonId.HasValue && !p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId.HasValue && !p.ExamCompleted)
                 .Select(p => p.LessonId!.Value).ToListAsync();
 
             if (startedIds.Count > 0)
@@ -322,7 +322,7 @@ namespace Infrastructure.Services
             }
 
             var doneIds = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.LessonId.HasValue && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId.HasValue && p.ExamCompleted)
                 .Select(p => p.LessonId!.Value).ToListAsync();
 
             var recs = await db.Lessons.Include(l => l.Pages)
@@ -331,10 +331,10 @@ namespace Infrastructure.Services
             return recs.Select(ToSummaryDto).ToList();
         }
 
-        private async Task<List<TopContentDto>> GetStudentTopContentAsync(string name, bool storyOnly)
+        private async Task<List<TopContentDto>> GetStudentTopContentAsync(Guid studentId, bool storyOnly)
         {
             var items = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.ExamCompleted
+                .Where(p => p.StudentId == studentId && p.ExamCompleted
                     && (storyOnly ? p.StoryId.HasValue : p.LessonId.HasValue))
                 .Include(p => p.Story).Include(p => p.Lesson)
                 .OrderByDescending(p => p.ScorePercentage)
@@ -347,10 +347,10 @@ namespace Infrastructure.Services
                 1, Math.Round(p.ScorePercentage, 1))).ToList();
         }
 
-        private async Task<List<ExamHistoryDto>> BuildExamHistoryAsync(string name)
+        private async Task<List<ExamHistoryDto>> BuildExamHistoryAsync(Guid studentId)
         {
             var items = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.ExamCompleted)
                 .Include(p => p.Story).Include(p => p.Lesson)
                 .OrderByDescending(p => p.LastUpdatedAt)
                 .Take(10).ToListAsync();
@@ -361,12 +361,12 @@ namespace Infrastructure.Services
                 p.LastUpdatedAt)).ToList();
         }
 
-        private async Task<List<RecentActivityDto>> BuildRecentActivityAsync(string name)
+        private async Task<List<RecentActivityDto>> BuildRecentActivityAsync(Guid studentId, string name)
         {
             var list = new List<RecentActivityDto>();
 
             var prog = await db.StudentProgress
-                .Where(p => p.ChildName == name && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.ExamCompleted)
                 .Include(p => p.Story).Include(p => p.Lesson).ToListAsync();
 
             list.AddRange(prog.Select(p => new RecentActivityDto(
@@ -374,7 +374,7 @@ namespace Infrastructure.Services
                 p.Story?.Title ?? p.Lesson?.Title ?? "امتحان",
                 p.ScorePercentage, null, p.LastUpdatedAt)));
 
-            var writings = await db.WritingAttempts.Where(w => w.ChildName == name).ToListAsync();
+            var writings = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
             list.AddRange(writings.Select(w => new RecentActivityDto(
                 "writing", name, w.ExpectedSentence, w.SimilarityScore, w.IsAccepted, w.AttemptedAt)));
 
@@ -383,8 +383,8 @@ namespace Infrastructure.Services
 
         private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1)
         {
-            var progress = await db.StudentProgress.Where(p => p.ChildName == name).ToListAsync();
-            var writing  = await db.WritingAttempts.Where(w => w.ChildName == name).ToListAsync();
+            var progress = await db.StudentProgress.Where(p => p.StudentId == id).ToListAsync();
+            var writing  = await db.WritingAttempts.Where(w => w.StudentId == id).ToListAsync();
             double avg   = progress.Any(p => p.ExamCompleted)
                 ? progress.Where(p => p.ExamCompleted).Average(p => p.ScorePercentage) : 0;
             DateTime? last = progress.Any()
@@ -446,13 +446,13 @@ namespace Infrastructure.Services
                 var fallback = new List<ClassroomStatsDto>();
                 foreach (var t in teachers)
                 {
-                    var names = await db.Students.Where(s => s.TeacherId == t.Id)
-                        .Select(s => s.Name).ToListAsync();
-                    if (names.Count == 0) continue;
+                    var ids = await db.Students.Where(s => s.TeacherId == t.Id)
+                        .Select(s => s.Id).ToListAsync();
+                    if (ids.Count == 0) continue;
                     var prog = await db.StudentProgress
-                        .Where(p => names.Contains(p.ChildName) && p.ExamCompleted).ToListAsync();
+                        .Where(p => p.StudentId.HasValue && ids.Contains(p.StudentId.Value) && p.ExamCompleted).ToListAsync();
                     double avg = prog.Any() ? prog.Average(p => p.ScorePercentage) : 0;
-                    fallback.Add(new ClassroomStatsDto($"فصل {t.Name}", t.Name, names.Count, Math.Round(avg, 1)));
+                    fallback.Add(new ClassroomStatsDto($"فصل {t.Name}", t.Name, ids.Count, Math.Round(avg, 1)));
                 }
                 return fallback;
             }
@@ -465,11 +465,11 @@ namespace Infrastructure.Services
 
             foreach (var c in classrooms)
             {
-                var names = c.Students.Select(cs => cs.Student.Name).ToList();
-                var prog  = allProgress.Where(p => names.Contains(p.ChildName)).ToList();
+                var ids  = c.Students.Select(cs => cs.StudentId).ToList();
+                var prog = allProgress.Where(p => p.StudentId.HasValue && ids.Contains(p.StudentId.Value)).ToList();
                 double avg = prog.Any() ? prog.Average(p => p.ScorePercentage) : 0;
                 var teacherName = teacherMap.GetValueOrDefault(c.TeacherId, "");
-                result.Add(new ClassroomStatsDto(c.Name, teacherName, names.Count, Math.Round(avg, 1)));
+                result.Add(new ClassroomStatsDto(c.Name, teacherName, ids.Count, Math.Round(avg, 1)));
             }
             return result;
         }

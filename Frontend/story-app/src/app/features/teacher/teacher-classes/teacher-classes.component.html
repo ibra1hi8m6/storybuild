@@ -95,7 +95,7 @@
                         {{ s.placementDone ? '✅ أجرى اختبار التحديد' : '⏳ لم يجرِ الاختبار' }}
                       </div>
                     </div>
-                    <a [routerLink]="['/teacher/students', s.name]"
+                    <a [routerLink]="['/teacher/students', s.id]" [queryParams]="{name: s.name}"
                        style="color:var(--primary);text-decoration:none;font-size:18px;flex-shrink:0">▶</a>
                   </div>
                 }

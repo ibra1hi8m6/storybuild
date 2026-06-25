@@ -10,8 +10,8 @@ export class ProgressService {
   private readonly http = inject(HttpClient);
   private readonly api  = environment.apiUrl;
 
-  getProgress(storyId: string, childName: string): Observable<ProgressResponse> {
-    return this.http.get<ProgressResponse>(`${this.api}/api/progress/${storyId}/${childName}`);
+  getProgress(storyId: string, studentId: string): Observable<ProgressResponse> {
+    return this.http.get<ProgressResponse>(`${this.api}/api/progress/${storyId}/${studentId}`);
   }
 
   updateProgress(progress: ProgressResponse): Observable<ProgressResponse> {
@@ -19,28 +19,28 @@ export class ProgressService {
   }
 
   updateLessonProgress(req: {
-    lessonId: string; childName: string;
+    lessonId: string; studentId: string;
     totalQuestions: number; correctAnswers: number;
     scorePercentage: number; examCompleted: boolean;
   }): Observable<any> {
     return this.http.put<any>(`${this.api}/api/progress/lesson`, req);
   }
 
-  markPageDone(childName: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> {
+  markPageDone(studentId: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> {
     return this.http.post<void>(`${this.api}/api/progress/page`, {
-      childName, lessonId, lessonPageId, writingSubmitted
+      studentId, lessonId, lessonPageId, writingSubmitted
     });
   }
 
-  getLessonPageProgress(lessonId: string, childName: string): Observable<{ completedPageIds: string[]; completedCount: number; totalPages: number }> {
-    return this.http.get<any>(`${this.api}/api/progress/lesson/${lessonId}/${childName}`);
+  getLessonPageProgress(lessonId: string, studentId: string): Observable<{ completedPageIds: string[]; completedCount: number; totalPages: number }> {
+    return this.http.get<any>(`${this.api}/api/progress/lesson/${lessonId}/${studentId}`);
   }
 
-  getCurrentLesson(childName: string): Observable<{ lessonId: string | null; lessonTitle: string | null; currentPage: number; totalPages: number; level: number }> {
-    return this.http.get<any>(`${this.api}/api/progress/current/${childName}`);
+  getCurrentLesson(studentId: string): Observable<{ lessonId: string | null; lessonTitle: string | null; currentPage: number; totalPages: number; level: number }> {
+    return this.http.get<any>(`${this.api}/api/progress/current/${studentId}`);
   }
 
-  getWeaknessMap(childName: string): Observable<WeaknessMap> {
-    return this.http.get<WeaknessMap>(`${this.api}/api/progress/weakness/${childName}`);
+  getWeaknessMap(studentId: string): Observable<WeaknessMap> {
+    return this.http.get<WeaknessMap>(`${this.api}/api/progress/weakness/${studentId}`);
   }
 }

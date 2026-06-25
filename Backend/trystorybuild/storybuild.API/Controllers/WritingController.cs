@@ -23,14 +23,12 @@ namespace storybuild.API.Controllers
         public async Task<IActionResult> Evaluate(
             [FromForm] Guid lessonId,
             [FromForm] Guid lessonPageId,
+            [FromForm] Guid studentId,
             [FromForm] string childName,
             IFormFile image)
         {
             if (image is null || image.Length == 0)
                 return BadRequest(new { error = "يرجى رفع صورة الكتابة." });
-
-            if (string.IsNullOrWhiteSpace(childName))
-                return BadRequest(new { error = "يرجى إرسال اسم الطفل." });
 
             var allowed = new[] { ".png", ".jpg", ".jpeg", ".webp", ".bmp" };
             var ext = Path.GetExtension(image.FileName).ToLowerInvariant();
@@ -40,7 +38,7 @@ namespace storybuild.API.Controllers
             if (image.Length > 10 * 1024 * 1024)
                 return BadRequest(new { error = "حجم الصورة كبير جداً (الحد الأقصى 10 ميغابايت)." });
 
-            var result = await writingAgent.EvaluateAsync(lessonPageId, lessonId, childName, image);
+            var result = await writingAgent.EvaluateAsync(lessonPageId, lessonId, studentId, childName, image);
             return Ok(result);
         }
 
@@ -59,13 +57,13 @@ namespace storybuild.API.Controllers
             return Ok(result);
         }
 
-        // GET /api/writing/history/{childName}
-        [HttpGet("history/{childName}")]
+        // GET /api/writing/history/{studentId}
+        [HttpGet("history/{studentId:guid}")]
         [Authorize]
         [ProducesResponseType(typeof(List<WritingAttemptHistoryDto>), 200)]
-        public async Task<IActionResult> GetHistory(string childName, [FromQuery] int take = 30)
+        public async Task<IActionResult> GetHistory(Guid studentId, [FromQuery] int take = 30)
         {
-            var attempts = await writingRepo.GetByChildNameAsync(childName, Math.Min(take, 100));
+            var attempts = await writingRepo.GetByStudentIdAsync(studentId, Math.Min(take, 100));
             var result = attempts.Select(a => new WritingAttemptHistoryDto(
                 a.Id,
                 a.LessonPageId,
@@ -83,19 +81,19 @@ namespace storybuild.API.Controllers
             return Ok(result);
         }
 
-        // GET /api/writing/mistakes/{childName}
-        [HttpGet("mistakes/{childName}")]
+        // GET /api/writing/mistakes/{studentId}
+        [HttpGet("mistakes/{studentId:guid}")]
         [Authorize]
-        public async Task<IActionResult> GetMistakeSummary(string childName)
+        public async Task<IActionResult> GetMistakeSummary(Guid studentId)
         {
-            var attempts = await writingRepo.GetByChildNameAsync(childName, 200);
+            var attempts = await writingRepo.GetByStudentIdAsync(studentId, 200);
             var allMistakes = attempts
                 .SelectMany(a => ParseMistakes(a.MistakesJson))
                 .GroupBy(m => m.Type)
                 .Select(g => new { Type = g.Key, Count = g.Count(), Examples = g.Take(3).ToList() })
                 .OrderByDescending(x => x.Count)
                 .ToList();
-            return Ok(new { ChildName = childName, TotalAttempts = attempts.Count, MistakeBreakdown = allMistakes });
+            return Ok(new { StudentId = studentId, TotalAttempts = attempts.Count, MistakeBreakdown = allMistakes });
         }
 
         private static List<WritingMistakeDto> ParseMistakes(string json)

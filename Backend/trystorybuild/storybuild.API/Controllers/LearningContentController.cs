@@ -386,14 +386,14 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
         db.LearningAttempts.Add(entity);
         await db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetAttempts), new { childName = entity.ChildName }, MapAttempt(entity));
+        return CreatedAtAction(nameof(GetAttempts), new { studentId = entity.StudentId }, MapAttempt(entity));
     }
 
-    [HttpGet("attempts/{childName}")]
+    [HttpGet("attempts/{studentId:guid}")]
     [ProducesResponseType(typeof(List<LearningAttemptDto>), 200)]
-    public async Task<IActionResult> GetAttempts(string childName, [FromQuery] LearningContentType? contentType)
+    public async Task<IActionResult> GetAttempts(Guid studentId, [FromQuery] LearningContentType? contentType)
     {
-        var query = db.LearningAttempts.Where(a => a.ChildName == childName);
+        var query = db.LearningAttempts.Where(a => a.StudentId == studentId);
         if (contentType.HasValue)
             query = query.Where(a => a.ContentType == contentType.Value);
 

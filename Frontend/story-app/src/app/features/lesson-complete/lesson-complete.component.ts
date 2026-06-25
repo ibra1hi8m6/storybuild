@@ -34,9 +34,9 @@ export class LessonCompleteComponent implements OnInit {
       this.level.set(lessonInState.level ?? 1);
     }
 
-    const childName = this.state.childName();
-    if (childName && id) {
-      this.service.getStudentDashboard(childName).subscribe({
+    const studentId = this.state.currentUser()?.id;
+    if (studentId && id) {
+      this.service.getStudentDashboard(studentId).subscribe({
         next: d => {
           this.stars.set(d?.stars ?? 0);
           this.isLoading.set(false);

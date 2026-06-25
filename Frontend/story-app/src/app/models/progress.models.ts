@@ -1,6 +1,6 @@
 export interface ProgressResponse {
   storyId:         string;
-  childName:       string;
+  studentId:       string;
   currentPage:     number;
   totalQuestions:  number;
   correctAnswers:  number;

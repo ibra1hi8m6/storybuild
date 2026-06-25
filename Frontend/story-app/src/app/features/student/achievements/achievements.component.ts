@@ -54,10 +54,10 @@ export class AchievementsComponent implements OnInit {
   readonly earnedCount = computed(() => this.badges().filter(b => b.earned).length);
 
   ngOnInit(): void {
-    const childName = this.state.childName() || this.state.currentUser()?.name || '';
-    if (!childName) { this.router.navigate(['/dashboard']); return; }
+    const studentId = this.state.currentUser()?.id;
+    if (!studentId) { this.router.navigate(['/dashboard']); return; }
     this.isLoading.set(true);
-    this.svc.getStudentDashboard(childName).subscribe({
+    this.svc.getStudentDashboard(studentId).subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => this.isLoading.set(false)
     });

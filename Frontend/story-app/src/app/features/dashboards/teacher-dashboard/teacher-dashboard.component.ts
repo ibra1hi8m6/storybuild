@@ -101,8 +101,8 @@ export class TeacherDashboardComponent implements OnInit {
     this.router.navigate(['/teacher/lessons'], { queryParams: { level: lv } });
   }
 
-  viewStudent(name: string): void {
-    this.router.navigate(['/teacher/students', name]);
+  viewStudent(studentId: string, name: string): void {
+    this.router.navigate(['/teacher/students', studentId], { queryParams: { name } });
   }
 
   sendFeedback(studentId: string, name: string): void {

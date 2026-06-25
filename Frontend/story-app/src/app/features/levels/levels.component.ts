@@ -38,17 +38,19 @@ export class LevelsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const childName = this.state.childName();
-    if (!childName) return;
+    const studentId = this.state.currentUser()?.id;
+    if (!studentId) return;
     this.isLoading.set(true);
-    this.service.getLevelProgress(childName).subscribe({
+    this.service.getLevelProgress(studentId).subscribe({
       next:  data => { this.levels.set(data); this.isLoading.set(false); },
       error: ()   => this.isLoading.set(false)
     });
   }
 
   openLevel(level: LevelProgressDto): void {
-    if (!level.locked) this.router.navigate(['/levels', level.level, 'books']);
+    if (!level.locked && this.levelLinks[level.level]) {
+      this.router.navigate([this.levelLinks[level.level].route]);
+    }
   }
 
   progressPct(level: LevelProgressDto): number {
@@ -80,4 +82,15 @@ export class LevelsComponent implements OnInit {
   }
 
   readonly starDots = [1, 2, 3, 4, 5];
+
+  readonly levelLinks: Record<number, { icon: string; title: string; desc: string; route: string }> = {
+    1: { icon: 'أ', title: 'الحروف ', desc: 'تعلم الحروف الأبجدية العربية وأصواتها', route: '/learning/letters' },
+    2: { icon: '📝', title: 'الكلمات والجمل', desc: 'تعلم الكلمات وقراءة الجمل', route: '/learning/words-sentences' },
+    3: { icon: '📚', title: 'الكتيبات والقصص', desc: 'اقرأ الكتيبات والقصص الشيقة', route: '/learning/booklets-stories' },
+  };
+
+  goToSection(event: MouseEvent, route: string): void {
+    event.stopPropagation();
+    this.router.navigate([route]);
+  }
 }

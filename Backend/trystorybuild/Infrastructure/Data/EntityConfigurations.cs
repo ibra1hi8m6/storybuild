@@ -141,9 +141,11 @@ namespace Infrastructure.Data
         public void Configure(EntityTypeBuilder<StudentProgress> b)
         {
             b.HasKey(p => p.Id);
+            b.Property(p => p.StudentId).IsRequired(false);
             b.Property(p => p.ChildName).HasMaxLength(100).IsRequired();
             b.Property(p => p.StoryId).IsRequired(false);
             b.Property(p => p.LessonId).IsRequired(false);
+            b.HasIndex(p => p.StudentId);
 
             b.HasOne(p => p.Story)
              .WithMany(s => s.Progress)

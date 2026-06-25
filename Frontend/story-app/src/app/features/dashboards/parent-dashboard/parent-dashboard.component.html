@@ -5,12 +5,12 @@
 
     <!-- Header row: child tabs + add button -->
     <div class="d-flex align-items-center flex-wrap gap-2 mb-4">
-      @for (name of childNames(); track name) {
+      @for (s of students(); track s.id) {
         <button class="btn rounded-pill fw-bold d-flex align-items-center gap-2 px-4"
-          [class.btn-primary]="activeChild() === name"
-          [class.btn-outline-secondary]="activeChild() !== name"
-          (click)="selectChild(name)">
-          <span>👤</span>{{ name }}
+          [class.btn-primary]="activeChild() === s.name"
+          [class.btn-outline-secondary]="activeChild() !== s.name"
+          (click)="selectChild(s.id, s.name)">
+          <span>👤</span>{{ s.name }}
         </button>
       }
       <div class="ms-auto d-flex gap-2">
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Empty state when no children yet -->
-    @if (!isLoading() && childNames().length === 0) {
+    @if (!isLoading() && students().length === 0) {
       <div class="card text-center py-5 px-4 mx-auto" style="max-width:460px">
         <div style="font-size:56px" class="mb-3">👨‍👧</div>
         <h4 class="fw-800 mb-2">لم تُضِف أي أطفال بعد</h4>

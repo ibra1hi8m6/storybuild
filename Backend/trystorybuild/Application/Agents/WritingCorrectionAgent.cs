@@ -23,6 +23,7 @@ namespace Application.Agents
         public async Task<WritingCorrectionResponse> EvaluateAsync(
             Guid lessonPageId,
             Guid lessonId,
+            Guid studentId,
             string childName,
             IFormFile image)
         {
@@ -75,12 +76,13 @@ namespace Application.Agents
                 logger.LogWarning(ex, "[WritingAgent] Cloudinary upload failed — storing empty path.");
             }
 
-            var attemptNumber = await writingAttemptRepository.CountByPageAsync(lessonPageId, childName) + 1;
+            var attemptNumber = await writingAttemptRepository.CountByPageAndStudentAsync(lessonPageId, studentId) + 1;
 
             await writingAttemptRepository.SaveAsync(new WritingAttempt
             {
                 LessonPageId      = lessonPageId,
                 LessonId          = lessonId,
+                StudentId         = studentId,
                 ChildName         = childName,
                 UploadedImagePath = imageUrl,
                 ExtractedText     = geminiResult.ExtractedText,
@@ -132,35 +134,76 @@ namespace Application.Agents
             try
             {
                 var prompt = $$"""
-                    You are an Arabic handwriting evaluator for children learning to write Arabic letters and words.
+                    أنت مقيّم متخصص لخط اليد العربي للأطفال الصغار.
+                    مهمتك تقييم الكتابة بدقة وعدالة: لا تبالغ في الثناء، ولا تخترع أخطاء.
 
-                    The child was asked to write: "{{expectedSentence}}"
+                    الجملة المطلوبة: "{{expectedSentence}}"
 
-                    Analyze the handwriting image carefully and return ONLY valid JSON — no markdown, no extra text:
+                    ════════════════════════════════════
+                    معايير التقييم — قيّم على أساس المعيارين معاً:
+                    ════════════════════════════════════
+
+                    المعيار الأول — مطابقة النص (هل كُتبت الجملة الصحيحة؟)
+                    المعيار الثاني — جودة الخط (هل الحروف واضحة ومنظمة؟)
+                      • وضوح الحروف وشكلها
+                      • المسافات بين الكلمات
+                      • انتظام الكتابة على السطر
+                      • قابلية القراءة لطفل صغير
+
+                    ════════════════════════════════════
+                    سلّم الدرجات:
+                    ════════════════════════════════════
+                    95–100 : النص صحيح تماماً والخط واضح جداً ومنظم — ممتاز
+                    85–94  : النص صحيح والخط جيد جداً مع ملاحظة بسيطة
+                    75–84  : النص صحيح أو قريب جداً، لكن جودة الخط تحتاج تحسيناً
+                    60–74  : النص مقروء جزئياً أو الخط غير منظم — يحتاج إعادة محاولة
+                    أقل من 60 : النص غير واضح أو غير مطابق
+
+                    ⚠️ قاعدة مهمة: إذا كان النص صحيحاً لكن الخط متوسط أو مزدحم، أعطِ 75–88 وليس 100.
+                    لا تُعطِ 95 أو أكثر إلا إذا كان الخط واضحاً وجميلاً فعلاً.
+
+                    ════════════════════════════════════
+                    قواعد الأخطاء:
+                    ════════════════════════════════════
+                    1. لا تخترع أخطاء — أبلّغ عن خطأ في حرف فقط إذا كان واضحاً تماماً في الصورة.
+                    2. لا تذكر نقاط الحروف (ب، ت، خ، ش...) إلا إذا كانت غائبة تماماً عن الصورة.
+                    3. لا تذكر وصل الحروف إلا إذا كان الانفصال واضحاً جداً ويغيّر معنى الكلمة.
+                    4. لا تذكر أي حرف أو كلمة غير موجودة في الجملة المطلوبة.
+                    5. إذا لم تكن متأكداً من خطأ في حرف معين، استخدم ملاحظة عامة عن جودة الخط بدلاً منه.
+                    6. حقل mistakes يجب أن يكون [] في معظم الحالات — لا تملأه إلا عند وجود خطأ مؤكد.
+
+                    أمثلة على الملاحظات العامة المسموح بها في tips:
+                    - "حاول أن تجعل الحروف أوضح."
+                    - "اترك مسافة صغيرة بين الكلمتين."
+                    - "اكتب الحروف على السطر بهدوء."
+                    - "الكلمة صحيحة، لكن الخط يحتاج وضوحاً أكثر."
+                    - "حاول أن تجعل حجم الحروف متقارباً."
+
+                    ════════════════════════════════════
+                    تعليمات JSON — أعد فقط JSON صحيح بدون markdown:
+                    ════════════════════════════════════
                     {
                       "detectedText": "",
                       "similarity": 0,
                       "displayMessage": "",
                       "spokenFeedback": "",
-                      "mistakes": [
-                        { "type": "", "expected": "", "actual": "", "description": "" }
-                      ],
+                      "mistakes": [],
                       "tips": []
                     }
 
-                    Rules:
-                    - detectedText: exactly what you read from the image in Arabic, or "" if canvas is empty
-                    - similarity: integer 0-100 (how closely the writing matches the expected sentence)
-                    - displayMessage: short encouraging Arabic message shown on screen (1 sentence, max 60 chars)
-                      * if similarity >= 70: start with "أحسنت!" and praise the score
-                      * if similarity < 70: start with "حاول مرة أخرى!" and mention what to fix
-                    - spokenFeedback: same message but suitable for text-to-speech (no emojis, plain Arabic)
-                    - mistakes: list of specific mistakes; empty [] if correct
-                      * type: one of "missing_letter", "extra_letter", "wrong_letter", "wrong_diacritic", "spacing", "shape"
-                      * expected: what was expected (Arabic)
-                      * actual: what was written (Arabic)
-                      * description: one-line Arabic explanation for the child
-                    - tips: list of 1-3 short Arabic tip strings to help improve; empty [] if score >= 90
+                    - detectedText  : ما قرأته من الصورة بالعربية، أو "" إذا كانت الصورة فارغة
+                    - similarity    : رقم من 0 إلى 100 يجمع بين صحة النص وجودة الخط حسب السلّم أعلاه
+                    - displayMessage: رسالة عربية مشجعة قصيرة مناسبة للأطفال (جملة واحدة، 70 حرفاً كحد أقصى)
+                      * النتيجة >= 85 : "أحسنت! ..." أو "رائع! ..."
+                      * النتيجة >= 70 : "جيد جداً! ..." أو "كتابتك جيدة، ..."
+                      * النتيجة < 70  : "حاول مرة أخرى! ..." مع ذكر ما يحتاج تحسيناً
+                    - spokenFeedback: نفس الرسالة بدون رموز تعبيرية، مناسبة للنطق
+                    - mistakes      : أخطاء مؤكدة وواضحة جداً فقط — [] في معظم الحالات
+                      * type        : "wrong_letter" أو "missing_letter" أو "extra_letter" فقط
+                      * expected    : الحرف/الكلمة المتوقعة
+                      * actual      : ما كُتب فعلاً
+                      * description : شرح عربي بسيط بجملة واحدة للطفل
+                    - tips          : من 0 إلى 3 نصائح قصيرة بالعربية لتحسين الخط؛ [] إذا كانت النتيجة >= 95
                     """;
 
                 var body = new
@@ -265,10 +308,13 @@ namespace Application.Agents
         List<WritingMistakeDto> Mistakes,
         List<string> Tips)
     {
-        public static GeminiWritingResult Fallback(string expected) => new(
-            string.Empty, 0,
-            $"تعذّر تحليل الكتابة. الجملة: {expected}",
-            $"تعذّر تحليل الكتابة. الجملة: {expected}",
-            [], []);
+        public static GeminiWritingResult Fallback(string expected)
+        {
+            var label = expected.Trim().Length == 1        ? "الحرف"
+                      : !expected.Trim().Contains(' ')     ? "الكلمة"
+                      : "الجملة";
+            var msg = $"تعذّر تحليل الكتابة. {label}: {expected}";
+            return new(string.Empty, 0, msg, msg, [], []);
+        }
     }
 }

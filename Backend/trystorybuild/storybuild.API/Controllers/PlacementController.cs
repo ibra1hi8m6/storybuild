@@ -98,7 +98,7 @@ namespace storybuild.API.Controllers
 
             // Count lessons the student has completed (exam passed)
             int completedLessons = await db.StudentProgress
-                .Where(p => p.ChildName == student.Name && p.LessonId != null && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId != null && p.ExamCompleted)
                 .Select(p => p.LessonId)
                 .Distinct()
                 .Join(db.Lessons.Where(l => l.Level == student.Level), p => p, l => l.Id, (p, l) => p)
@@ -119,17 +119,16 @@ namespace storybuild.API.Controllers
             return Ok(new { message = "يمكنك الآن إعادة اختبار تحديد المستوى.", studentName = student.Name });
         }
 
-        // ── GET /api/placement/level-completion/{childName} ────────────────────
-        // Returns level completion info for a child (used by parent/student dashboard)
-        [HttpGet("level-completion/{childName}")]
-        public async Task<IActionResult> GetLevelCompletion(string childName)
+        // ── GET /api/placement/level-completion/{studentId} ────────────────────
+        [HttpGet("level-completion/{studentId:guid}")]
+        public async Task<IActionResult> GetLevelCompletion(Guid studentId)
         {
-            var student = await db.Students.FirstOrDefaultAsync(s => s.Name == childName);
+            var student = await db.Students.FindAsync(studentId);
             if (student is null) return NotFound();
 
             int totalLessons = await db.Lessons.CountAsync(l => l.Level == student.Level);
             int completedLessons = await db.StudentProgress
-                .Where(p => p.ChildName == student.Name && p.LessonId != null && p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId != null && p.ExamCompleted)
                 .Select(p => p.LessonId)
                 .Distinct()
                 .Join(db.Lessons.Where(l => l.Level == student.Level), p => p, l => l.Id, (p, l) => p)

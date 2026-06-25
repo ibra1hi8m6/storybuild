@@ -7,6 +7,7 @@ namespace Domain.Entities
     public class StudentProgress
     {
         public Guid Id { get; set; } = Guid.NewGuid();
+        public Guid? StudentId { get; set; }
         public Guid? StoryId { get; set; }
         public Guid? LessonId { get; set; }
         public string ChildName { get; set; } = string.Empty;

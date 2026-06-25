@@ -1,7 +1,7 @@
 .letters-page {
   min-height: 100vh;
   background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 100%);
-  padding: 32px 20px;
+  padding: 88px 20px 40px;
 }
 
 .page-header {

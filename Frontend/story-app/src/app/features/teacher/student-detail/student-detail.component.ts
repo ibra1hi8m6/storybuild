@@ -33,11 +33,12 @@ export class StudentDetailComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    const name = this.route.snapshot.paramMap.get('name') ?? '';
+    const studentId = this.route.snapshot.paramMap.get('studentId') ?? '';
+    const name = this.route.snapshot.queryParamMap.get('name') ?? studentId;
     this.studentName.set(name);
-    if (!name) return;
+    if (!studentId) return;
     this.isLoading.set(true);
-    this.svc.getStudentDashboard(name).subscribe({
+    this.svc.getStudentDashboard(studentId).subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => { this.isLoading.set(false); this.error.set('لم يتم العثور على بيانات هذا الطالب.'); }
     });
@@ -45,17 +46,17 @@ export class StudentDetailComponent implements OnInit {
 
   selectTab(id: TabId): void {
     this.activeTab.set(id);
-    const name = this.studentName();
+    const studentId = this.route.snapshot.paramMap.get('studentId') ?? '';
     if (id === 'writing' && this.writingHistory().length === 0) {
       this.historyLoading.set(true);
-      this.svc.getWritingHistory(name).subscribe({
+      this.svc.getWritingHistory(studentId).subscribe({
         next:  h => { this.writingHistory.set(h); this.historyLoading.set(false); },
         error: () => this.historyLoading.set(false)
       });
     }
     if (id === 'reading' && this.readingHistory().length === 0) {
       this.historyLoading.set(true);
-      this.svc.getReadingHistory(name).subscribe({
+      this.svc.getReadingHistory(studentId).subscribe({
         next:  h => { this.readingHistory.set(h); this.historyLoading.set(false); },
         error: () => this.historyLoading.set(false)
       });

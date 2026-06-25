@@ -1,8 +1,24 @@
 .stories-page {
   min-height: 100vh;
   background: linear-gradient(160deg, #FDF2F8 0%, #F0EDFF 100%);
-  padding: 32px 24px 48px;
+  padding: 88px 24px 48px;
 }
+
+.back-btn {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 8px 18px;
+  border: 2px solid #8B5CF6;
+  border-radius: 10px;
+  background: transparent;
+  color: #8B5CF6;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+}
+.back-btn:hover { background: #8B5CF6; color: #fff; }
 
 .page-header {
   text-align: center;

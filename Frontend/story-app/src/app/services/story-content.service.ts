@@ -31,8 +31,8 @@ export class StoryContentService {
     return this.http.get<StoryResponse[]>(`${this.api}/api/story`);
   }
 
-  getMyStories(childName: string): Observable<StoryResponse[]> {
-    return this.http.get<StoryResponse[]>(`${this.api}/api/story/mine/${encodeURIComponent(childName)}`);
+  getMyStories(studentId: string): Observable<StoryResponse[]> {
+    return this.http.get<StoryResponse[]>(`${this.api}/api/story/mine/${studentId}`);
   }
 
   deleteStory(id: string): Observable<void> {

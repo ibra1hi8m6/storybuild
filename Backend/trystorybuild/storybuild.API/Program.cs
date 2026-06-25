@@ -67,7 +67,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(o =>
     o.AddPolicy("Angular", p =>
-        p.WithOrigins("http://localhost:4200")
+        p.WithOrigins("http://localhost:4200", "https://lughati.runasp.net")
          .AllowAnyHeader()
          .AllowAnyMethod()));
 
@@ -95,7 +95,7 @@ using (var scope = app.Services.CreateScope())
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Stories') AND name = 'CoverImagePath')
                 ALTER TABLE Stories ADD CoverImagePath nvarchar(max) NULL;
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Students') AND name = 'WeaknessMapJson')
-                ALTER TABLE Students ADD WeaknessMapJson nvarchar(max) NOT NULL DEFAULT '{}';
+                ALTER TABLE Students ADD WeaknessMapJson nvarchar(max) NOT NULL DEFAULT '{{}}' ;
             """);
         logger.LogInformation("Story columns ensured.");
     }
@@ -124,6 +124,41 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex) { logger.LogError(ex, "Phase 7 migration failed."); }
 
+    // ── Phase 8: StudentId on StudentProgress + LessonPageCompletions ────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('StudentProgress') AND name = 'StudentId')
+                ALTER TABLE StudentProgress ADD StudentId uniqueidentifier NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('LessonPageCompletions') AND name = 'StudentId')
+                ALTER TABLE LessonPageCompletions ADD StudentId uniqueidentifier NULL;
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('StudentProgress') AND name = 'IX_StudentProgress_StudentId')
+                CREATE INDEX IX_StudentProgress_StudentId ON StudentProgress (StudentId);
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('LessonPageCompletions') AND name = 'IX_LessonPageCompletions_StudentId')
+                CREATE INDEX IX_LessonPageCompletions_StudentId ON LessonPageCompletions (StudentId);
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            UPDATE sp SET sp.StudentId = s.Id
+            FROM StudentProgress sp
+            INNER JOIN Students s ON s.Name = sp.ChildName
+            WHERE sp.StudentId IS NULL;
+
+            UPDATE lpc SET lpc.StudentId = s.Id
+            FROM LessonPageCompletions lpc
+            INNER JOIN Students s ON s.Name = lpc.ChildName
+            WHERE lpc.StudentId IS NULL;
+
+            UPDATE wa SET wa.StudentId = s.Id
+            FROM WritingAttempts wa
+            INNER JOIN Students s ON s.Name = wa.ChildName
+            WHERE wa.StudentId IS NULL;
+            """);
+
+        logger.LogInformation("Phase 8: StudentId columns ensured and backfilled.");
+    }
+    catch (Exception ex) { logger.LogError(ex, "Phase 8 StudentId migration failed."); }
+
     // ── Phase 6: AssignmentSubmissions + WeakLetterRecords ───────────────────────
     try
     {
@@ -139,7 +174,7 @@ using (var scope = app.Services.CreateScope())
                     WritingScore float NOT NULL DEFAULT 0,
                     IsComplete bit NOT NULL DEFAULT 0,
                     SubmittedAt datetime2 NOT NULL DEFAULT GETUTCDATE(),
-                    NotesJson nvarchar(max) NOT NULL DEFAULT '{}'
+                    NotesJson nvarchar(max) NOT NULL DEFAULT '{{}}'
                 );
             IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'WeakLetterRecords')
                 CREATE TABLE WeakLetterRecords (
@@ -253,5 +288,6 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 app.Run();

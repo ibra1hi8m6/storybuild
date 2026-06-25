@@ -7,11 +7,13 @@ import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
 import { TtsService } from '../../services/tts.service';
 import { environment } from '../../../environments/environment';
+import { ListenModeComponent } from '../fluency/reading-journey/listen-mode.component';
+import { RecordModeComponent } from '../fluency/reading-journey/record-mode.component';
 
 @Component({
   selector: 'app-story-reader',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ListenModeComponent, RecordModeComponent],
   templateUrl: './story-reader.html',
   styleUrl: './story-reader.css'
 })
@@ -28,6 +30,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   readonly isPlaying   = signal(false);
   readonly imageLoaded = signal(false);
   readonly storyId     = signal('');
+  readonly readingTab  = signal<'listen' | 'read' | 'record'>('listen');
 
   readonly activePage = computed(() => {
     const s = this.story();
@@ -78,6 +81,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
     this.tts.stop();
     this.isPlaying.set(false);
     this.imageLoaded.set(false);
+    this.readingTab.set('listen');
     this.pageNum.update(p => p - 1);
   }
 
@@ -86,6 +90,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
     this.tts.stop();
     this.isPlaying.set(false);
     this.imageLoaded.set(false);
+    this.readingTab.set('listen');
     this.pageNum.update(p => p + 1);
   }
 
@@ -114,5 +119,4 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
 
   onImgLoad(): void { this.imageLoaded.set(true); }
   goBack(): void { this.router.navigate(['/levels']); }
-  startJourney(): void { this.router.navigate(['/books', this.storyId(), 'journey']); }
 }

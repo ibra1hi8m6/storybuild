@@ -86,7 +86,7 @@ export class LetterRecognitionComponent implements OnInit, OnDestroy {
     const childName = this.state.childName() ?? '';
     this.svc.saveAttempt({
       childName,
-      studentId: undefined,
+      studentId: this.state.currentUser()?.id,
       contentType: 2, // LetterRecognition
       contentId: this.current().letter.id,
       attemptType: 2, // Reading

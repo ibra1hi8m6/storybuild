@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink, RouterLinkActive, ActivatedRoute } from '@angular/router';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
@@ -18,29 +18,32 @@ export class ParentNotificationsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   readonly isLoading     = signal(false);
-  readonly childNames    = signal<string[]>([]);
+  readonly students      = signal<{ id: string; name: string }[]>([]);
   readonly selectedChild = signal<string>('');
   readonly activities    = signal<RecentActivityDto[]>([]);
+  readonly selectedStudentId = computed(() =>
+    this.students().find(s => s.name === this.selectedChild())?.id ?? ''
+  );
 
   ngOnInit(): void {
     const preselect = this.route.snapshot.queryParamMap.get('child') ?? '';
     this.isLoading.set(true);
     this.auth.getMyStudents().subscribe({
-      next: students => {
-        const names = students.map(s => s.name);
-        this.childNames.set(names);
-        if (names.length === 0) { this.isLoading.set(false); return; }
-        const first = preselect && names.includes(preselect) ? preselect : names[0];
-        this.selectChild(first);
+      next: studentList => {
+        this.students.set(studentList.map(s => ({ id: s.id, name: s.name })));
+        if (studentList.length === 0) { this.isLoading.set(false); return; }
+        const match = preselect ? studentList.find(s => s.name === preselect || s.id === preselect) : null;
+        const first = match ?? studentList[0];
+        this.selectChild(first.id, first.name);
       },
       error: () => this.isLoading.set(false)
     });
   }
 
-  selectChild(name: string): void {
+  selectChild(studentId: string, name: string): void {
     this.selectedChild.set(name);
     this.isLoading.set(true);
-    this.svc.getParentDashboard(name).subscribe({
+    this.svc.getParentDashboard(studentId).subscribe({
       next:  d => { this.activities.set(d.recentActivity ?? []); this.isLoading.set(false); },
       error: () => this.isLoading.set(false)
     });

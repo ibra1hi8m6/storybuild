@@ -39,7 +39,24 @@ namespace Infrastructure.AI
             };
 
             logger.LogInformation("[Gemini-Story] Generating story for {Child}...", childName);
-            var resp = await client.PostAsJsonAsync(url, body);
+
+            HttpResponseMessage resp = null!;
+            for (int attempt = 1; attempt <= 3; attempt++)
+            {
+                resp = await client.PostAsJsonAsync(url, body);
+                if (resp.IsSuccessStatusCode) break;
+
+                var status = (int)resp.StatusCode;
+                if (attempt < 3 && (status == 503 || status == 429 || status == 500))
+                {
+                    logger.LogWarning("[Gemini-Story] Attempt {A} got {S} — retrying in {D}s…",
+                        attempt, status, attempt * 2);
+                    await Task.Delay(TimeSpan.FromSeconds(attempt * 2));
+                    continue;
+                }
+
+                resp.EnsureSuccessStatusCode(); // throws on final attempt
+            }
             resp.EnsureSuccessStatusCode();
 
             var envelope = await resp.Content.ReadFromJsonAsync<JsonDocument>();

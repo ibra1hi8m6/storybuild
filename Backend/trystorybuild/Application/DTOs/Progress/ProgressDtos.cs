@@ -3,7 +3,7 @@ namespace Application.DTOs
     // ── Story Progress ─────────────────────────────────────────────────────────
     public record ProgressResponse(
         Guid StoryId,
-        string ChildName,
+        Guid StudentId,
         int CurrentPage,
         int TotalQuestions,
         int CorrectAnswers,
@@ -13,14 +13,14 @@ namespace Application.DTOs
     // ── Lesson Progress ────────────────────────────────────────────────────────
     public record LessonProgressRequest(
         Guid LessonId,
-        string ChildName,
+        Guid StudentId,
         int TotalQuestions,
         int CorrectAnswers,
         double ScorePercentage,
         bool ExamCompleted);
 
     public record MarkPageRequest(
-        string ChildName,
+        Guid StudentId,
         Guid LessonId,
         Guid LessonPageId,
         bool WritingSubmitted);

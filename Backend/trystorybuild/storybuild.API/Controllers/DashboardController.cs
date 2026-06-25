@@ -13,23 +13,39 @@ namespace storybuild.API.Controllers
     [Route("api/dashboard")]
     public class DashboardController(IDashboardService dashboardService, AppDbContext db) : ControllerBase
     {
-        [HttpGet("student/{childName}")]
+        [HttpGet("student/{studentId:guid}")]
+        [Authorize(Roles = "Student")]
         [ProducesResponseType(typeof(StudentDashboardDto), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetStudent(string childName)
+        public async Task<IActionResult> GetStudent(Guid studentId)
         {
-            var data = await dashboardService.GetStudentDashboardAsync(childName);
+            var callerId = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+            if (callerId != studentId) return Forbid();
+
+            var data = await dashboardService.GetStudentDashboardAsync(studentId);
             if (data is null)
                 return NotFound(new { error = "لم يتم العثور على بيانات لهذا الطالب." });
             return Ok(data);
         }
 
-        [HttpGet("parent/{childName}")]
+        [HttpGet("parent/{studentId:guid}")]
+        [Authorize(Roles = "Parent")]
         [ProducesResponseType(typeof(ParentDashboardDto), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetParent(string childName)
+        public async Task<IActionResult> GetParent(Guid studentId)
         {
-            var data = await dashboardService.GetParentDashboardAsync(childName);
+            var parentId = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null || student.ParentId != parentId) return Forbid();
+
+            var data = await dashboardService.GetParentDashboardAsync(studentId);
             if (data is null)
                 return NotFound(new { error = "لم يتم العثور على بيانات لهذا الطفل." });
             return Ok(data);
@@ -87,11 +103,11 @@ namespace storybuild.API.Controllers
             return Ok(names);
         }
 
-        [HttpGet("levels/progress/{childName}")]
+        [HttpGet("levels/progress/{studentId:guid}")]
         [ProducesResponseType(typeof(List<LevelProgressDto>), 200)]
-        public async Task<IActionResult> GetLevelProgress(string childName)
+        public async Task<IActionResult> GetLevelProgress(Guid studentId)
         {
-            var data = await dashboardService.GetLevelProgressAsync(childName);
+            var data = await dashboardService.GetLevelProgressAsync(studentId);
             return Ok(data);
         }
     }

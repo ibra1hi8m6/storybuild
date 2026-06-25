@@ -30,11 +30,12 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly tts    = inject(TtsService);
   readonly api = environment.apiUrl;
 
-  readonly letter     = signal<LetterContentDto | null>(null);
-  readonly isLoading  = signal(true);
-  readonly isPlaying  = signal(false);
-  readonly isChecking = signal(false);
-  readonly result     = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly letter       = signal<LetterContentDto | null>(null);
+  readonly isLoading    = signal(true);
+  readonly isPlaying    = signal(false);
+  readonly isChecking   = signal(false);
+  readonly result       = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly nextLetterId = signal<string | null>(null);
 
   readonly activeTool  = signal<Tool>('pen');
   readonly strokeSize  = signal(6);
@@ -52,9 +53,13 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
         this.letter.set(d);
         this.isLoading.set(false);
         this.speak();
-        // Canvas lives inside @if(letter()), so it renders after signal update.
-        // A microtask delay lets Angular finish rendering before we bind events.
         setTimeout(() => this.initCanvas(), 0);
+        this.svc.getLetters().subscribe(all => {
+          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
+          const idx = sorted.findIndex(l => l.id === id);
+          if (idx !== -1 && idx < sorted.length - 1)
+            this.nextLetterId.set(sorted[idx + 1].id);
+        });
       },
       error: () => this.isLoading.set(false)
     });
@@ -163,7 +168,7 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
         this.isChecking.set(false);
         this.svc.saveAttempt({
           childName:    this.state.childName() ?? '',
-          studentId:    undefined,
+          studentId:    this.state.currentUser()?.id,
           contentType:  1,
           contentId:    l.id,
           attemptType:  1,
@@ -177,7 +182,9 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
       },
       error: () => {
         this.isChecking.set(false);
-        this.result.set({ isCorrect: false, feedback: 'حدث خطأ أثناء التقييم، حاول مرة أخرى.' });
+        const msg = 'حدث خطأ أثناء التقييم، حاول مرة أخرى.';
+        this.result.set({ isCorrect: false, feedback: msg });
+        this.speak(msg);
       }
     });
   }
@@ -192,10 +199,20 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
 
   speak(text?: string): void {
     const l = this.letter();
-    const t = text ?? l?.audioText ?? l?.displaySentence ?? '';
+    const t = text || l?.audioText || l?.displaySentence || l?.letterName || '';
     if (!t) return;
     this.isPlaying.set(true);
     void this.tts.play(t).finally(() => this.isPlaying.set(false));
+  }
+
+  goNext(): void {
+    const next = this.nextLetterId();
+    this.router.navigate(next ? ['/learning/letters', next] : ['/learning/letters']);
+  }
+
+  tryAgain(): void {
+    this.result.set(null);
+    this.clearCanvas();
   }
 
   goBack(): void { this.router.navigate(['/learning/letters']); }

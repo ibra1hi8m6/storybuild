@@ -57,7 +57,7 @@ export const routes: Routes = [
   {
     path: 'learning',
     loadComponent: () =>
-      import('./features/learning/hub/learning-hub.component').then(m => m.LearningHubComponent),
+      import('./features/levels/levels.component').then(m => m.LevelsComponent),
     canActivate: [authGuard]
   },
   {
@@ -258,7 +258,7 @@ export const routes: Routes = [
     canActivate: [parentGuard]
   },
   {
-    path: 'parent/child/:name/progress',
+    path: 'parent/child/:studentId/progress',
     loadComponent: () =>
       import('./features/parent/child-progress/child-progress.component').then(m => m.ChildProgressComponent),
     canActivate: [parentGuard]
@@ -300,7 +300,7 @@ export const routes: Routes = [
     canActivate: [teacherGuard]
   },
   {
-    path: 'teacher/students/:name',
+    path: 'teacher/students/:studentId',
     loadComponent: () =>
       import('./features/teacher/student-detail/student-detail.component').then(m => m.StudentDetailComponent),
     canActivate: [teacherGuard]

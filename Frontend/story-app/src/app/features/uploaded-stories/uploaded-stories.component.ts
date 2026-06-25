@@ -1,5 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { StoryService } from '../../services/story';
 import { UploadedStoryDto } from '../../models/story.models';
 import { environment } from '../../../environments/environment';
@@ -7,7 +9,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-uploaded-stories',
   standalone: true,
-  imports: [],
+  imports: [CommonModule, NavbarComponent],
   templateUrl: './uploaded-stories.component.html',
   styleUrl: './uploaded-stories.component.css'
 })
@@ -34,4 +36,6 @@ export class UploadedStoriesComponent implements OnInit {
     if (!url) return '';
     return url.startsWith('http') ? url : `${this.api}${url}`;
   }
+
+  goBack(): void { this.router.navigate(['/learning/booklets-stories']); }
 }

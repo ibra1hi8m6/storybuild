@@ -232,10 +232,11 @@ export class WritingCorrection implements OnInit, OnDestroy {
 
     if (!story || !page) return;
 
-    if (!this.state.childName()) {
+    const studentId = this.state.currentUser()?.id;
+    if (!studentId) {
 
       this.error.set(
-        'اسم الطفل مطلوب.'
+        'يجب تسجيل الدخول أولاً.'
       );
 
       return;
@@ -258,7 +259,8 @@ export class WritingCorrection implements OnInit, OnDestroy {
         this.storyService.submitLessonWriting(
   story.id,
   page.pageId,
-  this.state.childName(),
+  studentId,
+  this.state.childName() || this.state.currentUser()?.name || '',
   blob,
   `writing_${page.pageId}.png`
 )

@@ -51,7 +51,7 @@ export class StoryService {
   generateStory(req: GenerateStoryRequest): Observable<StoryResponse> { return this.stories.generateStory(req); }
   getStory(id: string): Observable<StoryResponse>                     { return this.stories.getStory(id); }
   getAllStories(): Observable<StoryResponse[]>                        { return this.stories.getAllStories(); }
-  getMyStories(childName: string): Observable<StoryResponse[]>       { return this.stories.getMyStories(childName); }
+  getMyStories(studentId: string): Observable<StoryResponse[]>       { return this.stories.getMyStories(studentId); }
   deleteStory(id: string): Observable<void>                          { return this.stories.deleteStory(id); }
   uploadStoryPdf(title: string, file: File): Observable<UploadedStoryDto>   { return this.stories.uploadStoryPdf(title, file); }
   getUploadedStories(): Observable<UploadedStoryDto[]>               { return this.stories.getUploadedStories(); }
@@ -65,14 +65,14 @@ export class StoryService {
   submitExam(req: SubmitExamRequest): Observable<ExamResult>         { return this.exams.submitExam(req); }
 
   // ── Writing ────────────────────────────────────────────────────────────────
-  submitLessonWriting(lessonId: string, lessonPageId: string, childName: string, imageBlob: Blob, fileName = 'drawing.png'): Observable<WritingCorrectionResponse> {
-    return this.writing.submitLessonWriting(lessonId, lessonPageId, childName, imageBlob, fileName);
+  submitLessonWriting(lessonId: string, lessonPageId: string, studentId: string, childName: string, imageBlob: Blob, fileName = 'drawing.png'): Observable<WritingCorrectionResponse> {
+    return this.writing.submitLessonWriting(lessonId, lessonPageId, studentId, childName, imageBlob, fileName);
   }
   evaluateCanvasWriting(imageBase64: string, expectedText: string): Observable<WritingCorrectionResponse> {
     return this.writing.evaluateCanvasWriting(imageBase64, expectedText);
   }
-  getWritingHistory(childName: string, take = 30): Observable<WritingAttemptHistory[]>  { return this.writing.getWritingHistory(childName, take); }
-  getReadingHistory(childName: string, take = 30): Observable<ReadingAttemptHistory[]>  { return this.writing.getReadingHistory(childName, take); }
+  getWritingHistory(studentId: string, take = 30): Observable<WritingAttemptHistory[]>  { return this.writing.getWritingHistory(studentId, take); }
+  getReadingHistory(studentId: string, take = 30): Observable<ReadingAttemptHistory[]>  { return this.writing.getReadingHistory(studentId, take); }
 
   // ── Lessons ────────────────────────────────────────────────────────────────
   getLessonsByLevel(level: number): Observable<LessonSummary[]>      { return this.lessons.getLessonsByLevel(level); }
@@ -104,13 +104,13 @@ export class StoryService {
   createSchool(body: { schoolName: string; adminEmail: string; adminPassword: string }): Observable<any> { return this.admin.createSchool(body); }
 
   // ── Progress ───────────────────────────────────────────────────────────────
-  getProgress(storyId: string, childName: string): Observable<ProgressResponse>            { return this.progress.getProgress(storyId, childName); }
+  getProgress(storyId: string, studentId: string): Observable<ProgressResponse>            { return this.progress.getProgress(storyId, studentId); }
   updateProgress(p: ProgressResponse): Observable<ProgressResponse>                        { return this.progress.updateProgress(p); }
   updateLessonProgress(req: any): Observable<any>                                           { return this.progress.updateLessonProgress(req); }
-  markPageDone(childName: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> { return this.progress.markPageDone(childName, lessonId, lessonPageId, writingSubmitted); }
-  getLessonPageProgress(lessonId: string, childName: string): Observable<any>              { return this.progress.getLessonPageProgress(lessonId, childName); }
-  getCurrentLesson(childName: string): Observable<any>                                     { return this.progress.getCurrentLesson(childName); }
-  getWeaknessMap(childName: string): Observable<WeaknessMap>                               { return this.progress.getWeaknessMap(childName); }
+  markPageDone(studentId: string, lessonId: string, lessonPageId: string, writingSubmitted: boolean): Observable<void> { return this.progress.markPageDone(studentId, lessonId, lessonPageId, writingSubmitted); }
+  getLessonPageProgress(lessonId: string, studentId: string): Observable<any>              { return this.progress.getLessonPageProgress(lessonId, studentId); }
+  getCurrentLesson(studentId: string): Observable<any>                                     { return this.progress.getCurrentLesson(studentId); }
+  getWeaknessMap(studentId: string): Observable<WeaknessMap>                               { return this.progress.getWeaknessMap(studentId); }
 
   // ── RAG ────────────────────────────────────────────────────────────────────
   ingestDocument(file: File, letter?: string, level?: number, tags?: string): Observable<IngestDocumentResponse> { return this.rag.ingestDocument(file, letter, level, tags); }
@@ -123,12 +123,12 @@ export class StoryService {
   uploadKnowledgeDocument(file: File, name: string, description: string): Observable<any> { return this.rag.uploadKnowledgeDocument(file, name, description); }
 
   // ── Dashboards ────────────────────────────────────────────────────────────
-  getStudentDashboard(childName: string): Observable<StudentDashboardDto>  { return this.dashboard.getStudentDashboard(childName); }
-  getParentDashboard(childName: string): Observable<ParentDashboardDto>    { return this.dashboard.getParentDashboard(childName); }
+  getStudentDashboard(studentId: string): Observable<StudentDashboardDto>  { return this.dashboard.getStudentDashboard(studentId); }
+  getParentDashboard(studentId: string): Observable<ParentDashboardDto>    { return this.dashboard.getParentDashboard(studentId); }
   getTeacherDashboard(): Observable<TeacherDashboardDto>                   { return this.dashboard.getTeacherDashboard(); }
   getSchoolDashboard(): Observable<SchoolDashboardDto>                     { return this.dashboard.getSchoolDashboard(); }
   getKnownStudentNames(): Observable<string[]>                             { return this.dashboard.getKnownStudentNames(); }
-  getLevelProgress(childName: string): Observable<LevelProgressDto[]>      { return this.dashboard.getLevelProgress(childName); }
+  getLevelProgress(studentId: string): Observable<LevelProgressDto[]>      { return this.dashboard.getLevelProgress(studentId); }
   requestPlacementRetake(): Observable<{ message: string }>                { return this.dashboard.requestPlacementRetake(); }
   updateStudentLevel(level: number): Observable<any>                       { return this.dashboard.updateStudentLevel(level); }
   getPlacementQuestions(): Observable<any[]>                               { return this.dashboard.getPlacementQuestions(); }

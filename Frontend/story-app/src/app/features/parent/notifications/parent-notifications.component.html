@@ -25,15 +25,15 @@
     </div>
 
     <!-- Child selector chips -->
-    @if (childNames().length > 1) {
+    @if (students().length > 1) {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px">
-        @for (name of childNames(); track name) {
-          <button (click)="selectChild(name)"
+        @for (s of students(); track s.id) {
+          <button (click)="selectChild(s.id, s.name)"
                   style="padding:8px 18px;border-radius:99px;border:2px solid;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:.2s"
-                  [style.background]="selectedChild() === name ? 'var(--primary-gradient)' : 'var(--bg-card)'"
-                  [style.color]="selectedChild() === name ? '#fff' : 'var(--text-muted)'"
-                  [style.border-color]="selectedChild() === name ? 'transparent' : 'rgba(244,120,138,.2)'">
-            {{ name }}
+                  [style.background]="selectedChild() === s.name ? 'var(--primary-gradient)' : 'var(--bg-card)'"
+                  [style.color]="selectedChild() === s.name ? '#fff' : 'var(--text-muted)'"
+                  [style.border-color]="selectedChild() === s.name ? 'transparent' : 'rgba(244,120,138,.2)'">
+            {{ s.name }}
           </button>
         }
       </div>
@@ -72,7 +72,7 @@
               }
               <div style="display:flex;align-items:center;justify-content:space-between">
                 <div style="font-size:12px;color:var(--text-muted)">{{ formatDate(act.occurredAt) }}</div>
-                <a [routerLink]="['/parent/child', act.childName, 'progress']"
+                <a [routerLink]="['/parent/child', selectedStudentId(), 'progress']" [queryParams]="{name: selectedChild()}"
                    style="font-size:11px;font-weight:800;color:var(--primary);text-decoration:none">
                   عرض التقدم ←
                 </a>

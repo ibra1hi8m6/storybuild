@@ -113,8 +113,8 @@ export class LearningService {
     return this.http.post<LearningAttemptDto>(`${this.api}/api/learning/attempts`, req);
   }
 
-  getAttempts(childName: string, contentType?: LearningContentType): Observable<LearningAttemptDto[]> {
-    let url = `${this.api}/api/learning/attempts/${encodeURIComponent(childName)}`;
+  getAttempts(studentId: string, contentType?: LearningContentType): Observable<LearningAttemptDto[]> {
+    let url = `${this.api}/api/learning/attempts/${studentId}`;
     if (contentType) url += `?contentType=${contentType}`;
     return this.http.get<LearningAttemptDto[]>(url);
   }

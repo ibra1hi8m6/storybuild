@@ -12,6 +12,7 @@ export class WritingService {
   submitLessonWriting(
     lessonId:     string,
     lessonPageId: string,
+    studentId:    string,
     childName:    string,
     imageBlob:    Blob,
     fileName:     string = 'drawing.png'
@@ -19,6 +20,7 @@ export class WritingService {
     const form = new FormData();
     form.append('lessonId',     lessonId);
     form.append('lessonPageId', lessonPageId);
+    form.append('studentId',    studentId);
     form.append('childName',    childName);
     form.append('image',        imageBlob, fileName);
     return this.http.post<WritingCorrectionResponse>(`${this.api}/api/writing/evaluate`, form);
@@ -31,13 +33,11 @@ export class WritingService {
     });
   }
 
-  getWritingHistory(childName: string, take = 30): Observable<WritingAttemptHistory[]> {
-    return this.http.get<WritingAttemptHistory[]>(
-      `${this.api}/api/writing/history/${encodeURIComponent(childName)}?take=${take}`);
+  getWritingHistory(studentId: string, take = 30): Observable<WritingAttemptHistory[]> {
+    return this.http.get<WritingAttemptHistory[]>(`${this.api}/api/writing/history/${studentId}?take=${take}`);
   }
 
-  getReadingHistory(childName: string, take = 30): Observable<ReadingAttemptHistory[]> {
-    return this.http.get<ReadingAttemptHistory[]>(
-      `${this.api}/api/fluency/history/${encodeURIComponent(childName)}?take=${take}`);
+  getReadingHistory(studentId: string, take = 30): Observable<ReadingAttemptHistory[]> {
+    return this.http.get<ReadingAttemptHistory[]>(`${this.api}/api/fluency/history/${studentId}?take=${take}`);
   }
 }

@@ -33,10 +33,11 @@ export class MyStoriesComponent implements OnInit {
 
   ngOnInit(): void {
     const name = this.state.childName() || this.state.currentUser()?.name || '';
-    if (!name) { this.router.navigate(['/dashboard']); return; }
+    const studentId = this.state.currentUser()?.id;
+    if (!studentId) { this.router.navigate(['/dashboard']); return; }
     this.childName.set(name);
     this.isLoading.set(true);
-    this.svc.getMyStories(name).subscribe({
+    this.svc.getMyStories(studentId).subscribe({
       next:  s => { this.stories.set(s); this.isLoading.set(false); },
       error: () => { this.isLoading.set(false); this.error.set('تعذّر تحميل القصص.'); }
     });

@@ -10,11 +10,13 @@ import { AppStateService } from '../../services/app-state-service';
 import { TtsService } from '../../services/tts.service';
 import { WritingCorrectionResponse } from '../../models/story.models';
 import { environment } from '../../../environments/environment';
+import { RecordModeComponent } from '../fluency/reading-journey/record-mode.component';
+import { ListenModeComponent } from '../fluency/reading-journey/listen-mode.component';
 
 @Component({
   selector: 'app-lesson-reader',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RecordModeComponent, ListenModeComponent],
   templateUrl: './lesson-reader.html',
   styleUrl: './lesson-reader.css'
 })
@@ -32,12 +34,14 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly pageNum              = signal(1);
   readonly isPlaying            = signal(false);
   readonly imageLoaded          = signal(false);
+  readonly imageError           = signal(false);
   readonly tool                 = signal<'pencil' | 'eraser'>('pencil');
   readonly hasDrawing           = signal(false);
   readonly isChecking           = signal(false);
   readonly checkResult          = signal<WritingCorrectionResponse | null>(null);
   readonly writingCheckedOnPage = signal(false);
   readonly showWritingWarning   = signal(false);
+  readonly readingTab           = signal<'listen' | 'read' | 'record'>('listen');
 
   private ctx!: CanvasRenderingContext2D;
   private isDrawing = false;
@@ -111,6 +115,9 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     this.checkResult.set(null);
     this.writingCheckedOnPage.set(false);
     this.showWritingWarning.set(false);
+    this.readingTab.set('listen');
+    this.imageLoaded.set(false);
+    this.imageError.set(false);
     this.clearCanvas();
     this.tts.stop();
     this.isPlaying.set(false);
@@ -128,7 +135,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     const page = this.activePage();
     if (page?.pageId) {
       this.service.markPageDone(
-        this.state.childName() || 'طالب',
+        this.state.currentUser()?.id ?? '',
         this.lessonId,
         page.pageId,
         this.writingCheckedOnPage()
@@ -143,8 +150,10 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     const next = this.pageNum() + 1;
     this.pageNum.set(next);
     this.writingCheckedOnPage.set(false);
+    this.readingTab.set('listen');
     this.saveProgress(next, this.totalPages(), false);
     this.imageLoaded.set(false);
+    this.imageError.set(false);
     this.clearCanvas();
     this.tts.stop();
     this.isPlaying.set(false);
@@ -187,12 +196,12 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   private setupCanvas(): void {
     const canvas = this.canvasRef?.nativeElement;
     if (!canvas) return;
-    if (this.canvasReady) { this.drawBackground(); return; }
+    if (this.canvasReady) { void document.fonts.ready.then(() => this.drawBackground()); return; }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     this.ctx = ctx;
     this.canvasReady = true;
-    this.drawBackground();
+    void document.fonts.ready.then(() => this.drawBackground());
 
     canvas.addEventListener('pointerdown', (e: PointerEvent) => {
       canvas.setPointerCapture(e.pointerId);
@@ -283,7 +292,7 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   clearCanvas(): void {
     this.hasDrawing.set(false);
     this.checkResult.set(null);
-    this.drawBackground();
+    void document.fonts.ready.then(() => this.drawBackground());
   }
 
   checkWriting(): void {
@@ -300,19 +309,26 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
       this.service.submitLessonWriting(
         this.lessonId,
         page.pageId,
-        this.state.childName() || 'طالب',
+        this.state.currentUser()?.id ?? '',
+        this.state.childName() || this.state.currentUser()?.name || '',
         blob
       ).subscribe({
         next:  r => {
-          this.checkResult.set(r);
-          this.isChecking.set(false);
           this.writingCheckedOnPage.set(true);
           const parts: string[] = [];
           if (r.spokenFeedback || r.displayMessage) parts.push(r.spokenFeedback || r.displayMessage);
           if (r.mistakes?.length) parts.push(...r.mistakes.map((m: any) => m.description).filter(Boolean));
           if (r.tips?.length)     parts.push(...r.tips.filter(Boolean));
-          const tts = parts.join('. ');
-          if (tts) setTimeout(() => this.speakFeedback(tts), 400);
+          const ttsText = parts.join('. ');
+          if (ttsText) {
+            void this.tts.play(ttsText, 'Kore', () => {
+              this.checkResult.set(r);
+              this.isChecking.set(false);
+            });
+          } else {
+            this.checkResult.set(r);
+            this.isChecking.set(false);
+          }
         },
         error: () => { this.isChecking.set(false); }
       });
@@ -332,7 +348,8 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
     return url.startsWith('http') ? url : `${environment.apiUrl}${url}`;
   }
 
-  onImgLoad(): void { this.imageLoaded.set(true); }
+  onImgLoad():  void { this.imageLoaded.set(true); }
+  onImgError(): void { this.imageError.set(true); }
   goBack(): void {
     const level = this.lesson()?.level ?? 1;
     this.router.navigate(['/levels', level, 'books']);

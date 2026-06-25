@@ -7,58 +7,71 @@
   } @else {
     <button class="back-btn" (click)="goBack()">→ رجوع</button>
 
-    @if (stage() === 'done') {
-      <div class="done-card">
-        <div class="done-icon">🌟</div>
-        <h2>أحسنت!</h2>
-        <p>لقد أنهيت تدريب كلمة <strong>{{ word()!.displayWord }}</strong></p>
-        <button class="btn-primary-action" (click)="goBack()">← العودة للكلمات</button>
-      </div>
-    } @else {
-      <div class="practice-layout">
-        <!-- Word display -->
-        <div class="word-panel">
-          @if (word()!.imagePath) {
-            <img [src]="word()!.imagePath" class="word-image" [alt]="word()!.displayWord">
-          } @else {
-            <div class="word-image-placeholder">{{ word()!.displayWord }}</div>
-          }
-          <div class="big-word">{{ word()!.displayWord }}</div>
-          <div class="word-letter-badge">حرف {{ word()!.relatedLetter }}</div>
-          <button class="audio-btn" [class.playing]="isPlaying()" (click)="speak()">
-            {{ isPlaying() ? '⏸ يشتغل...' : '🔊 استمع' }}
-          </button>
+    <div class="practice-layout">
+      <!-- Word display -->
+      <div class="word-panel">
+        @if (word()!.imagePath) {
+          <img [src]="word()!.imagePath" class="word-image" [alt]="word()!.displayWord">
+        } @else {
+          <div class="word-image-placeholder">{{ word()!.displayWord }}</div>
+        }
+        <div class="big-word">{{ word()!.displayWord }}</div>
+        <div class="word-letter-badge">حرف {{ word()!.relatedLetter }}</div>
+        <button class="audio-btn" [class.playing]="isPlaying()" (click)="speak()">
+          {{ isPlaying() ? '⏸ يشتغل...' : '🔊 استمع' }}
+        </button>
 
-          <!-- Reading section -->
-          <div class="section-title mt-3">🎤 اقرأ الكلمة بصوت عالٍ</div>
-          <button class="record-btn" [class.recording]="isRecording()" (click)="isRecording() ? stopRecording() : startRecording()">
-            {{ isRecording() ? '⏹ إيقاف التسجيل' : '🎙️ ابدأ القراءة' }}
-          </button>
-        </div>
+        <!-- Reading section -->
+        <div class="section-title mt-3">🎤 اقرأ الكلمة بصوت عالٍ</div>
+        <button class="record-btn" [class.recording]="isRecording()" (click)="isRecording() ? stopRecording() : startRecording()">
+          {{ isRecording() ? '⏹ إيقاف التسجيل' : '🎙️ ابدأ القراءة' }}
+        </button>
 
-        <!-- Writing section -->
-        <div class="writing-panel">
-          <div class="writing-header">
-            <h3 class="writing-title">✏️ اكتب الكلمة</h3>
-            <div class="tool-row">
-              <button class="tool-btn" [class.active]="activeTool() === 'pen'"    (click)="activeTool.set('pen')">✏️ قلم</button>
-              <button class="tool-btn" [class.active]="activeTool() === 'eraser'" (click)="activeTool.set('eraser')">🗑️ ممحاة</button>
-              <button class="tool-btn clear-btn" (click)="clearCanvas()">🔄 مسح</button>
-            </div>
+        @if (readResult()) {
+          <div class="result-banner mt-3" [class.correct]="readResult()!.isCorrect" [class.wrong]="!readResult()!.isCorrect">
+            {{ readResult()!.feedback }}
           </div>
-          <canvas #canvas class="writing-canvas"></canvas>
-
-          @if (result()) {
-            <div class="result-banner" [class.correct]="result()!.isCorrect" [class.wrong]="!result()!.isCorrect">
-              {{ result()!.feedback }}
+          @if (readResult()!.isCorrect) {
+            <div class="result-actions">
+              <button class="btn-next" (click)="goNext()">انتقل إلى الكلمة التالية ←</button>
+              <button class="btn-back-small" (click)="goBack()">العودة للكلمات</button>
             </div>
+          } @else {
+            <button class="try-again-btn" (click)="tryAgainReading()">🔄 حاول مرة أخرى</button>
           }
-
-          <button class="submit-btn" [disabled]="isChecking" (click)="submitWriting()">
-            {{ isChecking ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
-          </button>
-        </div>
+        }
       </div>
-    }
+
+      <!-- Writing section -->
+      <div class="writing-panel">
+        <div class="writing-header">
+          <h3 class="writing-title">✏️ اكتب الكلمة</h3>
+          <div class="tool-row">
+            <button class="tool-btn" [class.active]="activeTool() === 'pen'"    (click)="activeTool.set('pen')">✏️ قلم</button>
+            <button class="tool-btn" [class.active]="activeTool() === 'eraser'" (click)="activeTool.set('eraser')">🗑️ ممحاة</button>
+            <button class="tool-btn clear-btn" (click)="clearCanvas()">🔄 مسح</button>
+          </div>
+        </div>
+        <canvas #canvas class="writing-canvas"></canvas>
+
+        @if (result()) {
+          <div class="result-banner" [class.correct]="result()!.isCorrect" [class.wrong]="!result()!.isCorrect">
+            {{ result()!.feedback }}
+          </div>
+          @if (result()!.isCorrect) {
+            <div class="result-actions">
+              <button class="btn-next" (click)="goNext()">انتقل إلى الكلمة التالية ←</button>
+              <button class="btn-back-small" (click)="goBack()">العودة للكلمات</button>
+            </div>
+          } @else {
+            <button class="try-again-btn" (click)="tryAgain()">🔄 حاول مرة أخرى</button>
+          }
+        }
+
+        <button class="submit-btn" [disabled]="isChecking" (click)="submitWriting()">
+          {{ isChecking ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
+        </button>
+      </div>
+    </div>
   }
 </div>

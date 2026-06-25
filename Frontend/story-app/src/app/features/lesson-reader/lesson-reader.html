@@ -33,21 +33,20 @@
 
           <!-- Image — tall -->
           <div class="content-image-wrap">
-            @if (page.imageUrl || page.imagePath) {
+            @if ((page.imageUrl || page.imagePath) && !imageError()) {
               <img class="content-img" [class.visible]="imageLoaded()"
                 [src]="imageUrl(page.imageUrl || page.imagePath)"
-                (load)="onImgLoad()" alt="" />
+                (load)="onImgLoad()"
+                (error)="onImgError()"
+                alt="" />
             } @else {
               <div class="placeholder-img amiri">{{ l.letter || '📖' }}</div>
             }
           </div>
 
-          <!-- Sentence + listen -->
+          <!-- Sentence -->
           <div class="sentence-area">
             <p class="sentence-text amiri">{{ page.sentence }}</p>
-            <button class="btn btn-primary read-aloud-btn" type="button" (click)="playAudio()">
-              🔊 {{ isPlaying() ? 'إيقاف' : 'استمع' }}
-            </button>
           </div>
 
           <!-- Writing panel -->

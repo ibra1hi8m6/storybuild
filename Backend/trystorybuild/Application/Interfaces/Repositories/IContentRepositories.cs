@@ -39,6 +39,7 @@ namespace Application.Interfaces
     {
         Task<StudentProgress> SaveAsync(StudentProgress progress);
         Task<StudentProgress?> GetAsync(Guid storyId, string childName);
+        Task<StudentProgress?> GetByStudentAsync(Guid storyId, Guid studentId);
         Task<StudentProgress?> GetByLessonAsync(Guid lessonId, string childName);
     }
 }

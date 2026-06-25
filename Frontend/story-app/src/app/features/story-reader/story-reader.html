@@ -48,15 +48,51 @@
             <p class="sentence-text amiri">{{ page.sentence }}</p>
           </div>
 
-          <!-- Read aloud -->
-          <button class="btn btn-primary read-aloud-btn" type="button" (click)="playAudio()">
-            🔊 {{ isPlaying() ? 'إيقاف' : 'اقرأ لي' }}
-          </button>
+          <!-- 3-tab reading journey -->
+          @if (page.sentence) {
+            <div class="journey-panel">
+              <div class="journey-tabs">
+                <button class="journey-tab" [class.active]="readingTab()==='listen'"
+                  (click)="readingTab.set('listen')">
+                  <i class="bi bi-ear"></i> استمع
+                </button>
+                <button class="journey-tab" [class.active]="readingTab()==='read'"
+                  (click)="readingTab.set('read')">
+                  <i class="bi bi-book-open"></i> اقرأ
+                </button>
+                <button class="journey-tab" [class.active]="readingTab()==='record'"
+                  (click)="readingTab.set('record')">
+                  <i class="bi bi-mic"></i> سجّل
+                </button>
+              </div>
 
-          <!-- Reading journey -->
-          <button class="btn journey-btn" type="button" (click)="startJourney()">
-            🎤 ابدأ رحلة القراءة
-          </button>
+              @if (readingTab() === 'listen') {
+                <app-listen-mode
+                  [sentence]="page.sentence"
+                  (next)="readingTab.set('read')">
+                </app-listen-mode>
+              }
+
+              @if (readingTab() === 'read') {
+                <div class="read-mode-panel" dir="rtl">
+                  <p class="read-sentence amiri">{{ page.sentence }}</p>
+                  <p class="read-hint">اقرأ الجملة بصوت عالٍ، ثم سجّل نفسك!</p>
+                  <button class="btn-record-pill" type="button" (click)="readingTab.set('record')">
+                    <i class="bi bi-mic-fill me-2"></i> ابدأ التسجيل
+                  </button>
+                </div>
+              }
+
+              @if (readingTab() === 'record') {
+                <app-record-mode
+                  [sentence]="page.sentence"
+                  [pageId]="page.pageId"
+                  pageType="Story"
+                  (passed)="next()">
+                </app-record-mode>
+              }
+            </div>
+          }
 
           <!-- Navigation -->
           <div class="nav-row">

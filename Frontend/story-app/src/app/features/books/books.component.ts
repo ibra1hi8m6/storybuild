@@ -63,4 +63,6 @@ export class BooksComponent implements OnInit {
   colorFor(i: number): string {
     return this.cardColors[i % this.cardColors.length];
   }
+
+  goBack(): void { this.router.navigate(['/learning/booklets-stories']); }
 }

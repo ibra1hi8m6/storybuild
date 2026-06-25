@@ -133,7 +133,83 @@
   font-size: clamp(22px, 3.5vw, 36px); font-weight: 700;
   color: var(--text-dark); direction: rtl;
 }
-.read-aloud-btn { font-size: 13px; padding: 9px 16px; }
+/* ── 3-tab reading journey ────────────────────────────────────────────────────── */
+.journey-panel {
+  border-top: 1.5px solid rgba(244,120,138,.12);
+}
+
+.journey-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1.5px solid rgba(244,120,138,.12);
+}
+
+.journey-tab {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  background: transparent;
+  font-family: Cairo, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #aaa;
+  cursor: pointer;
+  transition: color .2s, border-bottom .2s;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.journey-tab.active {
+  color: var(--primary, #F4788A);
+  border-bottom: 3px solid var(--primary, #F4788A);
+  background: rgba(244,120,138,.05);
+}
+
+.read-mode-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.read-sentence {
+  font-size: 26px;
+  font-weight: 900;
+  color: #333;
+  line-height: 1.7;
+  direction: rtl;
+  margin: 0;
+}
+
+.read-hint { color: #888; font-size: 14px; margin: 0; }
+
+.btn-record-pill {
+  background: linear-gradient(135deg, #F4788A, #C084FC);
+  color: #fff;
+  border: none;
+  border-radius: 99px;
+  padding: 13px 32px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(244,120,138,.35);
+  transition: transform .15s;
+}
+.btn-record-pill:hover { transform: translateY(-2px); }
+
+/* ── Reading practice ─────────────────────────────────────────────────────────── */
+.reading-panel-inline {
+  border-top: 1.5px solid rgba(124,58,237,.15);
+  background: #FAFAFF;
+  border-radius: 16px;
+  margin: 0 12px 12px;
+  overflow: hidden;
+}
 
 .journey-btn {
   margin-top: 8px;

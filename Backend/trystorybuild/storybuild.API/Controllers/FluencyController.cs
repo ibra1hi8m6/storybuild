@@ -68,12 +68,12 @@ namespace storybuild.API.Controllers
             return Ok(result);
         }
 
-        // GET /api/fluency/history/{childName}  — named-based reading history (teacher/parent use)
-        [HttpGet("history/{childName}")]
+        // GET /api/fluency/history/{studentId}
+        [HttpGet("history/{studentId:guid}")]
         public async Task<ActionResult<List<ReadingAttemptHistoryDto>>> GetChildReadingHistory(
-            string childName, [FromQuery] int take = 30)
+            Guid studentId, [FromQuery] int take = 30)
         {
-            var recordings = await recordingRepository.GetByChildNameAsync(childName, Math.Min(take, 100));
+            var recordings = await recordingRepository.GetByStudentIdAsync(studentId);
             var result = recordings.Select(r =>
             {
                 var report = r.Report;

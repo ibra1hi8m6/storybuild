@@ -11,7 +11,7 @@ import { TtsService } from '../../../services/tts.service';
 import { WordContentDto } from '../../../models/learning.models';
 
 type Tool = 'pen' | 'eraser';
-type Stage = 'read' | 'write' | 'done';
+type Stage = 'read' | 'write';
 
 @Component({
   selector: 'app-word-practice',
@@ -29,13 +29,15 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly state  = inject(AppStateService);
   private readonly tts    = inject(TtsService);
 
-  readonly word       = signal<WordContentDto | null>(null);
-  readonly isLoading  = signal(true);
-  readonly stage      = signal<Stage>('read');
-  readonly isPlaying  = signal(false);
+  readonly word        = signal<WordContentDto | null>(null);
+  readonly isLoading   = signal(true);
+  readonly stage       = signal<Stage>('read');
+  readonly isPlaying   = signal(false);
   readonly isRecording = signal(false);
-  readonly result     = signal<{ isCorrect: boolean; feedback: string } | null>(null);
-  readonly activeTool = signal<Tool>('pen');
+  readonly result      = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly readResult  = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly activeTool  = signal<Tool>('pen');
+  readonly nextWordId  = signal<string | null>(null);
   isChecking = false;
 
   private ctx!: CanvasRenderingContext2D;
@@ -53,6 +55,12 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
         this.isLoading.set(false);
         this.speak();
         setTimeout(() => this.initCanvas(), 0);
+        this.svc.getWords().subscribe(all => {
+          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
+          const idx = sorted.findIndex(w => w.id === id);
+          if (idx !== -1 && idx < sorted.length - 1)
+            this.nextWordId.set(sorted[idx + 1].id);
+        });
       },
       error: () => this.isLoading.set(false)
     });
@@ -126,7 +134,7 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
 
   speak(text?: string): void {
     const w = this.word();
-    const t = text ?? w?.audioText ?? w?.displayWord ?? '';
+    const t = text || w?.audioText || w?.displayWord || '';
     if (!t) return;
     this.isPlaying.set(true);
     void this.tts.play(t).finally(() => this.isPlaying.set(false));
@@ -138,7 +146,7 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recognition = new SR();
     this.recognition.lang = 'ar-SA';
     this.recognition.interimResults = false;
-    this.recognition.onstart = () => this.isRecording.set(true);
+    this.recognition.onstart = () => { this.readResult.set(null); this.isRecording.set(true); };
     this.recognition.onend   = () => this.isRecording.set(false);
     this.recognition.onresult = (e: any) => {
       const said = e.results[0][0].transcript.trim();
@@ -151,10 +159,10 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
       const saidWords = saidN.split(/\s+/).filter(Boolean);
       const isCorrect = saidWords.some(w => w === expN) || saidN === expN;
       const feedback = isCorrect ? `أحسنت! قرأت: ${said} 🌟` : `قرأت: ${said}. حاول مرة أخرى ✏️`;
-      this.result.set({ isCorrect, feedback });
+      this.readResult.set({ isCorrect, feedback });
       this.svc.saveAttempt({
         childName: this.state.childName() ?? '',
-        studentId: undefined,
+        studentId: this.state.currentUser()?.id,
         contentType: 3, // WordPractice
         contentId: w!.id,
         attemptType: 2, // Reading
@@ -212,14 +220,27 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
           feedbackText
         }).subscribe();
         this.speak(res.spokenFeedback || feedbackText);
-        if (isCorrect) setTimeout(() => this.stage.set('done'), 1800);
       },
       error: () => {
         this.isChecking = false;
-        this.result.set({ isCorrect: false, feedback: 'حدث خطأ أثناء التقييم، حاول مرة أخرى.' });
+        const msg = 'حدث خطأ أثناء التقييم، حاول مرة أخرى.';
+        this.result.set({ isCorrect: false, feedback: msg });
+        this.speak(msg);
       }
     });
   }
+
+  goNext(): void {
+    const next = this.nextWordId();
+    this.router.navigate(next ? ['/learning/words', next] : ['/learning/words']);
+  }
+
+  tryAgain(): void {
+    this.result.set(null);
+    this.clearCanvas();
+  }
+
+  tryAgainReading(): void { this.readResult.set(null); }
 
   goBack(): void { this.router.navigate(['/learning/words']); }
 }

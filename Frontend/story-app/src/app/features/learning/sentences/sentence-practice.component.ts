@@ -7,7 +7,7 @@ import { AppStateService } from '../../../services/app-state-service';
 import { TtsService } from '../../../services/tts.service';
 import { SentenceContentDto } from '../../../models/learning.models';
 
-type Stage = 'choose' | 'reading' | 'writing' | 'done';
+type Stage = 'choose' | 'reading' | 'writing';
 type Tool  = 'pen' | 'eraser';
 
 @Component({
@@ -26,16 +26,18 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   private readonly state  = inject(AppStateService);
   private readonly tts    = inject(TtsService);
 
-  readonly sentence    = signal<SentenceContentDto | null>(null);
-  readonly isLoading   = signal(true);
-  readonly stage       = signal<Stage>('choose');
-  readonly selected    = signal<number | null>(null);
-  readonly showResult  = signal(false);
-  readonly isPlaying   = signal(false);
-  readonly isRecording = signal(false);
-  readonly activeTool  = signal<Tool>('pen');
-  readonly writingResult     = signal<{ isCorrect: boolean; feedback: string } | null>(null);
-  readonly isWritingChecking = signal(false);
+  readonly sentence       = signal<SentenceContentDto | null>(null);
+  readonly isLoading      = signal(true);
+  readonly stage          = signal<Stage>('choose');
+  readonly selected       = signal<number | null>(null);
+  readonly showResult     = signal(false);
+  readonly isPlaying      = signal(false);
+  readonly isRecording    = signal(false);
+  readonly activeTool     = signal<Tool>('pen');
+  readonly writingResult      = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly isWritingChecking  = signal(false);
+  readonly readingResult      = signal<{ isCorrect: boolean; feedback: string } | null>(null);
+  readonly nextSentenceId     = signal<string | null>(null);
 
   private recognition: any = null;
   private ctx!: CanvasRenderingContext2D;
@@ -68,7 +70,16 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.svc.getSentence(id).subscribe({
-      next: d  => { this.sentence.set(d); this.isLoading.set(false); },
+      next: d  => {
+        this.sentence.set(d);
+        this.isLoading.set(false);
+        this.svc.getSentences().subscribe(all => {
+          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
+          const idx = sorted.findIndex(s => s.id === id);
+          if (idx !== -1 && idx < sorted.length - 1)
+            this.nextSentenceId.set(sorted[idx + 1].id);
+        });
+      },
       error: () => this.isLoading.set(false)
     });
   }
@@ -90,14 +101,19 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   choose(idx: number): void {
-    if (this.showResult()) return;
+    // lock after correct answer; allow re-tap on wrong
+    if (this.showResult()) {
+      if (this.selected() === this.sentence()?.correctOptionIndex) return;
+      this.showResult.set(false);
+      this.selected.set(null);
+    }
     this.selected.set(idx);
     this.showResult.set(true);
     const s = this.sentence()!;
     const isCorrect = idx === s.correctOptionIndex;
     this.svc.saveAttempt({
       childName: this.state.childName() ?? '',
-      studentId: undefined,
+      studentId: this.state.currentUser()?.id,
       contentType: 4, // SentencePractice
       contentId: s.id,
       attemptType: 2, // Reading
@@ -109,19 +125,15 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
     }).subscribe();
     if (isCorrect) {
       this.listenOption(this.correctAudio());
-      setTimeout(() => this.stage.set('reading'), 1600);
     } else {
       this.listenOption('حاول مرة أخرى');
-      setTimeout(() => { this.showResult.set(false); this.selected.set(null); }, 1600);
     }
   }
 
   optClass(idx: number): string {
+    if (!this.showResult() || this.selected() !== idx) return 'opt-card';
     const s = this.sentence();
-    if (!this.showResult() || !s) return 'opt-card';
-    if (idx === s.correctOptionIndex) return 'opt-card correct';
-    if (this.selected() === idx) return 'opt-card wrong';
-    return 'opt-card';
+    return idx === s?.correctOptionIndex ? 'opt-card correct' : 'opt-card wrong';
   }
 
   startRecording(): void {
@@ -151,8 +163,8 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
         score: isCorrect ? 100 : 30,
         isCorrect, feedbackText: feedback
       }).subscribe();
+      this.readingResult.set({ isCorrect, feedback });
       this.listenOption(feedback);
-      if (isCorrect) setTimeout(() => this.enterWritingStage(), 1800);
     };
     this.recognition.onerror = () => this.isRecording.set(false);
     this.recognition.start();
@@ -241,13 +253,25 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
           feedbackText
         }).subscribe();
         this.listenOption(res.spokenFeedback || feedbackText);
-        if (isCorrect) setTimeout(() => this.stage.set('done'), 1800);
       },
       error: () => {
         this.isWritingChecking.set(false);
-        this.writingResult.set({ isCorrect: false, feedback: 'حدث خطأ أثناء التقييم، حاول مرة أخرى.' });
+        const msg = 'حدث خطأ أثناء التقييم، حاول مرة أخرى.';
+        this.writingResult.set({ isCorrect: false, feedback: msg });
+        this.listenOption(msg);
       }
     });
+  }
+
+  tryAgainChoose(): void { this.showResult.set(false); this.selected.set(null); }
+  goToReading(): void { this.stage.set('reading'); }
+  tryAgainReading(): void { this.readingResult.set(null); }
+  goToWriting(): void { this.readingResult.set(null); this.enterWritingStage(); }
+  tryAgainWriting(): void { this.writingResult.set(null); this.clearCanvas(); }
+
+  goNext(): void {
+    const next = this.nextSentenceId();
+    this.router.navigate(next ? ['/learning/sentences', next] : ['/learning/sentences']);
   }
 
   goBack(): void { this.router.navigate(['/learning/sentences']); }

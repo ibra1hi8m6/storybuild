@@ -12,12 +12,12 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
   private readonly api  = environment.apiUrl;
 
-  getStudentDashboard(childName: string): Observable<StudentDashboardDto> {
-    return this.http.get<StudentDashboardDto>(`${this.api}/api/dashboard/student/${childName}`);
+  getStudentDashboard(studentId: string): Observable<StudentDashboardDto> {
+    return this.http.get<StudentDashboardDto>(`${this.api}/api/dashboard/student/${studentId}`);
   }
 
-  getParentDashboard(childName: string): Observable<ParentDashboardDto> {
-    return this.http.get<ParentDashboardDto>(`${this.api}/api/dashboard/parent/${childName}`);
+  getParentDashboard(studentId: string): Observable<ParentDashboardDto> {
+    return this.http.get<ParentDashboardDto>(`${this.api}/api/dashboard/parent/${studentId}`);
   }
 
   getTeacherDashboard(): Observable<TeacherDashboardDto> {
@@ -32,9 +32,8 @@ export class DashboardService {
     return this.http.get<string[]>(`${this.api}/api/dashboard/students`);
   }
 
-  getLevelProgress(childName: string): Observable<LevelProgressDto[]> {
-    return this.http.get<LevelProgressDto[]>(
-      `${this.api}/api/dashboard/levels/progress/${encodeURIComponent(childName)}`);
+  getLevelProgress(studentId: string): Observable<LevelProgressDto[]> {
+    return this.http.get<LevelProgressDto[]>(`${this.api}/api/dashboard/levels/progress/${studentId}`);
   }
 
   requestPlacementRetake(): Observable<{ message: string }> {

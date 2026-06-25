@@ -1,7 +1,7 @@
 .lesson-page {
   min-height: 100vh;
   background: linear-gradient(160deg, #EDE9FE 0%, #FDF2F8 100%);
-  padding: 24px 20px 40px;
+  padding: 88px 20px 40px;
   position: relative;
 }
 
@@ -209,4 +209,55 @@
   min-height: 40vh;
   font-size: 16px;
   color: #6B7280;
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-next {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.btn-next:hover { opacity: .88; }
+
+.btn-back-small {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  color: #7C3AED;
+  border: 2px solid #7C3AED;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-back-small:hover { background: #EDE9FE; }
+
+.try-again-btn {
+  width: 100%;
+  padding: 11px;
+  background: #FEF3C7;
+  color: #92400E;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: Cairo, sans-serif;
+  cursor: pointer;
+  margin-top: 4px;
 }

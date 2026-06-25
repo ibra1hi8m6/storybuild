@@ -14,17 +14,17 @@ namespace storybuild.API.Controllers
     public class ProgressController(IStudentProgressRepository progressRepository, AppDbContext db) : ControllerBase
     {
         /// <summary>Get student progress for a specific story.</summary>
-        [HttpGet("{storyId:guid}/{childName}")]
+        [HttpGet("{storyId:guid}/{studentId:guid}")]
         [ProducesResponseType(typeof(ProgressResponse), 200)]
-        public async Task<IActionResult> Get(Guid storyId, string childName)
+        public async Task<IActionResult> Get(Guid storyId, Guid studentId)
         {
-            var progress = await progressRepository.GetAsync(storyId, childName);
+            var progress = await progressRepository.GetByStudentAsync(storyId, studentId);
             if (progress is null)
-                return Ok(new ProgressResponse(storyId, childName, 1, 0, 0, 0, false));
+                return Ok(new ProgressResponse(storyId, studentId, 1, 0, 0, 0, false));
 
             return Ok(new ProgressResponse(
                 progress.StoryId ?? storyId,
-                progress.ChildName,
+                progress.StudentId ?? studentId,
                 progress.CurrentPage,
                 progress.TotalQuestions,
                 progress.CorrectAnswers,
@@ -37,15 +37,17 @@ namespace storybuild.API.Controllers
         [ProducesResponseType(typeof(ProgressResponse), 200)]
         public async Task<IActionResult> Update([FromBody] ProgressResponse request)
         {
+            var student = await db.Students.FindAsync(request.StudentId);
             var progress = new StudentProgress
             {
-                StoryId = request.StoryId,
-                ChildName = request.ChildName,
-                CurrentPage = request.CurrentPage,
-                TotalQuestions = request.TotalQuestions,
-                CorrectAnswers = request.CorrectAnswers,
+                StudentId       = request.StudentId,
+                ChildName       = student?.Name ?? string.Empty,
+                StoryId         = request.StoryId,
+                CurrentPage     = request.CurrentPage,
+                TotalQuestions  = request.TotalQuestions,
+                CorrectAnswers  = request.CorrectAnswers,
                 ScorePercentage = request.ScorePercentage,
-                ExamCompleted = request.ExamCompleted
+                ExamCompleted   = request.ExamCompleted
             };
 
             await progressRepository.SaveAsync(progress);
@@ -57,10 +59,12 @@ namespace storybuild.API.Controllers
         [ProducesResponseType(typeof(LessonProgressRequest), 200)]
         public async Task<IActionResult> UpdateLesson([FromBody] LessonProgressRequest request)
         {
+            var student = await db.Students.FindAsync(request.StudentId);
             var progress = new StudentProgress
             {
+                StudentId       = request.StudentId,
+                ChildName       = student?.Name ?? string.Empty,
                 LessonId        = request.LessonId,
-                ChildName       = request.ChildName,
                 TotalQuestions  = request.TotalQuestions,
                 CorrectAnswers  = request.CorrectAnswers,
                 ScorePercentage = request.ScorePercentage,
@@ -68,7 +72,7 @@ namespace storybuild.API.Controllers
             };
 
             await progressRepository.SaveAsync(progress);
-            await UpdateWeaknessMapAsync(request.ChildName, request.LessonId, request.CorrectAnswers, request.TotalQuestions);
+            await UpdateWeaknessMapAsync(request.StudentId, request.LessonId, request.CorrectAnswers, request.TotalQuestions);
             return Ok(request);
         }
 
@@ -77,12 +81,14 @@ namespace storybuild.API.Controllers
         public async Task<IActionResult> MarkPageDone([FromBody] MarkPageRequest req)
         {
             var exists = await db.LessonPageCompletions.AnyAsync(
-                c => c.ChildName == req.ChildName && c.LessonPageId == req.LessonPageId);
+                c => c.StudentId == req.StudentId && c.LessonPageId == req.LessonPageId);
             if (!exists)
             {
+                var student = await db.Students.FindAsync(req.StudentId);
                 db.LessonPageCompletions.Add(new Domain.Entities.LessonPageCompletion
                 {
-                    ChildName        = req.ChildName,
+                    StudentId        = req.StudentId,
+                    ChildName        = student?.Name ?? string.Empty,
                     LessonId         = req.LessonId,
                     LessonPageId     = req.LessonPageId,
                     WritingSubmitted = req.WritingSubmitted
@@ -92,24 +98,24 @@ namespace storybuild.API.Controllers
             return Ok();
         }
 
-        // ── GET /api/progress/lesson/{lessonId}/{childName} ────────────────────
-        [HttpGet("lesson/{lessonId:guid}/{childName}")]
-        public async Task<IActionResult> GetLessonPageProgress(Guid lessonId, string childName)
+        // ── GET /api/progress/lesson/{lessonId}/{studentId} ────────────────────
+        [HttpGet("lesson/{lessonId:guid}/{studentId:guid}")]
+        public async Task<IActionResult> GetLessonPageProgress(Guid lessonId, Guid studentId)
         {
             var completedIds = await db.LessonPageCompletions
-                .Where(c => c.LessonId == lessonId && c.ChildName == childName)
+                .Where(c => c.LessonId == lessonId && c.StudentId == studentId)
                 .Select(c => c.LessonPageId)
                 .ToListAsync();
             var total = await db.LessonPages.CountAsync(p => p.LessonId == lessonId);
             return Ok(new LessonPageProgressResponse(completedIds, completedIds.Count, total));
         }
 
-        // ── GET /api/progress/current/{childName} ──────────────────────────────
-        [HttpGet("current/{childName}")]
-        public async Task<IActionResult> GetCurrentLesson(string childName)
+        // ── GET /api/progress/current/{studentId} ──────────────────────────────
+        [HttpGet("current/{studentId:guid}")]
+        public async Task<IActionResult> GetCurrentLesson(Guid studentId)
         {
             var inProgress = await db.StudentProgress
-                .Where(p => p.ChildName == childName && p.LessonId.HasValue && !p.ExamCompleted)
+                .Where(p => p.StudentId == studentId && p.LessonId.HasValue && !p.ExamCompleted)
                 .OrderByDescending(p => p.LastUpdatedAt)
                 .FirstOrDefaultAsync();
 
@@ -122,7 +128,7 @@ namespace storybuild.API.Controllers
                 return Ok(new CurrentLessonResponse(null, null, 1, 0, 1));
 
             var completedCount = await db.LessonPageCompletions
-                .CountAsync(c => c.ChildName == childName && c.LessonId == lesson.Id);
+                .CountAsync(c => c.StudentId == studentId && c.LessonId == lesson.Id);
 
             return Ok(new CurrentLessonResponse(
                 lesson.Id, lesson.Title,
@@ -131,21 +137,21 @@ namespace storybuild.API.Controllers
                 lesson.Level));
         }
 
-        // ── GET /api/progress/weakness/{childName} ─────────────────────────────
-        [HttpGet("weakness/{childName}")]
-        public async Task<IActionResult> GetWeaknessMap(string childName)
+        // ── GET /api/progress/weakness/{studentId} ─────────────────────────────
+        [HttpGet("weakness/{studentId:guid}")]
+        public async Task<IActionResult> GetWeaknessMap(Guid studentId)
         {
-            var student = await db.Students.FirstOrDefaultAsync(s => s.Name == childName);
+            var student = await db.Students.FindAsync(studentId);
             if (student is null) return NotFound();
             var map = JsonSerializer.Deserialize<WeaknessMap>(student.WeaknessMapJson ?? "{}") ?? new WeaknessMap();
             return Ok(map);
         }
 
-        private async Task UpdateWeaknessMapAsync(string childName, Guid? lessonId, int correct, int total)
+        private async Task UpdateWeaknessMapAsync(Guid studentId, Guid? lessonId, int correct, int total)
         {
             if (lessonId is null || total == 0) return;
 
-            var student = await db.Students.FirstOrDefaultAsync(s => s.Name == childName);
+            var student = await db.Students.FindAsync(studentId);
             if (student is null) return;
 
             var lesson = await db.Lessons.FindAsync(lessonId.Value);

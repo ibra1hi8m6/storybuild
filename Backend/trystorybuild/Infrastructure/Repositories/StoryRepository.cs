@@ -210,11 +210,13 @@ namespace Infrastructure.Repositories
                 StudentProgress? existing = null;
 
                 if (progress.StoryId.HasValue)
-                    existing = await db.StudentProgress
-                        .FirstOrDefaultAsync(p => p.StoryId == progress.StoryId && p.ChildName == progress.ChildName);
+                    existing = progress.StudentId.HasValue
+                        ? await db.StudentProgress.FirstOrDefaultAsync(p => p.StoryId == progress.StoryId && p.StudentId == progress.StudentId)
+                        : await db.StudentProgress.FirstOrDefaultAsync(p => p.StoryId == progress.StoryId && p.ChildName == progress.ChildName);
                 else if (progress.LessonId.HasValue)
-                    existing = await db.StudentProgress
-                        .FirstOrDefaultAsync(p => p.LessonId == progress.LessonId && p.ChildName == progress.ChildName);
+                    existing = progress.StudentId.HasValue
+                        ? await db.StudentProgress.FirstOrDefaultAsync(p => p.LessonId == progress.LessonId && p.StudentId == progress.StudentId)
+                        : await db.StudentProgress.FirstOrDefaultAsync(p => p.LessonId == progress.LessonId && p.ChildName == progress.ChildName);
 
                 if (existing is null)
                     db.StudentProgress.Add(progress);
@@ -235,6 +237,10 @@ namespace Infrastructure.Repositories
             public async Task<StudentProgress?> GetAsync(Guid storyId, string childName) =>
                 await db.StudentProgress
                     .FirstOrDefaultAsync(p => p.StoryId == storyId && p.ChildName == childName);
+
+            public async Task<StudentProgress?> GetByStudentAsync(Guid storyId, Guid studentId) =>
+                await db.StudentProgress
+                    .FirstOrDefaultAsync(p => p.StoryId == storyId && p.StudentId == studentId);
 
             public async Task<StudentProgress?> GetByLessonAsync(Guid lessonId, string childName) =>
                 await db.StudentProgress
@@ -257,9 +263,20 @@ namespace Infrastructure.Repositories
                     .Take(take)
                     .ToListAsync();
 
+            public async Task<List<WritingAttempt>> GetByStudentIdAsync(Guid studentId, int take = 50) =>
+                await db.WritingAttempts
+                    .Where(a => a.StudentId == studentId)
+                    .OrderByDescending(a => a.AttemptedAt)
+                    .Take(take)
+                    .ToListAsync();
+
             public async Task<int> CountByPageAsync(Guid pageId, string childName) =>
                 await db.WritingAttempts
                     .CountAsync(a => a.LessonPageId == pageId && a.ChildName == childName);
+
+            public async Task<int> CountByPageAndStudentAsync(Guid pageId, Guid studentId) =>
+                await db.WritingAttempts
+                    .CountAsync(a => a.LessonPageId == pageId && a.StudentId == studentId);
         }
 
         // ── LevelWordConfig Repository ─────────────────────────────────────────────────

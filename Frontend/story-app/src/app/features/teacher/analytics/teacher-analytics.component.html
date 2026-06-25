@@ -115,7 +115,7 @@
                     @for (st of s.students; track st.studentId) {
                       <tr>
                         <td>
-                          <a [routerLink]="['/teacher/students', st.childName]"
+                          <a [routerLink]="['/teacher/students', st.studentId]" [queryParams]="{name: st.childName}"
                             class="text-decoration-none fw-semibold">
                             {{ st.childName }}
                           </a>

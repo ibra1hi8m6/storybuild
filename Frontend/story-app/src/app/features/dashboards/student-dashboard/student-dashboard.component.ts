@@ -19,7 +19,7 @@ export class StudentDashboardComponent implements OnInit {
 
   readonly isLoading = signal(false);
   readonly data      = signal<any>(null);
-  nameInput          = this.state.childName() || '';
+  nameInput          = this.state.childName() || this.state.currentUser()?.name || '';
 
   readonly Math     = Math;
   readonly weekDays = ['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
@@ -64,13 +64,14 @@ export class StudentDashboardComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    if (this.nameInput) this.load(this.nameInput);
+    const studentId = this.state.currentUser()?.id;
+    if (studentId) this.load(studentId);
   }
 
-  load(name: string): void {
-    if (!name.trim()) return;
+  load(studentId: string): void {
+    if (!studentId) return;
     this.isLoading.set(true);
-    this.service.getStudentDashboard(name.trim()).subscribe({
+    this.service.getStudentDashboard(studentId).subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => this.isLoading.set(false)
     });

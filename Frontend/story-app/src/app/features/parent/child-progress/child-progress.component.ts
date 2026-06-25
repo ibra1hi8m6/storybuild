@@ -21,11 +21,12 @@ export class ChildProgressComponent implements OnInit {
   readonly error       = signal<string | null>(null);
 
   ngOnInit(): void {
-    const name = this.route.snapshot.paramMap.get('name') ?? '';
+    const studentId = this.route.snapshot.paramMap.get('studentId') ?? '';
+    const name = this.route.snapshot.queryParamMap.get('name') ?? studentId;
     this.childName.set(name);
-    if (!name) return;
+    if (!studentId) return;
     this.isLoading.set(true);
-    this.svc.getStudentDashboard(name).subscribe({
+    this.svc.getStudentDashboard(studentId).subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => { this.isLoading.set(false); this.error.set('لم يتم العثور على بيانات.'); }
     });

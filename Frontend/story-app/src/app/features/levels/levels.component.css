@@ -195,6 +195,40 @@
   background: rgba(244,120,138,.25);
 }
 
+/* ── Quick-access card ────────────────────────────────────────────────────── */
+.lc-quick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  text-align: right;
+  transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+.lc-quick:hover { transform: scale(1.02); box-shadow: 0 8px 22px rgba(0,0,0,.24); }
+
+.lc-quick-1 { background: linear-gradient(145deg, #7C3AED, #A855F7); color: #fff; }
+.lc-quick-2 { background: linear-gradient(145deg, #0EA5E9, #38BDF8); color: #fff; }
+.lc-quick-3 { background: linear-gradient(145deg, #F4788A, #FB923C); color: #fff; }
+
+.lc-quick-icon {
+  font-size: 30px;
+  font-weight: 900;
+  flex-shrink: 0;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
+.lc-quick-info { flex: 1; }
+.lc-quick-title { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+.lc-quick-desc  { font-size: 12px; opacity: .85; line-height: 1.4; }
+.lc-quick-arrow { font-size: 20px; flex-shrink: 0; opacity: .8; }
+
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .lc { flex-wrap: wrap; }

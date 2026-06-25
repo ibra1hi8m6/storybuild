@@ -212,7 +212,7 @@ export class Exam implements OnInit {
         if (!this.isLessonExam && effectiveStoryId) {
           this.storyService.updateProgress({
             storyId:         effectiveStoryId,
-            childName,
+            studentId:       this.state.currentUser()?.id ?? '',
             currentPage:     this.state.totalPages(),
             totalQuestions:  res.totalQuestions,
             correctAnswers:  res.correctAnswers,
@@ -230,7 +230,7 @@ export class Exam implements OnInit {
           if (lessonId) {
             this.storyService.updateLessonProgress({
               lessonId,
-              childName,
+              studentId: this.state.currentUser()?.id ?? '',
               totalQuestions:  res.totalQuestions,
               correctAnswers:  res.correctAnswers,
               scorePercentage: res.scorePercentage,
