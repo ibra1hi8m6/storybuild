@@ -29,7 +29,7 @@ export class RegisterComponent {
     email:      '',
     password:   '',
     role:       'parent' as Role,
-    schoolCode: '',
+    schoolManagerId: '',
     langPref:   'ar' as 'ar' | 'en',
   };
 
@@ -54,7 +54,7 @@ export class RegisterComponent {
       email:      this.form.email,
       password:   this.form.password,
       role:       this.form.role,
-      schoolCode: this.form.schoolCode || undefined,
+      schoolManagerId: this.form.schoolManagerId || undefined,
     }).subscribe({
       next: res => {
         this.state.setUser({ id: res.userId, name: res.name, role: res.role as any });

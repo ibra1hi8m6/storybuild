@@ -9,6 +9,7 @@ namespace Application.Interfaces
         Task<Story?> GetByIdAsync(Guid id);
         Task<List<Story>> GetAllAsync(bool publishedOnly = false);
         Task<List<Story>> GetByChildNameAsync(string childName);
+        Task<List<Story>> GetByStudentIdAsync(Guid studentId);
         Task<bool> DeleteAsync(Guid id);
     }
 

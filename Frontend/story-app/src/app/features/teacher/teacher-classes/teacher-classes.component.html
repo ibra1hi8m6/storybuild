@@ -17,10 +17,10 @@
                 style="background:var(--primary-gradient);color:#fff;border:none;padding:10px 20px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
           ➕ إضافة طالب
         </button>
-        <button (click)="goToAssignLesson()"
+        <!-- <button (click)="goToAssignLesson()"
                 style="background:rgba(99,102,241,.1);color:#6366F1;border:none;padding:10px 20px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
           📚 تعيين درس
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -71,10 +71,10 @@
                   {{ group.students.length }} طالب
                 </span>
               </div>
-              <button (click)="goToAssignLesson(group.level)"
+              <!-- <button (click)="goToAssignLesson(group.level)"
                       style="background:rgba(99,102,241,.08);color:#6366F1;border:none;padding:8px 14px;border-radius:10px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:800;cursor:pointer">
                 📤 تعيين درس لهذا الفصل
-              </button>
+              </button> -->
             </div>
 
             @if (group.students.length === 0) {

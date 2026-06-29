@@ -34,11 +34,13 @@ export class NavbarComponent {
   goToDashboard(): void {
     const role = this.state.userRole();
     const map: Record<string, string> = {
-      student: '/dashboard',
-      parent:  '/parent/dashboard',
-      teacher: '/teacher/students',
-      school:  '/school/dashboard',
-      admin:   '/admin/content',
+      student:     '/dashboard',
+      parent:      '/parent/dashboard',
+      teacher:     '/teacher/students',
+      school:      '/school/dashboard',
+      schooladmin: '/school/dashboard',
+      admin:       '/admin/books',
+      systemadmin: '/admin/books',
     };
     this.router.navigate([map[role] ?? '/']);
     this.closeMenu();
@@ -51,13 +53,18 @@ export class NavbarComponent {
   }
 
   private readonly allNavLinks = [
-    { label: 'المستويات',      labelEn: 'Levels',       route: '/levels',     hideForParent: true  },
-    { label: 'لوحتي',          labelEn: 'My Dashboard', route: '/dashboard',  hideForParent: false },
-    { label: 'اختبار التحديد', labelEn: 'Placement',    route: '/test',       hideForParent: true  },
+    { label: 'المستويات',      labelEn: 'Levels',    route: '/levels', hideWhenLoggedIn: false, hideForParent: true  },
+    { label: 'اختبار التحديد', labelEn: 'Placement', route: '/test',   hideWhenLoggedIn: false, hideForParent: true  },
   ];
 
   get navLinks() {
-    const isParent = this.state.userRole() === 'parent';
-    return isParent ? this.allNavLinks.filter(l => !l.hideForParent) : this.allNavLinks;
+    const role     = this.state.userRole();
+    const isParent = role === 'parent';
+    const isTeacher = role === 'teacher';
+    return this.allNavLinks.filter(l => {
+      if (isParent && l.hideForParent) return false;
+      if (isTeacher && l.hideForParent) return false;
+      return true;
+    });
   }
 }

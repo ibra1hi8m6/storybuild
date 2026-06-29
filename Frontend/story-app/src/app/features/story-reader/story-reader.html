@@ -56,10 +56,6 @@
                   (click)="readingTab.set('listen')">
                   <i class="bi bi-ear"></i> استمع
                 </button>
-                <button class="journey-tab" [class.active]="readingTab()==='read'"
-                  (click)="readingTab.set('read')">
-                  <i class="bi bi-book-open"></i> اقرأ
-                </button>
                 <button class="journey-tab" [class.active]="readingTab()==='record'"
                   (click)="readingTab.set('record')">
                   <i class="bi bi-mic"></i> سجّل
@@ -69,18 +65,8 @@
               @if (readingTab() === 'listen') {
                 <app-listen-mode
                   [sentence]="page.sentence"
-                  (next)="readingTab.set('read')">
+                  (next)="readingTab.set('record')">
                 </app-listen-mode>
-              }
-
-              @if (readingTab() === 'read') {
-                <div class="read-mode-panel" dir="rtl">
-                  <p class="read-sentence amiri">{{ page.sentence }}</p>
-                  <p class="read-hint">اقرأ الجملة بصوت عالٍ، ثم سجّل نفسك!</p>
-                  <button class="btn-record-pill" type="button" (click)="readingTab.set('record')">
-                    <i class="bi bi-mic-fill me-2"></i> ابدأ التسجيل
-                  </button>
-                </div>
               }
 
               @if (readingTab() === 'record') {

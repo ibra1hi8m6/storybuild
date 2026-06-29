@@ -38,5 +38,14 @@ namespace Infrastructure.Repositories
             await db.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> SetTeacherAsync(Guid studentId, Guid? teacherId)
+        {
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return false;
+            student.TeacherId = teacherId;
+            await db.SaveChangesAsync();
+            return true;
+        }
     }
 }

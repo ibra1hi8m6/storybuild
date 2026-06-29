@@ -20,7 +20,10 @@
   } @else {
     <div class="words-grid">
       @for (w of filteredWords(); track w.id) {
-        <button class="word-card" (click)="openWord(w.id)">
+        <button class="word-card" (click)="openWord(w.id)" style="position:relative">
+          @if (state.isCompleted(w.id)) {
+            <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:1">✓</span>
+          }
           @if (w.imagePath) {
             <img [src]="w.imagePath" class="word-img" [alt]="w.displayWord">
           } @else {

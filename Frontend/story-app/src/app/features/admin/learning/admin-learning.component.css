@@ -11,6 +11,10 @@
   overflow-y: auto;
 }
 
+@media (max-width: 767px) {
+  .admin-main { padding: 8px; }
+}
+
 .page-header { margin-bottom: 24px; }
 .page-title { font-size: 24px; font-weight: 800; color: #1E1B4B; margin: 0; }
 .page-subtitle { color: #6B7280; margin: 4px 0 0; font-size: 14px; }

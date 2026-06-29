@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
 import { TtsService } from '../../services/tts.service';
+import { ProgressService } from '../../services/progress.service';
 import { WritingCorrectionResponse } from '../../models/story.models';
 import { environment } from '../../../environments/environment';
 import { RecordModeComponent } from '../fluency/reading-journey/record-mode.component';
@@ -23,11 +24,12 @@ import { ListenModeComponent } from '../fluency/reading-journey/listen-mode.comp
 export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('drawingCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly router  = inject(Router);
-  private readonly route   = inject(ActivatedRoute);
-  private readonly service = inject(StoryService);
-  private readonly state   = inject(AppStateService);
-  private readonly tts     = inject(TtsService);
+  private readonly router   = inject(Router);
+  private readonly route    = inject(ActivatedRoute);
+  private readonly service  = inject(StoryService);
+  private readonly state    = inject(AppStateService);
+  private readonly tts      = inject(TtsService);
+  private readonly progress = inject(ProgressService);
 
   readonly isLoading            = signal(false);
   readonly lesson               = signal<any>(null);
@@ -82,10 +84,13 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
         this.lesson.set(l);
         this.state.setLesson(l);
 
-        // Resume from last saved page
+        // Resume from last saved page, or start at first non-cover page
         const saved = this.state.lessonProgress(id);
-        const resumePage = (saved && saved.currentPage > 1 && saved.currentPage <= (l.pages?.length ?? 1))
-          ? saved.currentPage : 1;
+        const totalPgs = l.pages?.length ?? 1;
+        const firstContentPage = (l.pages as any[])?.find(p => !p.isCoverPage)?.pageNumber ?? 1;
+        const resumePage = (saved && saved.currentPage >= firstContentPage && saved.currentPage <= totalPgs)
+          ? saved.currentPage
+          : firstContentPage;
         this.pageNum.set(resumePage);
 
         this.saveProgress(resumePage, l.pages?.length ?? 0, false);
@@ -144,6 +149,10 @@ export class LessonReaderComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (this.isLast()) {
       this.saveProgress(this.pageNum(), this.totalPages(), true);
+      const studentId = this.state.currentUser()?.id;
+      if (studentId && this.lessonId) {
+        this.progress.completeLesson(studentId, this.lessonId).subscribe();
+      }
       this.router.navigate(['/lessons', this.lessonId, 'complete']);
       return;
     }

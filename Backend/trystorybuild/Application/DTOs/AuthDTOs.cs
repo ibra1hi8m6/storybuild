@@ -6,7 +6,7 @@ namespace Application.DTOs
         string Email,
         string Password,
         string Role,
-        string? SchoolCode = null);
+        Guid? SchoolManagerId = null);
 
     public record LoginRequest(string Email, string Password);
 
@@ -16,7 +16,7 @@ namespace Application.DTOs
         string Name,
         string Role,
         DateTime ExpiresAt,
-        string? SchoolCode = null);
+        Guid? SchoolManagerId = null);
 
     // ── Student management ─────────────────────────────────────────────────────
     public record CreateStudentRequest(

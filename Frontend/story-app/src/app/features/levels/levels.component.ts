@@ -1,96 +1,51 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
-import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
-import { LevelProgressDto } from '../../models/story.models';
+import { ProgressService, ProgressSummary } from '../../services/progress.service';
 
 @Component({
   selector: 'app-levels',
   standalone: true,
-  imports: [CommonModule, NavbarComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './levels.component.html',
   styleUrl: './levels.component.css'
 })
 export class LevelsComponent implements OnInit {
-  private readonly router  = inject(Router);
-  private readonly service = inject(StoryService);
-  private readonly state   = inject(AppStateService);
+  private readonly router   = inject(Router);
+  private readonly progress = inject(ProgressService);
+  readonly state            = inject(AppStateService);
 
-  readonly isLoading     = signal(false);
-  readonly levels        = signal<LevelProgressDto[]>([]);
-  readonly retakeMsg     = signal<string | null>(null);
-  readonly retakeError   = signal<string | null>(null);
-  readonly retakeLoading = signal(false);
+  readonly navItems = [
+    { icon: '📊', label: 'لوحتي',          route: '/dashboard' },
+    { icon: '✏️', label: 'محتوى التعلم',   route: '/learning' },
+    // { icon: '📋', label: 'تقدّمي',          route: '/progress' },
+    { icon: '🏆', label: 'إنجازاتي',       route: '/achievements' },
+    { icon: '📖', label: 'قصصي',           route: '/my-stories' },
+    { icon: '✨', label: 'قصص ذكية',       route: '/ai-story' },
+  ];
 
-  // The level the student currently belongs to (not locked, highest progress)
-  readonly currentLevelData = computed(() => {
-    const ls = this.levels();
-    // Find the player's active (non-locked) level with most progress
-    const active = ls.filter(l => !l.locked);
-    return active.at(-1) ?? null;
-  });
+  readonly isLoading = signal(false);
+  readonly summary   = signal<ProgressSummary | null>(null);
 
-  readonly isCurrentLevelComplete = computed(() => {
-    const l = this.currentLevelData();
-    return l != null && l.totalLessons > 0 && l.lessonsCompleted >= l.totalLessons;
-  });
+  readonly studentLevel = computed(() => this.state.currentUser()?.level ?? 1);
 
   ngOnInit(): void {
     const studentId = this.state.currentUser()?.id;
     if (!studentId) return;
     this.isLoading.set(true);
-    this.service.getLevelProgress(studentId).subscribe({
-      next:  data => { this.levels.set(data); this.isLoading.set(false); },
-      error: ()   => this.isLoading.set(false)
+    this.progress.getSummary(studentId).subscribe({
+      next:  s => { this.summary.set(s); this.isLoading.set(false); },
+      error: () => this.isLoading.set(false)
     });
   }
 
-  openLevel(level: LevelProgressDto): void {
-    if (!level.locked && this.levelLinks[level.level]) {
-      this.router.navigate([this.levelLinks[level.level].route]);
-    }
+  pct(done: number, total: number): number {
+    if (!total) return 0;
+    return Math.round((done / total) * 100);
   }
 
-  progressPct(level: LevelProgressDto): number {
-    return level.totalLessons > 0
-      ? Math.round(level.lessonsCompleted / level.totalLessons * 100) : 0;
-  }
+  go(route: string): void { this.router.navigate([route]); }
 
-  starsEarned(level: LevelProgressDto): number {
-    return level.totalStars > 0
-      ? Math.round(level.stars / level.totalStars * 5) : 0;
-  }
-
-  requestRetake(): void {
-    this.retakeMsg.set(null);
-    this.retakeError.set(null);
-    this.retakeLoading.set(true);
-    this.service.requestPlacementRetake().subscribe({
-      next: res => {
-        this.retakeLoading.set(false);
-        this.retakeMsg.set(res.message);
-        // Navigate to placement after short delay so user sees the success message
-        setTimeout(() => this.router.navigate(['/placement']), 2000);
-      },
-      error: (err: any) => {
-        this.retakeLoading.set(false);
-        this.retakeError.set(err?.error?.error ?? 'تعذّر طلب إعادة الاختبار.');
-      }
-    });
-  }
-
-  readonly starDots = [1, 2, 3, 4, 5];
-
-  readonly levelLinks: Record<number, { icon: string; title: string; desc: string; route: string }> = {
-    1: { icon: 'أ', title: 'الحروف ', desc: 'تعلم الحروف الأبجدية العربية وأصواتها', route: '/learning/letters' },
-    2: { icon: '📝', title: 'الكلمات والجمل', desc: 'تعلم الكلمات وقراءة الجمل', route: '/learning/words-sentences' },
-    3: { icon: '📚', title: 'الكتيبات والقصص', desc: 'اقرأ الكتيبات والقصص الشيقة', route: '/learning/booklets-stories' },
-  };
-
-  goToSection(event: MouseEvent, route: string): void {
-    event.stopPropagation();
-    this.router.navigate([route]);
-  }
+  logout(): void { this.state.logout(); this.router.navigate(['/auth/login']); }
 }

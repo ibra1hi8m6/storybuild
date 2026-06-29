@@ -1,0 +1,97 @@
+<div class="quiz-shell" dir="rtl">
+
+  <!-- ── Loading ─────────────────────────────────────────────────── -->
+  @if (phase() === 'loading') {
+    <div class="center-box">
+      <div class="spinner-border" style="color:var(--primary);width:52px;height:52px"></div>
+      <p class="fw-800 mt-3">جارٍ تحميل الاختبار…</p>
+    </div>
+  }
+
+  <!-- ── Quiz ─────────────────────────────────────────────────────── -->
+  @if (phase() === 'quiz' && currentQuestion(); as q) {
+    <div class="quiz-card">
+
+      <!-- Header -->
+      <div class="quiz-header">
+        <span class="fw-800" style="font-size:16px">اختبار الحروف 🔤</span>
+        <span class="fw-700 text-muted" style="font-size:14px">
+          {{ currentIndex() + 1 }} / {{ questions().length }}
+        </span>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="dots-row">
+        @for (done of dots(); track $index) {
+          <div class="dot" [class.done]="done" [class.current]="$index === currentIndex()"></div>
+        }
+      </div>
+
+      <!-- Question -->
+      <p class="question-text">أي حرف يمثله هذا الصورة؟</p>
+
+      <!-- Image -->
+      <div class="image-wrap">
+        <img [src]="q.imagePath" alt="صورة الحرف" class="quiz-image" />
+      </div>
+
+      <!-- Choices -->
+      <div class="choices-grid">
+        @for (choice of q.choices; track choice) {
+          <button
+            class="choice-btn"
+            [class.selected]="selectedLetter() === choice"
+            [class.disabled]="selectedLetter() !== null"
+            (click)="choose(choice)"
+            [disabled]="selectedLetter() !== null || isSubmitting()">
+            {{ choice }}
+          </button>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Submitting overlay ────────────────────────────────────────── -->
+  @if (isSubmitting()) {
+    <div class="center-box">
+      <div class="spinner-border" style="color:var(--primary);width:52px;height:52px"></div>
+      <p class="fw-800 mt-3">جارٍ تصحيح الاختبار…</p>
+    </div>
+  }
+
+  <!-- ── Result ────────────────────────────────────────────────────── -->
+  @if (phase() === 'result' && !isSubmitting()) {
+
+    @if (error()) {
+      <!-- Error loading quiz -->
+      <div class="result-card">
+        <div class="result-icon">⚠️</div>
+        <h2 class="result-title">{{ error() }}</h2>
+        <button class="btn-primary-pill" (click)="goToDashboard()">العودة للوحة</button>
+      </div>
+    } @else if (passed()) {
+      <!-- Pass -->
+      <div class="result-card">
+        <div class="result-icon celebrate">🎉</div>
+        <h2 class="result-title" style="color:#16A34A">أحسنت! لقد نجحت!</h2>
+        <p class="result-sub">حصلت على {{ score() }} / {{ questions().length }} إجابات صحيحة</p>
+        <p class="result-sub fw-800" style="color:var(--primary)">
+          لقد انتقلت إلى المستوى الثاني 🚀
+        </p>
+        <button class="btn-primary-pill" (click)="goToDashboard()">العودة للوحة</button>
+      </div>
+    } @else {
+      <!-- Fail -->
+      <div class="result-card">
+        <div class="result-icon">😔</div>
+        <h2 class="result-title" style="color:#EF4444">حاول مرة أخرى</h2>
+        <p class="result-sub">حصلت على {{ score() }} / {{ questions().length }} إجابات صحيحة</p>
+        <p class="result-sub">يجب الحصول على 5/5 للانتقال — عُد وتدرّب على الحروف مجدداً</p>
+        <button class="btn-primary-pill" (click)="goToLetters()">العودة لتعلم الحروف</button>
+      </div>
+    }
+
+  }
+
+</div>

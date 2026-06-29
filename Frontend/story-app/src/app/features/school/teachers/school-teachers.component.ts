@@ -29,11 +29,13 @@ export class SchoolTeachersComponent implements OnInit {
   private readonly state = inject(AppStateService);
   private readonly route = inject(ActivatedRoute);
 
-  readonly isLoading  = signal(false);
-  readonly isSaving   = signal(false);
-  readonly teachers   = signal<TeacherRow[]>([]);
-  readonly searchTerm = signal('');
-  readonly showForm   = signal(false);
+  readonly isLoading    = signal(false);
+  readonly isSaving     = signal(false);
+  readonly teachers     = signal<TeacherRow[]>([]);
+  readonly searchTerm   = signal('');
+  readonly showForm     = signal(false);
+  readonly showPassword = signal(false);
+  readonly showResetPwd = signal(false);
 
   form = { name: '', email: '', password: '' };
   formError  = '';
@@ -67,7 +69,7 @@ export class SchoolTeachersComponent implements OnInit {
           name:     t.name,
           email:    t.email,
           subject:  'اللغة العربية',
-          students: 0,
+          students: t.studentCount ?? 0,
           avgScore: 0,
           joinedAt: '',
         })));
@@ -96,16 +98,15 @@ export class SchoolTeachersComponent implements OnInit {
       return;
     }
 
-    const userId = this.state.currentUser()?.id ?? '';
-    const schoolCode = userId.replace(/-/g, '').substring(0, 8).toUpperCase();
+    const schoolManagerId = this.state.currentUser()?.id;
 
     this.isSaving.set(true);
-    this.auth.register({
-      fullName:   this.form.name.trim(),
-      email:      this.form.email.trim(),
-      password:   this.form.password,
-      role:       'teacher',
-      schoolCode,
+    this.auth.registerWithoutSession({
+      fullName:        this.form.name.trim(),
+      email:           this.form.email.trim(),
+      password:        this.form.password,
+      role:            'teacher',
+      schoolManagerId: schoolManagerId ?? undefined,
     }).subscribe({
       next: res => {
         const newTeacher: TeacherRow = {

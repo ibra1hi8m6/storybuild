@@ -25,7 +25,7 @@ export class TeacherDashboardComponent implements OnInit {
   readonly levelPage    = signal<Record<number, number>>({ 1: 1, 2: 1, 3: 1 });
   readonly PAGE_SIZE    = 6;
 
-  readonly isSchoolTeacher = computed(() => !!this.state.currentUser()?.schoolCode);
+  readonly isSchoolTeacher = computed(() => !!this.state.currentUser()?.schoolManagerId);
 
   readonly filteredStudents = computed(() => {
     const d = this.data();
@@ -46,6 +46,17 @@ export class TeacherDashboardComponent implements OnInit {
       color: lv === 1 ? '#F4788A' : lv === 2 ? '#8B5CF6' : '#22C55E',
       students: students.filter((s: any) => s.level === lv),
     }));
+  });
+
+  readonly studentsByClassroom = computed(() => {
+    const students = this.filteredStudents();
+    const map = new Map<string, any[]>();
+    for (const s of students) {
+      const key = (s as any).classroomName ?? 'بدون فصل';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries()).map(([name, list]) => ({ name, students: list }));
   });
 
   ngOnInit(): void {

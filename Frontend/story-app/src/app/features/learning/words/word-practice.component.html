@@ -31,12 +31,7 @@
           <div class="result-banner mt-3" [class.correct]="readResult()!.isCorrect" [class.wrong]="!readResult()!.isCorrect">
             {{ readResult()!.feedback }}
           </div>
-          @if (readResult()!.isCorrect) {
-            <div class="result-actions">
-              <button class="btn-next" (click)="goNext()">انتقل إلى الكلمة التالية ←</button>
-              <button class="btn-back-small" (click)="goBack()">العودة للكلمات</button>
-            </div>
-          } @else {
+          @if (!readResult()!.isCorrect) {
             <button class="try-again-btn" (click)="tryAgainReading()">🔄 حاول مرة أخرى</button>
           }
         }
@@ -58,19 +53,23 @@
           <div class="result-banner" [class.correct]="result()!.isCorrect" [class.wrong]="!result()!.isCorrect">
             {{ result()!.feedback }}
           </div>
-          @if (result()!.isCorrect) {
-            <div class="result-actions">
-              <button class="btn-next" (click)="goNext()">انتقل إلى الكلمة التالية ←</button>
-              <button class="btn-back-small" (click)="goBack()">العودة للكلمات</button>
-            </div>
-          } @else {
+          @if (!result()!.isCorrect) {
             <button class="try-again-btn" (click)="tryAgain()">🔄 حاول مرة أخرى</button>
           }
         }
 
-        <button class="submit-btn" [disabled]="isChecking" (click)="submitWriting()">
-          {{ isChecking ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
-        </button>
+        @if (!result()) {
+          <button class="submit-btn" [disabled]="isChecking" (click)="submitWriting()">
+            {{ isChecking ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
+          </button>
+        }
+
+        @if (result()?.isCorrect) {
+          <div class="result-actions mt-4">
+            <button class="btn-next" (click)="goNext()">انتقل إلى الكلمة التالية ←</button>
+            <button class="btn-back-small" (click)="goBack()">العودة للكلمات</button>
+          </div>
+        }
       </div>
     </div>
   }

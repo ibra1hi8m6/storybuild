@@ -242,7 +242,7 @@ namespace Infrastructure.Data
         public void Configure(EntityTypeBuilder<Teacher> b)
         {
             b.HasKey(t => t.Id);
-            b.Property(t => t.SchoolCode).HasMaxLength(50);
+            b.Property(t => t.SchoolManagerId);
             b.HasMany(t => t.Students)
              .WithOne(s => s.Teacher)
              .HasForeignKey(s => s.TeacherId)
@@ -274,6 +274,23 @@ namespace Infrastructure.Data
             b.Property(q => q.OptionsJson).HasColumnType("nvarchar(max)");
             b.Property(q => q.CorrectAnswer).HasMaxLength(5).IsRequired();
             b.Property(q => q.AudioText).HasMaxLength(500);
+        }
+    }
+
+    public class StudentContentCompletionConfiguration : IEntityTypeConfiguration<StudentContentCompletion>
+    {
+        public void Configure(EntityTypeBuilder<StudentContentCompletion> b)
+        {
+            b.HasKey(c => c.Id);
+            b.Property(c => c.ContentType).HasConversion<int>();
+
+            // One completion record per student per content item — idempotent inserts
+            b.HasIndex(c => new { c.StudentId, c.ContentType, c.ContentId }).IsUnique();
+
+            b.HasOne(c => c.Student)
+             .WithMany()
+             .HasForeignKey(c => c.StudentId)
+             .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

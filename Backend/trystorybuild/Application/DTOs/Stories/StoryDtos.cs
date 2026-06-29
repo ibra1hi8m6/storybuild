@@ -1,13 +1,14 @@
 namespace Application.DTOs
 {
     // ── Story Generation ───────────────────────────────────────────────────────
-    public record GenerateStoryRequest(string ChildName, string Character, string Theme);
+    public record GenerateStoryRequest(string ChildName, string Character, string Theme, Guid? StudentId = null);
 
     public record GenerateStoryResponse(
         Guid Id,
         string Title,
         bool IsApproved,
-        List<StoryPageDto> Pages);
+        List<StoryPageDto> Pages,
+        int Source = 0);
 
     public record StoryPageDto(
         Guid PageId,

@@ -20,6 +20,8 @@ namespace Domain.Entities
         public bool IsPublished { get; set; } = true;
         public ContentStatus Status { get; set; } = ContentStatus.Published;
 
+        public Guid? StudentId { get; set; }
+
         public List<StoryPage> Pages { get; set; } = new();
         public List<Exam> Exams { get; set; } = new();
         public List<StudentProgress> Progress { get; set; } = new();

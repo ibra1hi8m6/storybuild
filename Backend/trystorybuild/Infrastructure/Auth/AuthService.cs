@@ -1,6 +1,8 @@
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,7 +14,8 @@ namespace Infrastructure.Auth
     public class AuthService(
         IUserRepository    userRepo,
         IStudentRepository studentRepo,
-        IConfiguration     config) : IAuthService
+        IConfiguration     config,
+        AppDbContext       db) : IAuthService
     {
         // ── Adult registration ──────────────────────────────────────────────────
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -41,12 +44,12 @@ namespace Infrastructure.Auth
             else
                 await userRepo.SaveTeacherAsync(new Teacher
                 {
-                    Id         = user.Id,
-                    IsPrivate  = string.IsNullOrWhiteSpace(request.SchoolCode),
-                    SchoolCode = request.SchoolCode
+                    Id             = user.Id,
+                    IsPrivate      = !request.SchoolManagerId.HasValue,
+                    SchoolManagerId = request.SchoolManagerId
                 });
 
-            return ToAuthResponse(user, request.SchoolCode);
+            return ToAuthResponse(user, request.SchoolManagerId);
         }
 
         // ── Adult login ─────────────────────────────────────────────────────────
@@ -61,14 +64,14 @@ namespace Infrastructure.Auth
             if (!user.IsActive || user.IsBlocked)
                 throw new InvalidOperationException("الحساب موقوف. تواصل مع الدعم.");
 
-            string? schoolCode = null;
+            Guid? schoolManagerId = null;
             if (user.Role == UserRole.Teacher)
             {
                 var teacher = await userRepo.GetTeacherByIdAsync(user.Id);
-                schoolCode = teacher?.SchoolCode;
+                schoolManagerId = teacher?.SchoolManagerId;
             }
 
-            return ToAuthResponse(user, schoolCode);
+            return ToAuthResponse(user, schoolManagerId);
         }
 
         // ── Create student (by parent/teacher) ──────────────────────────────────
@@ -92,6 +95,21 @@ namespace Infrastructure.Auth
             var creator = await userRepo.FindByIdAsync(creatorId)
                 ?? throw new InvalidOperationException("المستخدم غير موجود.");
 
+            // School teachers must belong to a classroom before adding students
+            Guid? autoEnrollClassroomId = null;
+            if (creator.Role == UserRole.Teacher)
+            {
+                var teacher = await userRepo.GetTeacherByIdAsync(creatorId);
+                if (teacher?.SchoolManagerId.HasValue == true)
+                {
+                    var classroom = await db.Classrooms
+                        .FirstOrDefaultAsync(c => c.TeacherId == creatorId);
+                    if (classroom is null)
+                        throw new InvalidOperationException("لم يتم تعيينك في أي فصل دراسي بعد. تواصل مع مدير المدرسة.");
+                    autoEnrollClassroomId = classroom.Id;
+                }
+            }
+
             var student = new Student
             {
                 Name         = request.Name,
@@ -107,6 +125,16 @@ namespace Infrastructure.Auth
                 TeacherId    = creator.Role == UserRole.Teacher ? creatorId : null,
             };
             await studentRepo.SaveAsync(student);
+
+            if (autoEnrollClassroomId.HasValue)
+            {
+                db.ClassroomStudents.Add(new ClassroomStudent
+                {
+                    ClassroomId = autoEnrollClassroomId.Value,
+                    StudentId   = student.Id,
+                });
+                await db.SaveChangesAsync();
+            }
 
             return ToStudentResponse(student);
         }
@@ -147,8 +175,75 @@ namespace Infrastructure.Auth
             return ToStudentResponse(student);
         }
 
+        // ── Delete student (teacher or parent who owns the student) ────────────
+        public async Task DeleteStudentAsync(Guid callerId, Guid studentId)
+        {
+            var student = await db.Students.FindAsync(studentId)
+                ?? throw new KeyNotFoundException("الطالب غير موجود.");
+
+            var caller = await db.Users.FindAsync(callerId)
+                ?? throw new UnauthorizedAccessException();
+
+            bool authorized = caller.Role switch
+            {
+                UserRole.Teacher     => student.TeacherId == callerId,
+                UserRole.Parent      => student.ParentId  == callerId,
+                UserRole.SystemAdmin => true,
+                _                    => false,
+            };
+            if (!authorized)
+                throw new UnauthorizedAccessException("غير مصرح لك بحذف هذا الطالب.");
+
+            // Delete dependent rows before deleting the student
+            await db.FluencyReports
+                .Where(f => f.Recording.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.AudioRecordings
+                .Where(a => a.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.WeakLetterRecords
+                .Where(w => w.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.AssignmentSubmissions
+                .Where(a => a.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.StudentLevelHistories
+                .Where(h => h.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.WordJournalEntries
+                .Where(e => e.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.Annotations
+                .Where(a => a.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.LessonPageCompletions
+                .Where(c => c.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.StudentContentCompletions
+                .Where(c => c.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.LearningAttempts
+                .Where(a => a.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.WritingAttempts
+                .Where(w => w.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.StudentProgress
+                .Where(p => p.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.StudentGroupMembers
+                .Where(m => m.StudentId == studentId)
+                .ExecuteDeleteAsync();
+            await db.ClassroomStudents
+                .Where(cs => cs.StudentId == studentId)
+                .ExecuteDeleteAsync();
+
+            db.Students.Remove(student);
+            await db.SaveChangesAsync();
+        }
+
         // ── Create school admin (system admin only) ─────────────────────────────
-        public async Task<(Guid id, string schoolCode)> CreateSchoolAdminAsync(
+        public async Task<Guid> CreateSchoolAdminAsync(
             string schoolName, string email, string password)
         {
             var normalised = email.Trim().ToLower();
@@ -163,9 +258,7 @@ namespace Infrastructure.Auth
                 Role         = UserRole.SchoolAdmin,
             };
             await userRepo.SaveAsync(user);
-
-            var schoolCode = user.Id.ToString("N")[..8].ToUpper();
-            return (user.Id, schoolCode);
+            return user.Id;
         }
 
         // ── Token generation ────────────────────────────────────────────────────
@@ -182,7 +275,7 @@ namespace Infrastructure.Auth
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        private AuthResponse ToAuthResponse(User user, string? schoolCode = null)
+        private AuthResponse ToAuthResponse(User user, Guid? schoolManagerId = null)
         {
             var claims = new[]
             {
@@ -198,7 +291,7 @@ namespace Infrastructure.Auth
                 user.Name,
                 user.Role.ToString().ToLower(),
                 expiry,
-                schoolCode);
+                schoolManagerId);
         }
 
         private StudentAuthResponse ToStudentResponse(Student student)

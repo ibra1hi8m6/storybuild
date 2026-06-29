@@ -53,7 +53,6 @@
           <button class="record-btn" [class.recording]="isRecording()" (click)="isRecording() ? stopRecording() : startRecording()">
             {{ isRecording() ? '⏹ إيقاف' : '🎙️ ابدأ القراءة' }}
           </button>
-          <button class="skip-btn" (click)="goToWriting()">تخطى ←</button>
         </div>
 
         @if (readingResult()) {
@@ -101,9 +100,11 @@
           }
         }
 
-        <button class="submit-btn" [disabled]="isWritingChecking()" (click)="submitWriting()">
-          {{ isWritingChecking() ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
-        </button>
+        @if (!writingResult()) {
+          <button class="submit-btn" [disabled]="isWritingChecking()" (click)="submitWriting()">
+            {{ isWritingChecking() ? '⏳ جارٍ التقييم...' : '✅ إرسال الكتابة' }}
+          </button>
+        }
       </div>
     }
   }

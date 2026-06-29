@@ -10,7 +10,7 @@ export interface AuthResponse {
   name:        string;
   role:        string;
   expiresAt:   string;
-  schoolCode?: string;
+  schoolManagerId?: string;
 }
 
 export interface StudentAuthResponse {
@@ -79,11 +79,16 @@ export class AuthService {
   readonly isAdmin       = computed(() =>
     this.userRole() === 'systemadmin' || this.userRole() === 'admin');
 
-  // ── Adult register ─────────────────────────────────────────────────────────
-  register(body: { fullName: string; email: string; password: string; role: string; schoolCode?: string }): Observable<AuthResponse> {
+  // ── Adult register (self — persists session) ───────────────────────────────
+  register(body: { fullName: string; email: string; password: string; role: string; schoolManagerId?: string }): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/api/auth/register`, body).pipe(
       tap(res => this.persistSession(res))
     );
+  }
+
+  // ── Create account on behalf of someone (school admin creates teacher) ─────
+  registerWithoutSession(body: { fullName: string; email: string; password: string; role: string; schoolManagerId?: string }): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.api}/api/auth/register`, body);
   }
 
   // ── Adult login ────────────────────────────────────────────────────────────
@@ -112,6 +117,11 @@ export class AuthService {
     return this.http.get<StudentSummary[]>(`${this.api}/api/auth/students`);
   }
 
+  // ── Delete student (teacher or parent who owns the student) ──────────────────
+  deleteStudent(studentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/api/auth/students/${studentId}`);
+  }
+
   // ── Parent/teacher updates a child's level ─────────────────────────────────
   updateChildLevel(studentId: string, level: number): Observable<StudentAuthResponse> {
     return this.http.patch<StudentAuthResponse>(`${this.api}/api/auth/students/${studentId}/level`, { level });
@@ -123,8 +133,8 @@ export class AuthService {
   }
 
   // ── School admin: get teachers belonging to this school ───────────────────
-  getSchoolTeachers(): Observable<{ id: string; name: string; email: string }[]> {
-    return this.http.get<{ id: string; name: string; email: string }[]>(`${this.api}/api/auth/school/teachers`);
+  getSchoolTeachers(): Observable<{ id: string; name: string; email: string; studentCount: number }[]> {
+    return this.http.get<{ id: string; name: string; email: string; studentCount: number }[]>(`${this.api}/api/auth/school/teachers`);
   }
 
   // ── School admin: reset a teacher's password ──────────────────────────────

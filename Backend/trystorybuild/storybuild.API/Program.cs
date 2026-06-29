@@ -67,7 +67,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(o =>
     o.AddPolicy("Angular", p =>
-        p.WithOrigins("http://localhost:4200", "https://lughati.runasp.net")
+        p.WithOrigins("http://localhost:4200", "https://lughati.runasp.net", "https://lughati-ffh7g8axg9hrdmaj.westeurope-01.azurewebsites.net")
          .AllowAnyHeader()
          .AllowAnyMethod()));
 

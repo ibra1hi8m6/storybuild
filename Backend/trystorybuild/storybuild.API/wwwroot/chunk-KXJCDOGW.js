@@ -1,0 +1,1 @@
+var e={production:!1,apiUrl:"https://lughati.runasp.net",imageServerUrl:"https://lughati.runasp.net",geminiApiKeys:["AQ.Ab8RN6LmGNQzZLrOFUVQ0D1vi_edJ4jXbecAj60wWYJaXDjpcA","AQ.Ab8RN6JmkUeZeYi2CTMCBAeWvEWK_sEW5gJZ1PJyFJxQrz0P4A"]};export{e as a};

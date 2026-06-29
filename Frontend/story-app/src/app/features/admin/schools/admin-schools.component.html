@@ -1,7 +1,7 @@
 <div class="d-flex min-vh-100" dir="rtl">
   <app-admin-sidebar />
 
-  <main class="flex-grow-1 p-4" style="min-width:0;overflow-y:auto">
+  <main class="flex-grow-1 p-2 p-md-4" style="min-width:0;overflow-y:auto">
 
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-1">
@@ -26,11 +26,11 @@
               <div><span class="fw-700 text-muted">اسم المدرسة: </span><strong>{{ res.schoolName }}</strong></div>
               <div><span class="fw-700 text-muted">البريد: </span><strong dir="ltr">{{ res.adminEmail }}</strong></div>
               <div>
-                <span class="fw-700 text-muted">كود المدرسة: </span>
-                <code class="fw-800 px-2 py-1 rounded-2" style="background:#DCFCE7;color:#16A34A;font-size:14px">{{ res.schoolCode }}</code>
+                <span class="fw-700 text-muted">معرّف المدرسة: </span>
+                <code class="fw-800 px-2 py-1 rounded-2" style="background:#DCFCE7;color:#16A34A;font-size:14px">{{ res.schoolManagerId }}</code>
               </div>
             </div>
-            <p class="small text-muted mb-3">احتفظ بكود المدرسة — المعلمون يحتاجونه عند التسجيل.</p>
+            <p class="small text-muted mb-3">تم إنشاء حساب المدرسة. يمكنك الآن إضافة معلمين من لوحة تحكم المدرسة.</p>
             <button class="btn btn-outline-primary rounded-pill px-4 fw-700 small" (click)="reset()">+ إضافة مدرسة أخرى</button>
           </div>
 
@@ -89,7 +89,6 @@
               <tr style="border-bottom:2px solid #F3F4F6">
                 <th class="fw-800 text-muted small px-4 py-3">المدرسة</th>
                 <th class="fw-800 text-muted small px-4 py-3">البريد الإلكتروني</th>
-                <th class="fw-800 text-muted small px-4 py-3">كود المدرسة</th>
                 <th class="fw-800 text-muted small px-4 py-3">الحالة</th>
                 <th class="fw-800 text-muted small px-4 py-3">تاريخ الإنشاء</th>
               </tr>
@@ -101,11 +100,6 @@
                     <span style="font-size:18px" class="me-2">🏫</span>{{ school.schoolName }}
                   </td>
                   <td class="px-4 py-3 small text-muted" dir="ltr">{{ school.adminEmail }}</td>
-                  <td class="px-4 py-3">
-                    <code class="fw-800 px-2 py-1 rounded-2" style="background:#DCFCE7;color:#16A34A;font-size:13px">
-                      {{ school.schoolCode }}
-                    </code>
-                  </td>
                   <td class="px-4 py-3">
                     <span class="badge rounded-pill fw-800 px-2 py-1"
                       [style.background]="school.isBlocked ? '#FEF2F2' : '#F0FDF4'"

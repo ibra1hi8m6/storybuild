@@ -11,7 +11,8 @@ namespace Application.Interfaces
         Task<StudentAuthResponse>    StudentLoginAsync(StudentLoginRequest request);
         Task<List<StudentProfileDto>> GetChildrenAsync(Guid parentId);
         Task<List<StudentProfileDto>> GetStudentsAsync(Guid teacherId);
-        Task<(Guid id, string schoolCode)> CreateSchoolAdminAsync(string schoolName, string email, string password);
+        Task<Guid> CreateSchoolAdminAsync(string schoolName, string email, string password);
         Task<StudentAuthResponse>    UpdateStudentLevelAsync(Guid studentId, int level);
+        Task                         DeleteStudentAsync(Guid callerId, Guid studentId);
     }
 }

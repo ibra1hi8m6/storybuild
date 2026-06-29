@@ -31,13 +31,10 @@
       <img [src]="resolveUrl(currentPage().imageUrl)" [alt]="currentPage().sentence" class="page-image" />
     </div>
 
-    <!-- Mode tabs -->
+    <!-- Mode tabs: استمع / سجّل only -->
     <div class="mode-tabs">
       <button class="mode-tab" [class.active]="mode()==='listen'" (click)="setMode('listen')">
         <i class="bi bi-ear"></i> استمع
-      </button>
-      <button class="mode-tab" [class.active]="mode()==='read'" (click)="setMode('read')">
-        <i class="bi bi-book-open"></i> اقرأ
       </button>
       <button class="mode-tab" [class.active]="mode()==='record'" (click)="setMode('record')">
         <i class="bi bi-mic"></i> سجّل
@@ -46,21 +43,28 @@
 
     <!-- Content area -->
     <div class="mode-content">
+
       @if (mode() === 'listen') {
         <app-listen-mode
           [sentence]="currentPage().sentence"
-          (next)="setMode('read')">
+          nextLabel="الآن سجّل صوتك"
+          (next)="setMode('record')">
         </app-listen-mode>
-      }
 
-      @if (mode() === 'read') {
-        <div class="read-mode-panel">
-          <p class="read-sentence">{{ currentPage().sentence }}</p>
-          <p class="read-hint">اقرأ الجملة بصوت عالٍ، ثم سجّل نفسك!</p>
-          <button class="btn-primary-pill" (click)="setMode('record')">
-            <i class="bi bi-mic-fill me-2"></i> ابدأ التسجيل
+        <!-- Direct next button — bypasses listen-mode event system -->
+        <div class="next-page-row">
+          <button class="btn-next-page" (click)="goNextPage()">
+            <i class="bi bi-arrow-left me-2"></i> {{ nextLabel() }}
           </button>
         </div>
+
+        @if (isLastPage()) {
+          <div class="library-row">
+            <button class="btn-library" (click)="goBack()">
+              <i class="bi bi-collection me-2"></i> العودة إلى جميع القصص
+            </button>
+          </div>
+        }
       }
 
       @if (mode() === 'record') {
@@ -68,9 +72,25 @@
           [sentence]="currentPage().sentence"
           [pageId]="currentPage().pageId"
           pageType="Story"
-          (passed)="onRecordPassed()">
+          (passed)="goNextPage()">
         </app-record-mode>
+
+        <!-- Always-visible next page button so student is never stuck -->
+        <div class="next-page-row">
+          <button class="btn-next-page" (click)="goNextPage()">
+            <i class="bi bi-arrow-left me-2"></i> {{ nextLabel() }}
+          </button>
+        </div>
+
+        @if (isLastPage()) {
+          <div class="library-row">
+            <button class="btn-library" (click)="goBack()">
+              <i class="bi bi-collection me-2"></i> العودة إلى جميع القصص
+            </button>
+          </div>
+        }
       }
+
     </div>
   }
 

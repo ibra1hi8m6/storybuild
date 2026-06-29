@@ -57,12 +57,12 @@ namespace storybuild.API.Controllers
                 .Select(StoryAgent.MapToResponse).ToList());
         }
 
-        /// <summary>List AI stories belonging to a specific child.</summary>
-        [HttpGet("mine/{childName}")]
+        /// <summary>List AI stories belonging to a specific student (by UUID).</summary>
+        [HttpGet("mine/{studentId:guid}")]
         [ProducesResponseType(typeof(List<GenerateStoryResponse>), 200)]
-        public async Task<IActionResult> GetMine(string childName)
+        public async Task<IActionResult> GetMine(Guid studentId)
         {
-            var stories = await storyRepository.GetByChildNameAsync(childName);
+            var stories = await storyRepository.GetByStudentIdAsync(studentId);
             return Ok(stories
                 .Where(s => s.Source == Domain.Entities.StorySource.AiGenerated)
                 .Select(StoryAgent.MapToResponse).ToList());

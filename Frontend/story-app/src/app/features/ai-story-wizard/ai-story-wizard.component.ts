@@ -1,8 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
 
@@ -11,7 +10,7 @@ type StyleKey = 'cartoon' | 'fantasy' | 'realistic';
 @Component({
   selector: 'app-ai-story-wizard',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavbarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
   templateUrl: './ai-story-wizard.component.html',
   styleUrl: './ai-story-wizard.component.css'
 })
@@ -19,6 +18,15 @@ export class AiStoryWizardComponent {
   private readonly router  = inject(Router);
   private readonly service = inject(StoryService);
   readonly state           = inject(AppStateService);
+
+  readonly navItems = [
+    { icon: '📊', label: 'لوحتي',          route: '/dashboard' },
+    { icon: '✏️', label: 'محتوى التعلم',   route: '/learning' },
+    // { icon: '📋', label: 'تقدّمي',          route: '/progress' },
+    { icon: '🏆', label: 'إنجازاتي',       route: '/achievements' },
+    { icon: '📖', label: 'قصصي',           route: '/my-stories' },
+    { icon: '✨', label: 'قصص ذكية',       route: '/ai-story' },
+  ];
 
   readonly step      = signal(1);
   readonly isLoading = signal(false);
@@ -71,7 +79,8 @@ export class AiStoryWizardComponent {
     const childName = this.charName.trim() || 'بطل القصة';
     const theme     = this.environments.find(e => e.key === this.selectedEnv())?.label ?? '';
 
-    this.service.generateStory({ childName, character: charLabel, theme }).subscribe({
+    const studentId = this.state.currentUser()?.id;
+    this.service.generateStory({ childName, character: charLabel, theme, studentId }).subscribe({
       next: story => {
         this.isLoading.set(false);
         this.router.navigate(['/books', story.id, 'read']);
@@ -83,6 +92,8 @@ export class AiStoryWizardComponent {
       }
     });
   }
+
+  logout(): void { this.state.logout(); this.router.navigate(['/auth/login']); }
 
   get chosenTags(): { emoji: string; label: string }[] {
     const tags: { emoji: string; label: string }[] = [];

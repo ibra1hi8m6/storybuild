@@ -8,7 +8,7 @@ namespace Application.Interfaces
         Task<StudentDashboardDto?> GetStudentDashboardAsync(Guid studentId);
         Task<ParentDashboardDto?>  GetParentDashboardAsync(Guid studentId);
         Task<TeacherDashboardDto>  GetTeacherDashboardAsync(Guid teacherId);
-        Task<SchoolDashboardDto>   GetSchoolDashboardAsync(string schoolCode);
+        Task<SchoolDashboardDto>   GetSchoolDashboardAsync(Guid schoolManagerId);
         Task<List<string>>         GetKnownChildNamesAsync();
         Task<List<LevelProgressDto>> GetLevelProgressAsync(Guid studentId);
     }

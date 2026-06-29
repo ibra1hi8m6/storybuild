@@ -11,14 +11,16 @@
   } @else {
     <div class="sentences-grid">
       @for (s of sentences(); track s.id; let i = $index) {
-        <button class="sentence-card" (click)="open(s.id)">
+        <button class="sentence-card" (click)="open(s.id)" style="position:relative">
+          @if (state.isCompleted(s.id)) {
+            <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:1">✓</span>
+          }
           @if (s.imagePath) {
             <img [src]="s.imagePath" class="sentence-img" alt="صورة">
           } @else {
             <div class="sentence-img-placeholder">💬</div>
           }
           <div class="sentence-number">نشاط {{ i + 1 }}</div>
-          <div class="sentence-preview">{{ s.option1 }}</div>
         </button>
       }
     </div>

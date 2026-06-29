@@ -23,13 +23,13 @@ namespace Infrastructure.Services
             if (progress.Count == 0 && !await HasAnyActivityAsync(studentId))
                 return null;
 
-            var writing = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
+            var writing      = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
+            var completions  = await db.StudentContentCompletions.Where(c => c.StudentId == studentId).ToListAsync();
 
-            int storiesRead      = progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted);
-            int lessonsCompleted = progress.Count(p => p.LessonId.HasValue && p.ExamCompleted);
+            int storiesRead      = completions.Count(c => c.ContentType == ContentCompletionType.Story);
+            int lessonsCompleted = completions.Count(c => c.ContentType == ContentCompletionType.Lesson);
             int examsCompleted   = progress.Count(p => p.ExamCompleted);
-            double avgScore      = progress.Any(p => p.ExamCompleted)
-                ? progress.Where(p => p.ExamCompleted).Average(p => p.ScorePercentage) : 0;
+            double avgScore      = await ComputeWritingAvgAsync(studentId);
             int writingAccepted  = writing.Count(w => w.IsAccepted);
             int stars            = CalculateStars(progress, writing);
             int xp               = stars * 10;
@@ -68,20 +68,43 @@ namespace Infrastructure.Services
             var name = student.Name;
 
             var progress = await db.StudentProgress.Where(p => p.StudentId == studentId).ToListAsync();
+            var writing  = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
 
-            var writing      = await db.WritingAttempts.Where(w => w.StudentId == studentId).ToListAsync();
-            int storiesRead  = progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted);
-            int lessonsComp  = progress.Count(p => p.LessonId.HasValue && p.ExamCompleted);
-            int examsComp    = progress.Count(p => p.ExamCompleted);
-            double avgScore  = progress.Any(p => p.ExamCompleted)
-                ? progress.Where(p => p.ExamCompleted).Average(p => p.ScorePercentage) : 0;
-            int writingAcc   = writing.Count(w => w.IsAccepted);
+            // Content completions from new tracking system
+            var completions = await db.StudentContentCompletions
+                .Where(c => c.StudentId == studentId)
+                .GroupBy(c => c.ContentType)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            int lettersCompleted   = completions.FirstOrDefault(g => g.Type == ContentCompletionType.Letter)?.Count   ?? 0;
+            int wordsCompleted     = completions.FirstOrDefault(g => g.Type == ContentCompletionType.Word)?.Count     ?? 0;
+            int sentencesCompleted = completions.FirstOrDefault(g => g.Type == ContentCompletionType.Sentence)?.Count ?? 0;
+            int lessonsCompleted   = completions.FirstOrDefault(g => g.Type == ContentCompletionType.Lesson)?.Count   ?? 0;
+            int storiesCompleted   = completions.FirstOrDefault(g => g.Type == ContentCompletionType.Story)?.Count    ?? 0;
+
+            int lettersTotal   = await db.LetterContents.CountAsync(l => l.IsPublished);
+            int wordsTotal     = await db.WordContents.CountAsync(w => w.IsPublished);
+            int sentencesTotal = await db.SentenceContents.CountAsync(s => s.IsPublished);
+            int lessonsTotal   = await db.Lessons.CountAsync(l => l.IsPublished);
+            int storiesTotal   = await db.Stories.CountAsync(s => s.IsPublished && s.Source == StorySource.PdfImport);
+
+            double avgScore = await ComputeWritingAvgAsync(studentId);
+            int writingAcc  = writing.Count(w => w.IsAccepted);
+
+            var fluencyAccList = await db.FluencyReports
+                .Join(db.AudioRecordings, f => f.RecordingId, r => r.Id,
+                      (f, r) => new { f.AccuracyScore, r.StudentId })
+                .Where(x => x.StudentId == studentId)
+                .Select(x => x.AccuracyScore)
+                .ToListAsync();
+            double avgReadingAccuracy = fluencyAccList.Any() ? fluencyAccList.Average() : 0;
 
             return new ParentDashboardDto(
                 name,
                 CalculateStars(progress, writing),
-                storiesRead, lessonsComp, examsComp,
-                Math.Round(avgScore, 1),
+                storiesCompleted, lessonsCompleted, 0,
+                avgScore,
                 writingAcc,
                 writing.Count > 0 ? Math.Round((double)writingAcc / writing.Count * 100, 1) : 0,
                 GetPerformanceLevel(avgScore),
@@ -89,121 +112,211 @@ namespace Infrastructure.Services
                 await BuildWeeklyActivityAsync(studentId),
                 await GetInProgressLessonsAsync(studentId),
                 new List<LessonAssignmentDto>(),
-                BuildSkillBars(progress, writing),
+                BuildSkillBars(lettersCompleted, lettersTotal,
+                               wordsCompleted, wordsTotal,
+                               sentencesCompleted, sentencesTotal,
+                               avgScore, avgReadingAccuracy),
                 await GetStudentTopContentAsync(studentId, storyOnly: true),
                 await BuildExamHistoryAsync(studentId),
-                await BuildRecentActivityAsync(studentId, name));
+                await BuildRecentActivityAsync(studentId, name),
+                lettersCompleted, lettersTotal,
+                wordsCompleted, wordsTotal,
+                sentencesCompleted, sentencesTotal,
+                lessonsTotal, storiesTotal);
         }
 
         // ── Teacher ───────────────────────────────────────────────────────────
         public async Task<TeacherDashboardDto> GetTeacherDashboardAsync(Guid teacherId)
         {
-            // Include students directly assigned AND students enrolled via classrooms
+            // Source 1: direct students (TeacherId == teacherId)
             var directStudents = await db.Students
                 .Where(s => s.TeacherId == teacherId)
                 .Select(s => new { s.Id, s.Name, s.Level })
                 .ToListAsync();
 
-            var classroomStudentIds = await db.Classrooms
-                .Where(c => c.TeacherId == teacherId)
-                .SelectMany(c => c.Students.Select(cs => cs.StudentId))
+            // Source 2: students in this teacher's groups (private teacher groups)
+            var groupStudentIds = await db.StudentGroupMembers
+                .Where(m => m.Group.TeacherId == teacherId)
+                .Select(m => m.StudentId)
                 .Distinct()
                 .ToListAsync();
 
+            var groupStudents = groupStudentIds.Any()
+                ? await db.Students
+                    .Where(s => groupStudentIds.Contains(s.Id))
+                    .Select(s => new { s.Id, s.Name, s.Level })
+                    .ToListAsync()
+                : new();
+
+            // Source 3: students in classrooms assigned to this teacher (school teacher), with classroom name
+            var classroomData = await db.Classrooms
+                .Where(c => c.TeacherId == teacherId)
+                .Select(c => new { c.Id, c.Name, StudentIds = c.Students.Select(cs => cs.StudentId).ToList() })
+                .ToListAsync();
+
+            var classroomStudentMap = new Dictionary<Guid, string>(); // studentId → classroomName
+            foreach (var cls in classroomData)
+                foreach (var sid in cls.StudentIds)
+                    classroomStudentMap.TryAdd(sid, cls.Name);
+
+            var classroomStudentIds = classroomStudentMap.Keys.ToList();
             var classroomStudents = classroomStudentIds.Any()
                 ? await db.Students
-                    .Where(s => classroomStudentIds.Contains(s.Id) && s.TeacherId != teacherId)
+                    .Where(s => classroomStudentIds.Contains(s.Id))
                     .Select(s => new { s.Id, s.Name, s.Level })
                     .ToListAsync()
                 : new();
 
             var childEntries = directStudents
+                .Concat(groupStudents)
                 .Concat(classroomStudents)
                 .DistinctBy(e => e.Id)
                 .ToList();
-            var childIds     = childEntries.Select(e => e.Id).ToList();
-            var allProgress  = await db.StudentProgress
-                .Where(p => p.ExamCompleted && p.StudentId.HasValue && childIds.Contains(p.StudentId.Value))
-                .ToListAsync();
-            var cutoff       = DateTime.UtcNow.AddDays(-7);
-            int activeWeek   = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff && p.StudentId.HasValue && childIds.Contains(p.StudentId.Value))
-                .Select(p => p.StudentId).Distinct().CountAsync();
-            double avgScore  = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
+            var childIds = childEntries.Select(e => e.Id).ToList();
+            int n        = childIds.Count;
 
-            logger.LogInformation("[Dashboard] Teacher — {Count} students, avg {Avg}%", childIds.Count, Math.Round(avgScore,1));
+            // Active this week from page completions
+            var cutoff   = DateTime.UtcNow.AddDays(-7);
+            int activeWeek = await db.LessonPageCompletions
+                .Where(c => c.CompletedAt >= cutoff && c.StudentId.HasValue && childIds.Contains(c.StudentId.Value))
+                .Select(c => c.StudentId).Distinct().CountAsync();
+
+            // Content completions aggregate for class-wide progress cards
+            var completionsPerType = await db.StudentContentCompletions
+                .Where(c => childIds.Contains(c.StudentId))
+                .GroupBy(c => c.ContentType)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            int lettersCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Letter)?.Count   ?? 0;
+            int wordsCompleted     = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Word)?.Count     ?? 0;
+            int sentencesCompleted = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Sentence)?.Count ?? 0;
+            int lessonsCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Lesson)?.Count   ?? 0;
+            int storiesCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Story)?.Count    ?? 0;
+
+            int lettersTotal   = await db.LetterContents.CountAsync(l => l.IsPublished);
+            int wordsTotal     = await db.WordContents.CountAsync(w => w.IsPublished);
+            int sentencesTotal = await db.SentenceContents.CountAsync(s => s.IsPublished);
+            int lessonsTotal   = await db.Lessons.CountAsync(l => l.IsPublished);
+            int storiesTotal   = await db.Stories.CountAsync(s => s.IsPublished && s.Source == StorySource.PdfImport);
+
+            double lettersAvgPct   = n > 0 && lettersTotal   > 0 ? Math.Min(100, Math.Round((double)lettersCompleted   / (n * lettersTotal)   * 100, 1)) : 0;
+            double wordsAvgPct     = n > 0 && wordsTotal     > 0 ? Math.Min(100, Math.Round((double)wordsCompleted     / (n * wordsTotal)     * 100, 1)) : 0;
+            double sentencesAvgPct = n > 0 && sentencesTotal > 0 ? Math.Min(100, Math.Round((double)sentencesCompleted / (n * sentencesTotal) * 100, 1)) : 0;
+            double lessonsAvgPct   = n > 0 && lessonsTotal   > 0 ? Math.Min(100, Math.Round((double)lessonsCompleted   / (n * lessonsTotal)   * 100, 1)) : 0;
+            double storiesAvgPct   = n > 0 && storiesTotal   > 0 ? Math.Min(100, Math.Round((double)storiesCompleted   / (n * storiesTotal)   * 100, 1)) : 0;
+
+            double avgScore = await ComputeWritingAvgForManyAsync(childIds);
+
+            logger.LogInformation("[Dashboard] Teacher — {Count} students, avg {Avg}%", n, avgScore);
 
             var students = new List<StudentSummaryDto>();
             foreach (var entry in childEntries)
-                students.Add(await BuildStudentSummaryAsync(entry.Id, entry.Name, entry.Level));
+            {
+                classroomStudentMap.TryGetValue(entry.Id, out var clsName);
+                students.Add(await BuildStudentSummaryAsync(entry.Id, entry.Name, entry.Level, clsName));
+            }
 
             return new TeacherDashboardDto(
-                childIds.Count,
-                activeWeek,
-                Math.Round(avgScore, 1),
+                n, activeWeek, avgScore,
                 await BuildTopStoriesAsync(),
                 await BuildTopLessonsAsync(),
                 students.OrderByDescending(s => s.Stars).ToList(),
-                BuildPerformanceBands(allProgress));
+                BuildPerformanceBands([]),
+                lettersAvgPct, lettersTotal,
+                wordsAvgPct, wordsTotal,
+                sentencesAvgPct, sentencesTotal,
+                lessonsAvgPct, lessonsTotal,
+                storiesAvgPct, storiesTotal);
         }
 
         // ── School ────────────────────────────────────────────────────────────
-        public async Task<SchoolDashboardDto> GetSchoolDashboardAsync(string schoolCode)
+        public async Task<SchoolDashboardDto> GetSchoolDashboardAsync(Guid schoolManagerId)
         {
-            // Scope to this school only
+            // Teachers who belong to this school
             var schoolTeacherIds = await db.Teachers
-                .Where(t => t.SchoolCode == schoolCode)
+                .Where(t => t.SchoolManagerId == schoolManagerId)
                 .Select(t => t.Id)
                 .ToListAsync();
 
             int totalTeachers = await db.Users
                 .CountAsync(u => schoolTeacherIds.Contains(u.Id) && u.IsActive);
 
-            int totalStudents = await db.Students
-                .CountAsync(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value));
+            // Classroom IDs for this school
+            var schoolClassroomIds = await db.Classrooms
+                .Where(c => c.SchoolManagerId == schoolManagerId)
+                .Select(c => c.Id)
+                .ToListAsync();
 
-            var schoolStudentIds = await db.Students
+            // Students via classroom enrollment (what the UI shows in the classrooms table)
+            var classroomStudentIds = await db.ClassroomStudents
+                .Where(cs => schoolClassroomIds.Contains(cs.ClassroomId))
+                .Select(cs => cs.StudentId)
+                .Distinct()
+                .ToListAsync();
+
+            // Students directly created by school teachers (may not be in any classroom yet)
+            var teacherStudentIds = await db.Students
                 .Where(s => s.TeacherId.HasValue && schoolTeacherIds.Contains(s.TeacherId!.Value))
                 .Select(s => s.Id)
                 .ToListAsync();
 
-            var allProgress = await db.StudentProgress
-                .Where(p => p.ExamCompleted && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
-                .ToListAsync();
+            // Union both sources — classroom-enrolled + directly under teacher
+            var schoolStudentIds = classroomStudentIds.Union(teacherStudentIds).Distinct().ToList();
+            int totalStudents = schoolStudentIds.Count;
 
             var cutoff     = DateTime.UtcNow.AddDays(-7);
-            int activeWeek = await db.StudentProgress
-                .Where(p => p.LastUpdatedAt >= cutoff && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
-                .Select(p => p.StudentId).Distinct().CountAsync();
+            int activeWeek = await db.LessonPageCompletions
+                .Where(c => c.CompletedAt >= cutoff && c.StudentId.HasValue && schoolStudentIds.Contains(c.StudentId.Value))
+                .Select(c => c.StudentId).Distinct().CountAsync();
 
-            double avgScore = allProgress.Any() ? allProgress.Average(p => p.ScorePercentage) : 0;
+            // Content completions aggregate for school-wide progress cards
+            var completionsPerType = await db.StudentContentCompletions
+                .Where(c => schoolStudentIds.Contains(c.StudentId))
+                .GroupBy(c => c.ContentType)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToListAsync();
 
-            var topStories    = await BuildTopStoriesAsync();
-            var topLessons    = await BuildTopLessonsAsync();
-            var topContent    = topStories.Concat(topLessons)
+            int lettersCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Letter)?.Count   ?? 0;
+            int wordsCompleted     = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Word)?.Count     ?? 0;
+            int sentencesCompleted = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Sentence)?.Count ?? 0;
+            int lessonsCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Lesson)?.Count   ?? 0;
+            int storiesCompleted   = completionsPerType.FirstOrDefault(g => g.Type == ContentCompletionType.Story)?.Count    ?? 0;
+
+            int lettersTotal   = await db.LetterContents.CountAsync(l => l.IsPublished);
+            int wordsTotal     = await db.WordContents.CountAsync(w => w.IsPublished);
+            int sentencesTotal = await db.SentenceContents.CountAsync(s => s.IsPublished);
+            int lessonsTotal   = await db.Lessons.CountAsync(l => l.IsPublished);
+            int storiesTotal   = await db.Stories.CountAsync(s => s.IsPublished && s.Source == StorySource.PdfImport);
+            int n              = totalStudents;
+
+            double lettersAvgPct   = n > 0 && lettersTotal   > 0 ? Math.Min(100, Math.Round((double)lettersCompleted   / (n * lettersTotal)   * 100, 1)) : 0;
+            double wordsAvgPct     = n > 0 && wordsTotal     > 0 ? Math.Min(100, Math.Round((double)wordsCompleted     / (n * wordsTotal)     * 100, 1)) : 0;
+            double sentencesAvgPct = n > 0 && sentencesTotal > 0 ? Math.Min(100, Math.Round((double)sentencesCompleted / (n * sentencesTotal) * 100, 1)) : 0;
+            double lessonsAvgPct   = n > 0 && lessonsTotal   > 0 ? Math.Min(100, Math.Round((double)lessonsCompleted   / (n * lessonsTotal)   * 100, 1)) : 0;
+            double storiesAvgPct   = n > 0 && storiesTotal   > 0 ? Math.Min(100, Math.Round((double)storiesCompleted   / (n * storiesTotal)   * 100, 1)) : 0;
+
+            double avgScore = await ComputeWritingAvgForManyAsync(schoolStudentIds);
+
+            var topContent = (await BuildTopStoriesAsync())
+                .Concat(await BuildTopLessonsAsync())
                 .OrderByDescending(t => t.CompletionCount).Take(5).ToList();
-
-            var recentProgress = await db.StudentProgress
-                .Where(p => p.ExamCompleted && p.StudentId.HasValue && schoolStudentIds.Contains(p.StudentId.Value))
-                .Include(p => p.Story).Include(p => p.Lesson)
-                .OrderByDescending(p => p.LastUpdatedAt)
-                .Take(15).ToListAsync();
-
-            var recentActivities = recentProgress.Select(p => new RecentActivityDto(
-                "exam", p.ChildName,
-                p.Story?.Title ?? p.Lesson?.Title ?? "امتحان",
-                p.ScorePercentage, null, p.LastUpdatedAt)).ToList();
 
             return new SchoolDashboardDto(
                 totalStudents, totalTeachers, activeWeek,
-                Math.Round(avgScore, 1),
-                await db.Stories.CountAsync(),
-                await db.Lessons.CountAsync(),
+                avgScore,
+                await db.Stories.CountAsync(s => s.IsPublished && s.Source == StorySource.PdfImport),
+                await db.Lessons.CountAsync(l => l.IsPublished),
                 topContent,
-                recentActivities,
-                BuildPerformanceBands(allProgress),
-                await GetClassroomsAsync(),
-                await GetLevelDistributionAsync());
+                new List<RecentActivityDto>(),
+                BuildPerformanceBands([]),
+                await GetClassroomsAsync(schoolManagerId),
+                await GetLevelDistributionAsync(schoolStudentIds),
+                lettersAvgPct, lettersTotal,
+                wordsAvgPct, wordsTotal,
+                sentencesAvgPct, sentencesTotal,
+                lessonsAvgPct, lessonsTotal,
+                storiesAvgPct, storiesTotal);
         }
 
         // ── Level Progress ────────────────────────────────────────────────────
@@ -260,11 +373,91 @@ namespace Infrastructure.Services
             return a.Union(b).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n).ToList();
         }
 
+        // ── Writing average (category-weighted) ──────────────────────────────
+
+        // Average of category averages so no single content type dominates.
+        // Only categories that have at least one attempt contribute.
+        // Categories: letters (LetterSound+LetterRecognition), words, sentences, lessons (WritingAttempt).
+        private async Task<double> ComputeWritingAvgAsync(Guid studentId)
+        {
+            var learningWriting = await db.LearningAttempts
+                .Where(a => a.StudentId == studentId && a.AttemptType == LearningAttemptType.Writing)
+                .Select(a => new { a.ContentType, a.Score })
+                .ToListAsync();
+
+            var lessonScores = await db.WritingAttempts
+                .Where(w => w.StudentId == studentId)
+                .Select(w => w.SimilarityScore)
+                .ToListAsync();
+
+            var categoryAvgs = new List<double>();
+
+            var letterScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.LetterSound
+                         || a.ContentType == LearningContentType.LetterRecognition)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (letterScores.Count > 0) categoryAvgs.Add(letterScores.Average());
+
+            var wordScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.WordPractice)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (wordScores.Count > 0) categoryAvgs.Add(wordScores.Average());
+
+            var sentenceScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.SentencePractice)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (sentenceScores.Count > 0) categoryAvgs.Add(sentenceScores.Average());
+
+            if (lessonScores.Count > 0) categoryAvgs.Add(lessonScores.Select(s => Math.Clamp(s, 0, 100)).Average());
+
+            return categoryAvgs.Count > 0 ? Math.Round(categoryAvgs.Average(), 1) : 0;
+        }
+
+        private async Task<double> ComputeWritingAvgForManyAsync(List<Guid> studentIds)
+        {
+            if (studentIds.Count == 0) return 0;
+
+            var learningWriting = await db.LearningAttempts
+                .Where(a => a.StudentId.HasValue && studentIds.Contains(a.StudentId.Value)
+                         && a.AttemptType == LearningAttemptType.Writing)
+                .Select(a => new { a.ContentType, a.Score })
+                .ToListAsync();
+
+            var lessonScores = await db.WritingAttempts
+                .Where(w => w.StudentId.HasValue && studentIds.Contains(w.StudentId.Value))
+                .Select(w => w.SimilarityScore)
+                .ToListAsync();
+
+            var categoryAvgs = new List<double>();
+
+            var letterScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.LetterSound
+                         || a.ContentType == LearningContentType.LetterRecognition)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (letterScores.Count > 0) categoryAvgs.Add(letterScores.Average());
+
+            var wordScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.WordPractice)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (wordScores.Count > 0) categoryAvgs.Add(wordScores.Average());
+
+            var sentenceScores = learningWriting
+                .Where(a => a.ContentType == LearningContentType.SentencePractice)
+                .Select(a => Math.Clamp(a.Score, 0, 100)).ToList();
+            if (sentenceScores.Count > 0) categoryAvgs.Add(sentenceScores.Average());
+
+            if (lessonScores.Count > 0) categoryAvgs.Add(lessonScores.Select(s => Math.Clamp(s, 0, 100)).Average());
+
+            return categoryAvgs.Count > 0 ? Math.Round(categoryAvgs.Average(), 1) : 0;
+        }
+
         // ── Internals ─────────────────────────────────────────────────────────
 
         private async Task<bool> HasAnyActivityAsync(Guid studentId) =>
             await db.WritingAttempts.AnyAsync(w => w.StudentId == studentId)
-            || await db.StudentProgress.AnyAsync(p => p.StudentId == studentId);
+            || await db.LearningAttempts.AnyAsync(a => a.StudentId == studentId)
+            || await db.StudentProgress.AnyAsync(p => p.StudentId == studentId)
+            || await db.StudentContentCompletions.AnyAsync(c => c.StudentId == studentId);
 
         private async Task<int[]> BuildWeeklyActivityAsync(Guid studentId)
         {
@@ -275,9 +468,12 @@ namespace Infrastructure.Services
             var wDates = await db.WritingAttempts
                 .Where(w => w.StudentId == studentId && w.AttemptedAt >= since)
                 .Select(w => w.AttemptedAt).ToListAsync();
+            var cDates = await db.StudentContentCompletions
+                .Where(c => c.StudentId == studentId && c.CompletedAt >= since)
+                .Select(c => c.CompletedAt).ToListAsync();
 
             var act = new int[7];
-            foreach (var dt in eDates.Concat(wDates))
+            foreach (var dt in eDates.Concat(wDates).Concat(cDates))
                 act[((int)dt.DayOfWeek + 6) % 7]++;
             return act;
         }
@@ -290,8 +486,11 @@ namespace Infrastructure.Services
             var wDates = await db.WritingAttempts
                 .Where(w => w.StudentId == studentId)
                 .Select(w => w.AttemptedAt.Date).ToListAsync();
+            var cDates = await db.StudentContentCompletions
+                .Where(c => c.StudentId == studentId)
+                .Select(c => c.CompletedAt.Date).ToListAsync();
 
-            var days = eDates.Concat(wDates).Distinct()
+            var days = eDates.Concat(wDates).Concat(cDates).Distinct()
                 .OrderByDescending(d => d).ToList();
             if (days.Count == 0) return 0;
 
@@ -378,26 +577,40 @@ namespace Infrastructure.Services
             list.AddRange(writings.Select(w => new RecentActivityDto(
                 "writing", name, w.ExpectedSentence, w.SimilarityScore, w.IsAccepted, w.AttemptedAt)));
 
+            var newCompletions = await db.StudentContentCompletions.Where(c => c.StudentId == studentId).ToListAsync();
+            list.AddRange(newCompletions.Select(c => new RecentActivityDto(
+                c.ContentType.ToString().ToLowerInvariant(), name,
+                c.ContentType switch {
+                    ContentCompletionType.Letter   => "حرف مكتمل",
+                    ContentCompletionType.Word     => "كلمة مكتملة",
+                    ContentCompletionType.Sentence => "جملة مكتملة",
+                    ContentCompletionType.Lesson   => "درس مكتمل",
+                    ContentCompletionType.Story    => "قصة مكتملة",
+                    _                              => "نشاط مكتمل"
+                }, null, null, c.CompletedAt)));
+
             return list.OrderByDescending(a => a.OccurredAt).Take(15).ToList();
         }
 
-        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1)
+        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1, string? classroomName = null)
         {
             var progress = await db.StudentProgress.Where(p => p.StudentId == id).ToListAsync();
             var writing  = await db.WritingAttempts.Where(w => w.StudentId == id).ToListAsync();
-            double avg   = progress.Any(p => p.ExamCompleted)
-                ? progress.Where(p => p.ExamCompleted).Average(p => p.ScorePercentage) : 0;
-            DateTime? last = progress.Any()
-                ? (DateTime?)progress.Max(p => p.LastUpdatedAt)
-                : writing.Any() ? (DateTime?)writing.Max(w => w.AttemptedAt) : null;
+            double avg   = await ComputeWritingAvgAsync(id);
+            DateTime? last = writing.Any()
+                ? (DateTime?)writing.Max(w => w.AttemptedAt)
+                : progress.Any() ? (DateTime?)progress.Max(p => p.LastUpdatedAt) : null;
+
+            var completions = await db.StudentContentCompletions.Where(c => c.StudentId == id).ToListAsync();
+            int storiesDone  = completions.Count(c => c.ContentType == ContentCompletionType.Story);
+            int lessonsDone  = completions.Count(c => c.ContentType == ContentCompletionType.Lesson);
 
             return new StudentSummaryDto(
                 id, name, CalculateStars(progress, writing),
-                progress.Count(p => p.StoryId.HasValue  && p.ExamCompleted),
-                progress.Count(p => p.LessonId.HasValue && p.ExamCompleted),
-                Math.Round(avg, 1),
+                storiesDone, lessonsDone,
+                avg,
                 writing.Count(w => w.IsAccepted), writing.Count,
-                GetPerformanceLevel(avg), last, level);
+                GetPerformanceLevel(avg), last, level, classroomName);
         }
 
         private async Task<List<TopContentDto>> BuildTopStoriesAsync() =>
@@ -427,56 +640,38 @@ namespace Infrastructure.Services
                 .ToList();
         }
 
-        private async Task<List<ClassroomStatsDto>> GetClassroomsAsync()
+        private async Task<List<ClassroomStatsDto>> GetClassroomsAsync(Guid schoolManagerId)
         {
             var classrooms = await db.Classrooms
+                .Where(c => c.SchoolManagerId == schoolManagerId)
                 .Include(c => c.Students).ThenInclude(cs => cs.Student)
                 .OrderBy(c => c.Level).ThenBy(c => c.Name)
                 .Take(10)
                 .ToListAsync();
 
-            if (classrooms.Count == 0)
-            {
-                // Fallback: derive from teachers when no classrooms created yet
-                var tIds = await db.Students
-                    .Where(s => s.TeacherId.HasValue)
-                    .Select(s => s.TeacherId!.Value).Distinct().Take(8).ToListAsync();
-                if (tIds.Count == 0) return new();
-                var teachers = await db.Users.Where(u => tIds.Contains(u.Id) && u.IsActive).ToListAsync();
-                var fallback = new List<ClassroomStatsDto>();
-                foreach (var t in teachers)
-                {
-                    var ids = await db.Students.Where(s => s.TeacherId == t.Id)
-                        .Select(s => s.Id).ToListAsync();
-                    if (ids.Count == 0) continue;
-                    var prog = await db.StudentProgress
-                        .Where(p => p.StudentId.HasValue && ids.Contains(p.StudentId.Value) && p.ExamCompleted).ToListAsync();
-                    double avg = prog.Any() ? prog.Average(p => p.ScorePercentage) : 0;
-                    fallback.Add(new ClassroomStatsDto($"فصل {t.Name}", t.Name, ids.Count, Math.Round(avg, 1)));
-                }
-                return fallback;
-            }
+            if (classrooms.Count == 0) return new();
 
             var teacherIds = classrooms.Select(c => c.TeacherId).Distinct().ToList();
             var teacherMap = await db.Users.Where(u => teacherIds.Contains(u.Id))
                                            .ToDictionaryAsync(u => u.Id, u => u.Name);
-            var allProgress = await db.StudentProgress.Where(p => p.ExamCompleted).ToListAsync();
-            var result = new List<ClassroomStatsDto>();
 
+            var allStudentIds = classrooms.SelectMany(c => c.Students.Select(cs => cs.StudentId)).Distinct().ToList();
+
+            var result = new List<ClassroomStatsDto>();
             foreach (var c in classrooms)
             {
-                var ids  = c.Students.Select(cs => cs.StudentId).ToList();
-                var prog = allProgress.Where(p => p.StudentId.HasValue && ids.Contains(p.StudentId.Value)).ToList();
-                double avg = prog.Any() ? prog.Average(p => p.ScorePercentage) : 0;
+                var ids    = c.Students.Select(cs => cs.StudentId).ToList();
+                double avg = await ComputeWritingAvgForManyAsync(ids);
                 var teacherName = teacherMap.GetValueOrDefault(c.TeacherId, "");
-                result.Add(new ClassroomStatsDto(c.Name, teacherName, ids.Count, Math.Round(avg, 1)));
+                result.Add(new ClassroomStatsDto(c.Name, teacherName, ids.Count, avg));
             }
             return result;
         }
 
-        private async Task<List<LevelDistributionDto>> GetLevelDistributionAsync()
+        private async Task<List<LevelDistributionDto>> GetLevelDistributionAsync(List<Guid> schoolStudentIds)
         {
             var counts = await db.Students
+                .Where(s => schoolStudentIds.Contains(s.Id))
                 .GroupBy(s => s.Level)
                 .Select(g => new { Level = g.Key, Count = g.Count() }).ToListAsync();
 
@@ -507,19 +702,24 @@ namespace Infrastructure.Services
         }
 
         private static List<SkillBarDto> BuildSkillBars(
-            List<Domain.Entities.StudentProgress> p,
-            List<Domain.Entities.WritingAttempt>  w)
+            int lettersCompleted, int lettersTotal,
+            int wordsCompleted,   int wordsTotal,
+            int sentencesCompleted, int sentencesTotal,
+            double writingAvgScore,
+            double avgReadingAccuracy)
         {
-            double examAvg   = p.Any(x => x.ExamCompleted) ? p.Where(x => x.ExamCompleted).Average(x => x.ScorePercentage) : 0;
-            double storyAvg  = p.Any(x => x.ExamCompleted && x.StoryId.HasValue)  ? p.Where(x => x.ExamCompleted && x.StoryId.HasValue).Average(x => x.ScorePercentage)  : examAvg;
-            double lessonAvg = p.Any(x => x.ExamCompleted && x.LessonId.HasValue) ? p.Where(x => x.ExamCompleted && x.LessonId.HasValue).Average(x => x.ScorePercentage) : examAvg;
-            double writePct  = w.Any() ? (double)w.Count(x => x.IsAccepted) / w.Count * 100 : 0;
+            double letterPct  = lettersTotal > 0
+                ? Math.Round((double)lettersCompleted / lettersTotal * 100) : 0;
+            double vocabPct   = (wordsTotal + sentencesTotal) > 0
+                ? Math.Round((double)(wordsCompleted + sentencesCompleted) / (wordsTotal + sentencesTotal) * 100) : 0;
+            double writePct   = Math.Round(writingAvgScore);
+            double readingPct = Math.Round(avgReadingAccuracy);
             return new()
             {
-                new("التعرف على الحروف", (int)Math.Round(lessonAvg)),
-                new("طلاقة القراءة",     (int)Math.Round(storyAvg)),
-                new("تدريب الكتابة",     (int)Math.Round(writePct)),
-                new("المفردات",           (int)Math.Round(examAvg)),
+                new("التعرف على الحروف", (int)Math.Min(100, letterPct)),
+                new("طلاقة القراءة",     (int)Math.Min(100, readingPct)),
+                new("تدريب الكتابة",     (int)Math.Min(100, writePct)),
+                new("المفردات",           (int)Math.Min(100, vocabPct)),
             };
         }
 

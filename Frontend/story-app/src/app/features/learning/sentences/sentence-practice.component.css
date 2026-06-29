@@ -25,7 +25,7 @@
 .tool-btn.active { border-color: #10B981; background: #D1FAE5; color: #065F46; }
 .tool-btn.clear-btn { border-color: #EF4444; color: #EF4444; }
 .mb-2 { margin-bottom: 10px; }
-.writing-canvas { width: 100%; height: 220px; border: 2px dashed #A7F3D0; border-radius: 16px; cursor: crosshair; touch-action: none; background: #FAFAFA; }
+.writing-canvas { width: 100%; height: 340px; border: 2px dashed #A7F3D0; border-radius: 16px; cursor: crosshair; touch-action: none; background: #FAFAFA; }
 .result-banner { margin-top: 12px; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 15px; text-align: center; }
 .result-banner.correct { background: #DCFCE7; color: #166534; }
 .submit-btn { display: block; width: 100%; margin-top: 14px; padding: 13px; background: linear-gradient(135deg, #10B981, #34D399); color: #fff; border: none; border-radius: 14px; font-weight: 700; font-size: 15px; font-family: Cairo, sans-serif; cursor: pointer; transition: opacity .2s; }

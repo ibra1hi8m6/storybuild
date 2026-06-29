@@ -55,6 +55,9 @@
               }
               <span class="badge position-absolute top-0 start-0 m-2"
                     style="background:#e040a0">L{{ lesson.level }}</span>
+              @if (state.isCompleted(lesson.id)) {
+                <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span>
+              }
             </div>
 
             <div class="card-body p-3 d-flex flex-column align-items-center gap-1 text-center">

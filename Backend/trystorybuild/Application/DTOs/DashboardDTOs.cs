@@ -69,7 +69,8 @@ namespace Application.DTOs
         int WritingAttempts,
         string PerformanceLevel,
         DateTime? LastActivity,
-        int Level = 1);
+        int Level = 1,
+        string? ClassroomName = null);
 
     // ── Parent Dashboard ──────────────────────────────────────────────────────
 
@@ -90,7 +91,15 @@ namespace Application.DTOs
         List<SkillBarDto> SkillBars,
         List<TopContentDto> TopStories,
         List<ExamHistoryDto> ExamHistory,
-        List<RecentActivityDto> RecentActivity);
+        List<RecentActivityDto> RecentActivity,
+        int LettersCompleted = 0,
+        int LettersTotal = 0,
+        int WordsCompleted = 0,
+        int WordsTotal = 0,
+        int SentencesCompleted = 0,
+        int SentencesTotal = 0,
+        int LessonsTotal = 0,
+        int StoriesTotal = 0);
 
     // ── Teacher Dashboard ─────────────────────────────────────────────────────
 
@@ -101,7 +110,17 @@ namespace Application.DTOs
         List<TopContentDto> TopStories,
         List<TopContentDto> TopLessons,
         List<StudentSummaryDto> Students,
-        List<PerformanceBandDto> PerformanceBands);
+        List<PerformanceBandDto> PerformanceBands,
+        double LettersAvgPct = 0,
+        int LettersTotal = 0,
+        double WordsAvgPct = 0,
+        int WordsTotal = 0,
+        double SentencesAvgPct = 0,
+        int SentencesTotal = 0,
+        double LessonsAvgPct = 0,
+        int LessonsTotal = 0,
+        double StoriesAvgPct = 0,
+        int StoriesTotal = 0);
 
     // ── School Dashboard ──────────────────────────────────────────────────────
 
@@ -116,7 +135,17 @@ namespace Application.DTOs
         List<RecentActivityDto> RecentActivities,
         List<PerformanceBandDto> PerformanceBands,
         List<ClassroomStatsDto> Classrooms,
-        List<LevelDistributionDto> LevelDistribution);
+        List<LevelDistributionDto> LevelDistribution,
+        double LettersAvgPct = 0,
+        int LettersTotal = 0,
+        double WordsAvgPct = 0,
+        int WordsTotal = 0,
+        double SentencesAvgPct = 0,
+        int SentencesTotal = 0,
+        double LessonsAvgPct = 0,
+        int LessonsTotal = 0,
+        double StoriesAvgPct = 0,
+        int StoriesTotal = 0);
 
     public record ClassroomStatsDto(
         string Name,

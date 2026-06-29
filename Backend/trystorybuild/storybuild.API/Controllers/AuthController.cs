@@ -28,7 +28,7 @@ namespace storybuild.API.Controllers
             {
                 var result = await authService.RegisterAsync(request);
                 // If a school admin creates a teacher, send welcome email with credentials
-                if (request.Role?.ToLower() == "teacher" && !string.IsNullOrWhiteSpace(request.SchoolCode))
+                if (request.Role?.ToLower() == "teacher" && request.SchoolManagerId.HasValue)
                     await emailService.SendTeacherWelcomeAsync(request.Email, request.FullName, request.Password);
                 return Ok(result);
             }
@@ -104,6 +104,28 @@ namespace storybuild.API.Controllers
             return Ok(new { id, name, role });
         }
 
+        // ── Delete student (teacher or parent who owns the student) ──────────────
+        [HttpDelete("students/{id:guid}")]
+        [Authorize(Roles = "Teacher,Parent,SystemAdmin")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> DeleteStudent(Guid id)
+        {
+            var callerId = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+
+            try
+            {
+                await authService.DeleteStudentAsync(callerId, id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException    ex) { return NotFound(new { error = ex.Message }); }
+            catch (UnauthorizedAccessException) { return Forbid(); }
+        }
+
         // ── Teacher adjusts a specific student's level ────────────────────────
         [HttpPatch("students/{id:guid}/level")]
         [Authorize(Roles = "Teacher,SystemAdmin")]
@@ -145,16 +167,15 @@ namespace storybuild.API.Controllers
             if (string.IsNullOrWhiteSpace(req.NewPassword) || req.NewPassword.Length < 6)
                 return BadRequest(new { error = "كلمة المرور يجب أن تكون 6 أحرف على الأقل." });
 
-            var adminId    = Guid.Parse(
+            var adminId = Guid.Parse(
                 User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                 ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? throw new InvalidOperationException("Invalid token."));
-            var schoolCode = adminId.ToString("N")[..8].ToUpper();
 
             // Verify teacher belongs to this school
             var teacher = await db.Teachers
                 .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.Id == teacherId && t.SchoolCode == schoolCode);
+                .FirstOrDefaultAsync(t => t.Id == teacherId && t.SchoolManagerId == adminId);
             if (teacher is null) return NotFound(new { error = "المعلم غير موجود أو لا ينتمي لمدرستك." });
 
             teacher.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
@@ -175,14 +196,35 @@ namespace storybuild.API.Controllers
                 ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                 ?? throw new InvalidOperationException("Invalid token."));
 
-            var schoolCode = adminId.ToString("N")[..8].ToUpper();
-            var teachers   = await userRepository.GetTeachersBySchoolCodeAsync(schoolCode);
+            var teachers = await userRepository.GetTeachersBySchoolManagerIdAsync(adminId);
+
+            var teacherIds = teachers.Select(t => t.Id).ToList();
+
+            // Step 1: classrooms for these teachers
+            var classrooms = await db.Classrooms
+                .Where(c => teacherIds.Contains(c.TeacherId))
+                .Select(c => new { c.Id, c.TeacherId })
+                .ToListAsync();
+
+            // Step 2: student counts per classroom
+            var classroomIds = classrooms.Select(c => c.Id).ToList();
+            var countsByClassroom = await db.ClassroomStudents
+                .Where(cs => classroomIds.Contains(cs.ClassroomId))
+                .GroupBy(cs => cs.ClassroomId)
+                .Select(g => new { ClassroomId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var countByClassroom = countsByClassroom.ToDictionary(x => x.ClassroomId, x => x.Count);
+            var countByTeacher   = classrooms.ToDictionary(
+                c => c.TeacherId,
+                c => countByClassroom.GetValueOrDefault(c.Id, 0));
 
             var result = teachers.Select(t => new
             {
-                id    = t.Id,
-                name  = t.User?.Name ?? "",
-                email = t.User?.Email ?? "",
+                id           = t.Id,
+                name         = t.User?.Name ?? "",
+                email        = t.User?.Email ?? "",
+                studentCount = countByTeacher.GetValueOrDefault(t.Id, 0),
             });
 
             return Ok(result);

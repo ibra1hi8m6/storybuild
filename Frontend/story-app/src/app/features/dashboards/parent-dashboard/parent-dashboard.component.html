@@ -3,26 +3,63 @@
 
   <div class="container-xl pt-4 pb-5">
 
-    <!-- Header row: child tabs + add button -->
-    <div class="d-flex align-items-center flex-wrap gap-2 mb-4">
-      @for (s of students(); track s.id) {
-        <button class="btn rounded-pill fw-bold d-flex align-items-center gap-2 px-4"
-          [class.btn-primary]="activeChild() === s.name"
-          [class.btn-outline-secondary]="activeChild() !== s.name"
-          (click)="selectChild(s.id, s.name)">
-          <span>👤</span>{{ s.name }}
-        </button>
-      }
-      <div class="ms-auto d-flex gap-2">
-        <button class="btn btn-primary rounded-pill fw-bold d-flex align-items-center gap-2 px-4 shadow-sm"
-                (click)="addChild()">
-          <i class="bi bi-person-plus-fill"></i> إضافة طفل
-        </button>
-        <button class="btn btn-outline-danger rounded-pill fw-bold px-4" (click)="logout()">
-          🚪 خروج
-        </button>
-      </div>
+    <!-- Top action bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h5 class="fw-800 mb-0" style="color:var(--text-main);font-size:20px">
+        👨‍👧‍👦 لوحة متابعة الأطفال
+      </h5>
+      <button class="btn btn-primary rounded-pill fw-bold d-flex align-items-center gap-2 px-4 shadow-sm"
+              (click)="addChild()">
+        <i class="bi bi-person-plus-fill"></i> إضافة طفل
+      </button>
     </div>
+
+    <!-- Child selector card -->
+    @if (students().length > 0) {
+      <div class="mb-4 p-3 rounded-4 d-flex align-items-center gap-3 flex-wrap"
+           style="background:var(--bg-card);border:1.5px solid rgba(244,120,138,.12);box-shadow:0 2px 12px rgba(244,120,138,.07)">
+        <span class="fw-bold small" style="color:var(--text-muted);white-space:nowrap">عرض بيانات:</span>
+        @for (s of students(); track s.id) {
+          <button (click)="selectChild(s.id, s.name)"
+                  class="d-flex align-items-center gap-2 fw-bold rounded-pill border-0 px-4 py-2"
+                  style="font-family:'Cairo',sans-serif;font-size:14px;cursor:pointer;transition:.2s"
+                  [style.background]="activeChild() === s.name ? 'var(--primary-gradient,linear-gradient(135deg,#F4788A,#C084FC))' : '#F3F4F6'"
+                  [style.color]="activeChild() === s.name ? '#fff' : 'var(--text-muted)'">
+            <span>👤</span>{{ s.name }}
+          </button>
+        }
+        @if (activeChildId()) {
+          <button (click)="confirmDelete()"
+                  class="ms-auto fw-bold border-0 rounded-pill px-3 py-2"
+                  style="background:#FEF2F2;color:#DC2626;font-family:'Cairo',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap">
+            🗑️ حذف {{ activeChild() }}
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Delete confirmation dialog -->
+    @if (showDeleteConfirm()) {
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:18px;padding:32px;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.18)" dir="rtl">
+          <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+          <h5 style="font-weight:900;margin-bottom:8px">حذف {{ activeChild() }}؟</h5>
+          <p style="color:#6B7280;font-size:14px;margin-bottom:24px">
+            سيتم حذف جميع بيانات الطفل نهائياً — التقدم، الكتابة، القراءة. لا يمكن التراجع.
+          </p>
+          <div style="display:flex;gap:12px;justify-content:center">
+            <button (click)="cancelDelete()"
+                    style="flex:1;padding:10px 0;border-radius:10px;background:#F3F4F6;border:none;font-weight:800;font-family:'Cairo',sans-serif;cursor:pointer">
+              إلغاء
+            </button>
+            <button (click)="deleteStudent()" [disabled]="deleteLoading()"
+                    style="flex:1;padding:10px 0;border-radius:10px;background:#DC2626;border:none;color:#fff;font-weight:800;font-family:'Cairo',sans-serif;cursor:pointer">
+              {{ deleteLoading() ? 'جارٍ الحذف…' : 'نعم، احذف' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- Quick nav cards -->
     <div class="row g-3 mb-4">
@@ -76,41 +113,101 @@
 
       <!-- Stat cards -->
       <div class="row g-3 mb-4">
+
+        <!-- Card 1: حروف -->
         <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
-            <span style="font-size:28px">📚</span>
-            <span class="fw-800 fs-3" style="color:var(--primary)">{{ d.storiesRead }}</span>
-            <span class="small fw-semibold text-muted">قصص مكتملة</span>
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:22px">🔤</span>
+              <span class="fw-800 small">الحروف</span>
+            </div>
+            <span class="fw-800 fs-4" style="color:var(--primary)">
+              {{ d.lettersCompleted ?? 0 }}/{{ d.lettersTotal ?? 0 }}
+            </span>
+            <div class="progress" style="height:6px">
+              <div class="progress-bar" role="progressbar"
+                   [style.width]="(d.lettersTotal > 0 ? (d.lettersCompleted / d.lettersTotal * 100) : 0) + '%'"
+                   style="background:var(--primary)"></div>
+            </div>
           </div>
         </div>
+
+        <!-- Card 2: كلمات + جمل -->
         <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
-            <span style="font-size:28px">⭐</span>
-            <span class="fw-800 fs-3" style="color:var(--primary)">{{ d.stars }}</span>
-            <span class="small fw-semibold text-muted">نجمات مكتسبة</span>
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:22px">📝</span>
+              <span class="fw-800 small">الكلمات والجمل</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">كلمات</span>
+                <span class="fw-700" style="color:var(--primary)">{{ d.wordsCompleted ?? 0 }}/{{ d.wordsTotal ?? 0 }}</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar"
+                     [style.width]="(d.wordsTotal > 0 ? (d.wordsCompleted / d.wordsTotal * 100) : 0) + '%'"
+                     style="background:#8B5CF6"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">جمل</span>
+                <span class="fw-700" style="color:var(--primary)">{{ d.sentencesCompleted ?? 0 }}/{{ d.sentencesTotal ?? 0 }}</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar"
+                     [style.width]="(d.sentencesTotal > 0 ? (d.sentencesCompleted / d.sentencesTotal * 100) : 0) + '%'"
+                     style="background:#EC4899"></div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Card 3: دروس + قصص -->
         <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
-            <span style="font-size:28px">📝</span>
-            <span class="fw-800 fs-3" style="color:var(--primary)">{{ d.lessonsCompleted }}</span>
-            <span class="small fw-semibold text-muted">دروس مكتملة</span>
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:22px">📚</span>
+              <span class="fw-800 small">الكتيبات والقصص</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">كتيبات</span>
+                <span class="fw-700" style="color:var(--primary)">{{ d.lessonsCompleted ?? 0 }}/{{ d.lessonsTotal ?? 0 }}</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar"
+                     [style.width]="(d.lessonsTotal > 0 ? (d.lessonsCompleted / d.lessonsTotal * 100) : 0) + '%'"
+                     style="background:#10B981"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">قصص</span>
+                <span class="fw-700" style="color:var(--primary)">{{ d.storiesRead ?? 0 }}/{{ d.storiesTotal ?? 0 }}</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar"
+                     [style.width]="(d.storiesTotal > 0 ? (d.storiesRead / d.storiesTotal * 100) : 0) + '%'"
+                     style="background:#F59E0B"></div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Card 4: متوسط الأداء -->
         <div class="col-6 col-md-3">
           <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
             <span style="font-size:28px">📊</span>
             <span class="fw-800 fs-3" style="color:var(--primary)">{{ (d.avgScore ?? 0) | number:'1.0-0' }}٪</span>
-            <span class="small fw-semibold text-muted">متوسط الأداء</span>
+            <span class="small fw-semibold text-muted">متوسط الأداء الكتابي</span>
           </div>
         </div>
+
       </div>
 
       <!-- Assignments + Skills -->
       <div class="row g-3 mb-4">
 
         <!-- Assignments -->
-        <div class="col-md-6">
+        <!-- <div class="col-md-6">
           <div class="card p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h5 class="fw-800 mb-0">📋 الدروس المُعيَّنة</h5>
@@ -132,7 +229,7 @@
               }
             </ul>
           </div>
-        </div>
+        </div> -->
 
         <!-- Skills -->
         <div class="col-md-6">
@@ -179,7 +276,7 @@
           </div>
         </div>
 
-        <!-- Level -->
+        <!-- Level — hidden until writing average is reliable
         <div class="col-md-4">
           <div class="card p-4 h-100">
             <h5 class="fw-800 mb-3">🏆 مستوى التعلم</h5>
@@ -195,11 +292,12 @@
             </div>
           </div>
         </div>
+        -->
 
       </div>
 
       <!-- In-progress lessons -->
-      <div class="mb-4">
+      <!-- <div class="mb-4">
         <h4 class="fw-800 mb-3">📖 دروس قيد التقدم</h4>
         @if ((d.inProgressLessons ?? []).length === 0) {
           <p class="text-muted small">لا توجد دروس قيد التقدم حالياً.</p>
@@ -218,7 +316,7 @@
             </div>
           }
         </div>
-      </div>
+      </div> -->
 
       <!-- Weakness map -->
       @if (weaknessMap() && (weakLetters().length > 0 || weakLessons().length > 0)) {

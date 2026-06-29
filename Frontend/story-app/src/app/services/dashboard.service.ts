@@ -20,6 +20,10 @@ export class DashboardService {
     return this.http.get<ParentDashboardDto>(`${this.api}/api/dashboard/parent/${studentId}`);
   }
 
+  getTeacherStudentView(studentId: string): Observable<StudentDashboardDto> {
+    return this.http.get<StudentDashboardDto>(`${this.api}/api/dashboard/teacher/student/${studentId}`);
+  }
+
   getTeacherDashboard(): Observable<TeacherDashboardDto> {
     return this.http.get<TeacherDashboardDto>(`${this.api}/api/dashboard/teacher`);
   }

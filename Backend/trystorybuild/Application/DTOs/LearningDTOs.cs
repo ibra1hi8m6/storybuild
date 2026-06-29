@@ -39,6 +39,7 @@ namespace Application.DTOs
         public string? ImagePath { get; set; }
         public bool IsPublished { get; set; }
         public int SortOrder { get; set; }
+        public Guid? NextId { get; set; }
     }
 
     public class UpsertWordContentRequest
@@ -64,6 +65,7 @@ namespace Application.DTOs
         public int CorrectOptionIndex { get; set; }
         public bool IsPublished { get; set; }
         public int SortOrder { get; set; }
+        public Guid? NextId { get; set; }
     }
 
     public class UpsertSentenceContentRequest

@@ -18,16 +18,14 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? throw new InvalidOperationException("Invalid token."));
 
-    private string SchoolCode() => CurrentUserId().ToString("N")[..8].ToUpper();
-
     // ── GET /api/classrooms  (SchoolAdmin) ────────────────────────────────────
     [HttpGet]
     [Authorize(Roles = "SchoolAdmin")]
     public async Task<IActionResult> GetMyClassrooms()
     {
-        var code = SchoolCode();
+        var adminId = CurrentUserId();
         var classrooms = await db.Classrooms
-            .Where(c => c.SchoolCode == code)
+            .Where(c => c.SchoolManagerId == adminId)
             .Include(c => c.Students)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
@@ -88,10 +86,10 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
 
         var classroom = new Classroom
         {
-            Name       = req.Name.Trim(),
-            Level      = req.Level,
-            SchoolCode = SchoolCode(),
-            TeacherId  = req.TeacherId,
+            Name            = req.Name.Trim(),
+            Level           = req.Level,
+            SchoolManagerId = CurrentUserId(),
+            TeacherId       = req.TeacherId,
         };
         db.Classrooms.Add(classroom);
         await db.SaveChangesAsync();
@@ -116,7 +114,7 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
     {
         var classroom = await db.Classrooms.FindAsync(id);
         if (classroom is null) return NotFound();
-        if (classroom.SchoolCode != SchoolCode()) return Forbid();
+        if (classroom.SchoolManagerId != CurrentUserId()) return Forbid();
 
         if (!string.IsNullOrWhiteSpace(req.Name)) classroom.Name = req.Name.Trim();
         if (req.Level is > 0)                      classroom.Level = req.Level!.Value;
@@ -137,7 +135,7 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
     {
         var classroom = await db.Classrooms.FindAsync(id);
         if (classroom is null) return NotFound();
-        if (classroom.SchoolCode != SchoolCode()) return Forbid();
+        if (classroom.SchoolManagerId != CurrentUserId()) return Forbid();
         db.Classrooms.Remove(classroom);
         await db.SaveChangesAsync();
         return NoContent();
@@ -181,10 +179,10 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
     [Authorize(Roles = "SchoolAdmin")]
     public async Task<IActionResult> SearchSchoolStudents([FromQuery] string q = "")
     {
-        var code = SchoolCode();
+        var adminId = CurrentUserId();
         // Find teachers belonging to this school
         var teacherIds = await db.Teachers
-            .Where(t => t.SchoolCode == code)
+            .Where(t => t.SchoolManagerId == adminId)
             .Select(t => t.Id).ToListAsync();
 
         var query = db.Students.Where(s =>
@@ -210,9 +208,9 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
     [Authorize(Roles = "SchoolAdmin")]
     public async Task<IActionResult> GetReport()
     {
-        var code = SchoolCode();
+        var adminId = CurrentUserId();
         var classrooms = await db.Classrooms
-            .Where(c => c.SchoolCode == code)
+            .Where(c => c.SchoolManagerId == adminId)
             .Include(c => c.Students).ThenInclude(cs => cs.Student)
             .OrderBy(c => c.Level).ThenBy(c => c.Name)
             .ToListAsync();

@@ -52,7 +52,9 @@
           </div>
           @if (result()!.isCorrect) {
             <div class="result-actions">
-              <button class="btn-next" (click)="goNext()">انتقل إلى الحرف التالي ←</button>
+              <button class="btn-next" (click)="goNext()">
+                {{ nextLetterId() ? 'انتقل إلى الحرف التالي ←' : '🏁 إنهاء الحروف' }}
+              </button>
               <button class="btn-back-small" (click)="goBack()">العودة للحروف</button>
             </div>
           } @else {
@@ -60,9 +62,11 @@
           }
         }
 
-        <button class="submit-btn" [disabled]="isChecking()" (click)="submitWriting()">
-          {{ isChecking() ? 'جارٍ التحقق...' : '✅ إرسال الكتابة' }}
-        </button>
+        @if (!result()) {
+          <button class="submit-btn" [disabled]="isChecking()" (click)="submitWriting()">
+            {{ isChecking() ? 'جارٍ التحقق...' : '✅ إرسال الكتابة' }}
+          </button>
+        }
       </div>
 
     </div>

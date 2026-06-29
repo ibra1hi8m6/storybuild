@@ -331,7 +331,7 @@ public class AdminController(
                 id         = u.Id,
                 schoolName = u.Name,
                 adminEmail = u.Email,
-                schoolCode = u.Id.ToString("N").Substring(0, 8).ToUpper(),
+                schoolManagerId = u.Id,
                 createdAt  = u.CreatedAt,
                 isBlocked  = u.IsBlocked
             })
@@ -355,15 +355,15 @@ public class AdminController(
 
         try
         {
-            var (id, schoolCode) = await authService.CreateSchoolAdminAsync(
+            var id = await authService.CreateSchoolAdminAsync(
                 req.SchoolName, req.AdminEmail, req.AdminPassword);
 
             return Ok(new
             {
                 id,
-                schoolName = req.SchoolName.Trim(),
-                adminEmail = req.AdminEmail.Trim().ToLower(),
-                schoolCode,
+                schoolName      = req.SchoolName.Trim(),
+                adminEmail      = req.AdminEmail.Trim().ToLower(),
+                schoolManagerId = id,
             });
         }
         catch (InvalidOperationException ex)

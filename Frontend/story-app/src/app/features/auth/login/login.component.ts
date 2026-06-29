@@ -75,7 +75,7 @@ export class LoginComponent {
 
     this.auth.login(this.adultForm.email, this.adultForm.password).subscribe({
       next: res => {
-        this.state.setUser({ id: res.userId, name: res.name, role: res.role as any, schoolCode: res.schoolCode });
+        this.state.setUser({ id: res.userId, name: res.name, role: res.role as any, schoolManagerId: res.schoolManagerId });
         this.isLoading.set(false);
         this.redirectByRole(res.role);
       },
@@ -118,8 +118,8 @@ export class LoginComponent {
       parent:      '/parent/dashboard',
       teacher:     '/teacher/students',
       schooladmin: '/school/dashboard',
-      systemadmin: '/admin/content',
-      admin:       '/admin/content',
+      systemadmin: '/admin/books',
+      admin:       '/admin/books',
     };
     this.router.navigate([map[role.toLowerCase()] ?? '/dashboard']);
   }

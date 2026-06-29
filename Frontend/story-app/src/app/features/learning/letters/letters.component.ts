@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
+import { AppStateService } from '../../../services/app-state-service';
 import { LetterContentDto } from '../../../models/learning.models';
 import { environment } from '../../../../environments/environment';
 
@@ -16,6 +17,7 @@ import { environment } from '../../../../environments/environment';
 export class LettersComponent implements OnInit {
   private readonly svc    = inject(LearningService);
   private readonly router = inject(Router);
+  readonly state = inject(AppStateService);
   readonly api = environment.apiUrl;
 
   readonly letters   = signal<LetterContentDto[]>([]);

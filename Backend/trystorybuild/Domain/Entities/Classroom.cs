@@ -5,7 +5,7 @@ namespace Domain.Entities
         public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; } = string.Empty;
         public int Level { get; set; } = 1;
-        public string SchoolCode { get; set; } = string.Empty;
+        public Guid? SchoolManagerId { get; set; }
         public Guid TeacherId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public List<ClassroomStudent> Students { get; set; } = new();

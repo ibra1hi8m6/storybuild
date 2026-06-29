@@ -4,9 +4,9 @@
   <div class="page-header">
     <button class="back-btn" (click)="goBack()">→ رجوع</button>
     <h1 class="page-title">الحروف والأصوات</h1>
-    <button class="recognition-btn" (click)="goRecognition()">
+    <!-- <button class="recognition-btn" (click)="goRecognition()">
       🔤 نشاط التعرف على الحروف
-    </button>
+    </button> -->
   </div>
 
   @if (isLoading()) {
@@ -21,7 +21,10 @@
   } @else {
     <div class="letters-grid">
       @for (l of letters(); track l.id) {
-        <button class="letter-card" (click)="openLetter(l.id)">
+        <button class="letter-card" (click)="openLetter(l.id)" style="position:relative">
+          @if (state.isCompleted(l.id)) {
+            <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:1">✓</span>
+          }
           @if (l.imagePath) {
             <img [src]="l.imagePath" class="letter-img" [alt]="l.letter">
           } @else {

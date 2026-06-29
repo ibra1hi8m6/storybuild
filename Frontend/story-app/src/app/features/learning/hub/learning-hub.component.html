@@ -1,33 +1,72 @@
-<app-navbar />
+<div dir="rtl" style="min-height:100vh;background:var(--bg-base);display:flex">
 
-<div class="hub-page" dir="rtl">
-  <div class="hub-header">
-    <h1 class="hub-title">محتوى التعلم</h1>
-    <p class="hub-subtitle">اختر قسم التعلم الذي تريد</p>
-  </div>
+  <!-- Sidebar nav -->
+  <aside class="d-none d-lg-flex flex-column gap-3 bg-white p-3 border-start flex-shrink-0" style="width:240px;position:sticky;top:0;height:100vh;overflow-y:auto;border-color:rgba(244,120,138,.1)!important">
+    <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(244,120,138,.05)">
+      <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+           style="width:52px;height:52px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:26px">{{ state.currentUser()?.avatar || '🦁' }}</div>
+      <div>
+        <div class="fw-800">{{ state.currentUser()?.name || 'الطالب' }}</div>
+        <span class="badge rounded-pill mt-1" style="background:var(--primary);font-size:11px">
+          المستوى {{ state.currentUser()?.level ?? '—' }}
+        </span>
+      </div>
+    </div>
+    <nav class="d-flex flex-column gap-1 flex-grow-1">
+      @for (item of navItems; track item.route) {
+        <a class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-decoration-none fw-bold"
+           [routerLink]="item.route" routerLinkActive="active">
+          <span style="font-size:18px">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+    <div class="mt-auto pt-2 border-top" style="border-color:rgba(244,120,138,.1)!important">
+      <button class="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 bg-transparent fw-bold w-100"
+              style="color:#EF4444;font-family:'Cairo',sans-serif;font-size:14px;cursor:pointer"
+              (click)="logout()">
+        <span style="font-size:18px">🚪</span>
+        <span>تسجيل الخروج</span>
+      </button>
+    </div>
+  </aside>
 
-  <div class="hub-cards">
+  <!-- Main -->
+  <main class="flex-grow-1 p-4">
+    <div class="hub-header">
+      <h1 class="hub-title">محتوى التعلم</h1>
+      <p class="hub-subtitle">اختر قسم التعلم الذي تريد</p>
+    </div>
 
-    <button class="hub-card card-letters" (click)="go('/learning/letters')">
-      <div class="card-emoji">أ</div>
-      <div class="card-title">الحروف والأصوات</div>
-      <div class="card-desc">تعلم الحروف الأبجدية العربية وأصواتها</div>
-      <div class="card-arrow">←</div>
-    </button>
+    <div class="hub-cards">
 
-    <button class="hub-card card-words" (click)="go('/learning/words-sentences')">
-      <div class="card-emoji">📝</div>
-      <div class="card-title">الكلمات والجمل</div>
-      <div class="card-desc">تعلم الكلمات وقراءة الجمل</div>
-      <div class="card-arrow">←</div>
-    </button>
+      <button class="hub-card card-letters" (click)="go('/learning/letters')">
+        <div class="card-emoji">أ</div>
+        <div class="card-title">الحروف والأصوات</div>
+        <div class="card-desc">تعلم الحروف الأبجدية العربية وأصواتها</div>
+        <div class="card-arrow">←</div>
+      </button>
 
-    <button class="hub-card card-stories" (click)="go('/learning/booklets-stories')">
-      <div class="card-emoji">📚</div>
-      <div class="card-title">الكتيبات والقصص</div>
-      <div class="card-desc">اقرأ الكتيبات والقصص الشيقة</div>
-      <div class="card-arrow">←</div>
-    </button>
+      <button class="hub-card card-words" (click)="go('/learning/words-sentences')">
+        <div class="card-emoji">📝</div>
+        <div class="card-title">الكلمات والجمل</div>
+        <div class="card-desc">تعلم الكلمات وقراءة الجمل</div>
+        <div class="card-arrow">←</div>
+      </button>
 
-  </div>
+      <button class="hub-card card-stories" (click)="go('/learning/booklets-stories')">
+        <div class="card-emoji">📚</div>
+        <div class="card-title">الكتيبات والقصص</div>
+        <div class="card-desc">اقرأ الكتيبات والقصص الشيقة</div>
+        <div class="card-arrow">←</div>
+      </button>
+
+    </div>
+  </main>
 </div>
+
+<style>
+  .sidebar-link { color: var(--text-muted); }
+  .sidebar-link:hover { background: rgba(244,120,138,.06); color: var(--primary); }
+  .sidebar-link.active { background: rgba(244,120,138,.1); color: var(--primary); }
+</style>

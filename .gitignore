@@ -22,3 +22,7 @@ appsettings.*.local.json
 Frontend/story-app/.angular/
 Frontend/story-app/node_modules/
 Frontend/story-app/dist/
+
+# Frontend secrets — API keys live here, never commit
+Frontend/story-app/src/environments/environment.ts
+Frontend/story-app/src/environments/environment.prod.ts

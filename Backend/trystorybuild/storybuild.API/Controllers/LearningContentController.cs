@@ -192,7 +192,22 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     {
         var item = await db.WordContents.FindAsync(id);
         if (item is null) return NotFound();
-        return Ok(MapWord(item));
+
+        var next = await db.WordContents
+            .Where(w => w.IsPublished && (
+                string.Compare(w.RelatedLetter, item.RelatedLetter) > 0 ||
+                (w.RelatedLetter == item.RelatedLetter && w.SortOrder > item.SortOrder) ||
+                (w.RelatedLetter == item.RelatedLetter && w.SortOrder == item.SortOrder && w.CreatedAt > item.CreatedAt)
+            ))
+            .OrderBy(w => w.RelatedLetter)
+            .ThenBy(w => w.SortOrder)
+            .ThenBy(w => w.CreatedAt)
+            .Select(w => (Guid?)w.Id)
+            .FirstOrDefaultAsync();
+
+        var dto = MapWord(item);
+        dto.NextId = next;
+        return Ok(dto);
     }
 
     [HttpPost("words")]
@@ -291,7 +306,19 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     {
         var item = await db.SentenceContents.FindAsync(id);
         if (item is null) return NotFound();
-        return Ok(MapSentence(item));
+
+        var next = await db.SentenceContents
+            .Where(s => s.IsPublished &&
+                        (s.SortOrder > item.SortOrder ||
+                        (s.SortOrder == item.SortOrder && s.CreatedAt > item.CreatedAt)))
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.CreatedAt)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync();
+
+        var dto = MapSentence(item);
+        dto.NextId = next;
+        return Ok(dto);
     }
 
     [HttpPost("sentences")]
@@ -385,6 +412,36 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
         };
 
         db.LearningAttempts.Add(entity);
+
+        // Record first-success completion (idempotent — unique index prevents duplicates)
+        if (req.IsCorrect && req.StudentId.HasValue)
+        {
+            var completionType = req.ContentType switch
+            {
+                LearningContentType.LetterSound       => ContentCompletionType.Letter,
+                LearningContentType.LetterRecognition => ContentCompletionType.Letter,
+                LearningContentType.WordPractice      => ContentCompletionType.Word,
+                LearningContentType.SentencePractice  => ContentCompletionType.Sentence,
+                _ => (ContentCompletionType?)null
+            };
+
+            if (completionType.HasValue)
+            {
+                var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                    c.StudentId   == req.StudentId.Value &&
+                    c.ContentType == completionType.Value &&
+                    c.ContentId   == req.ContentId);
+
+                if (!alreadyDone)
+                    db.StudentContentCompletions.Add(new StudentContentCompletion
+                    {
+                        StudentId   = req.StudentId.Value,
+                        ContentType = completionType.Value,
+                        ContentId   = req.ContentId
+                    });
+            }
+        }
+
         await db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetAttempts), new { studentId = entity.StudentId }, MapAttempt(entity));
     }

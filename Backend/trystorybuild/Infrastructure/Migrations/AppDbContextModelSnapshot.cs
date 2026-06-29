@@ -152,9 +152,8 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SchoolCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid?>("SchoolManagerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("TeacherId")
                         .HasColumnType("uniqueidentifier");
@@ -965,6 +964,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Theme")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1132,6 +1134,32 @@ namespace Infrastructure.Migrations
                     b.ToTable("StudentAnswers");
                 });
 
+            modelBuilder.Entity("Domain.Entities.StudentContentCompletion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ContentType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId", "ContentType", "ContentId")
+                        .IsUnique();
+
+                    b.ToTable("StudentContentCompletions");
+                });
+
             modelBuilder.Entity("Domain.Entities.StudentGroup", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1268,9 +1296,8 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("bit");
 
-                    b.Property<string>("SchoolCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<Guid?>("SchoolManagerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -1690,6 +1717,17 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudentContentCompletion", b =>
+                {
+                    b.HasOne("Domain.Entities.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("Domain.Entities.StudentGroup", b =>

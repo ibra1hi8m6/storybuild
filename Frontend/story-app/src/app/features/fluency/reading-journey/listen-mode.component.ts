@@ -31,7 +31,7 @@ import { TtsService } from '../../../services/tts.service';
 
   <!-- Next step -->
   <button class="btn-next" (click)="onNext()">
-    <i class="bi bi-book-open me-2"></i> الآن اقرأ بنفسك
+    <i class="bi bi-arrow-left me-2"></i> {{ nextLabel }}
   </button>
 
 </div>
@@ -45,6 +45,7 @@ export class ListenModeComponent implements OnDestroy {
     this.tts.stop();
     this.isPlaying.set(false);
   }
+  @Input() nextLabel = 'الآن اقرأ بنفسك';
   @Output() next = new EventEmitter<void>();
 
   private readonly cdr = inject(ChangeDetectorRef);

@@ -13,7 +13,7 @@ import { StoryResponse } from '../../../models/story.models';
 })
 export class MyStoriesComponent implements OnInit {
   private readonly svc    = inject(StoryService);
-  private readonly state  = inject(AppStateService);
+  readonly state          = inject(AppStateService);
   private readonly router = inject(Router);
 
   readonly isLoading = signal(false);
@@ -22,8 +22,9 @@ export class MyStoriesComponent implements OnInit {
 
   readonly navItems = [
     { icon: '📊', label: 'لوحتي',    route: '/dashboard' },
-    { icon: '✏️', label: 'الدروس',   route: '/lessons-list' },
-    { icon: '📋', label: 'تقدّمي',    route: '/progress' },
+    { icon:'✏️', label:'محتوى التعلم',  route:'/learning' },
+    // { icon: '✏️', label: 'الدروس',   route: '/lessons-list' },
+    // { icon: '📋', label: 'تقدّمي',    route: '/progress' },
     { icon: '🏆', label: 'إنجازاتي', route: '/achievements' },
     { icon: '📖', label: 'قصصي',     route: '/my-stories' },
     { icon: '✨', label: 'قصص ذكية', route: '/ai-story' },

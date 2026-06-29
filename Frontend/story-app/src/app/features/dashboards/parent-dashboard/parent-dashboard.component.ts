@@ -7,6 +7,7 @@ import { AppStateService } from '../../../services/app-state-service';
 import { AuthService } from '../../../services/auth.service';
 import { WeaknessMap, WritingAttemptHistory, ReadingAttemptHistory } from '../../../models/story.models';
 
+
 @Component({
   selector: 'app-parent-dashboard',
   standalone: true,
@@ -19,15 +20,17 @@ export class ParentDashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router      = inject(Router);
 
-  readonly isLoading      = signal(false);
-  readonly students       = signal<{ id: string; name: string }[]>([]);
-  readonly activeChild    = signal<string>('');
-  readonly activeChildId  = signal<string>('');
-  readonly data           = signal<any>(null);
-  readonly error          = signal<string | null>(null);
-  readonly weaknessMap    = signal<WeaknessMap | null>(null);
-  readonly writingHistory = signal<WritingAttemptHistory[]>([]);
-  readonly readingHistory = signal<ReadingAttemptHistory[]>([]);
+  readonly isLoading         = signal(false);
+  readonly students          = signal<{ id: string; name: string }[]>([]);
+  readonly activeChild       = signal<string>('');
+  readonly activeChildId     = signal<string>('');
+  readonly data              = signal<any>(null);
+  readonly error             = signal<string | null>(null);
+  readonly weaknessMap       = signal<WeaknessMap | null>(null);
+  readonly writingHistory    = signal<WritingAttemptHistory[]>([]);
+  readonly readingHistory    = signal<ReadingAttemptHistory[]>([]);
+  readonly showDeleteConfirm = signal(false);
+  readonly deleteLoading     = signal(false);
 
   readonly weekDays       = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
   readonly weekActivity   = computed(() => this.data()?.weeklyActivity as number[] ?? [0,0,0,0,0,0,0]);
@@ -47,8 +50,11 @@ export class ParentDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.authService.getMyStudents().subscribe({
       next: studentList => {
-        this.students.set(studentList.map(s => ({ id: s.id, name: s.name })));
-        if (studentList.length > 0) this.selectChild(studentList[0].id, studentList[0].name);
+        const unique = studentList
+          .filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i)
+          .map(s => ({ id: s.id, name: s.name }));
+        this.students.set(unique);
+        if (unique.length > 0) this.selectChild(unique[0].id, unique[0].name);
       }
     });
   }
@@ -120,6 +126,27 @@ export class ParentDashboardComponent implements OnInit {
   continueLesson(id: string): void { this.router.navigate(['/books', id, 'read']); }
   skillColor(pct: number): string { return pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#EF4444'; }
   addChild(): void { this.router.navigate(['/auth/create-student'], { queryParams: { returnTo: 'parent' } }); }
+
+  confirmDelete(): void  { this.showDeleteConfirm.set(true); }
+  cancelDelete(): void   { this.showDeleteConfirm.set(false); }
+  deleteStudent(): void {
+    const studentId = this.activeChildId();
+    if (!studentId) return;
+    this.deleteLoading.set(true);
+    this.authService.deleteStudent(studentId).subscribe({
+      next: () => {
+        const remaining = this.students().filter(s => s.id !== studentId);
+        this.students.set(remaining);
+        this.showDeleteConfirm.set(false);
+        this.deleteLoading.set(false);
+        this.data.set(null);
+        this.activeChild.set('');
+        this.activeChildId.set('');
+        if (remaining.length > 0) this.selectChild(remaining[0].id, remaining[0].name);
+      },
+      error: () => { this.deleteLoading.set(false); this.showDeleteConfirm.set(false); }
+    });
+  }
 
   private readonly state = inject(AppStateService);
   logout(): void {

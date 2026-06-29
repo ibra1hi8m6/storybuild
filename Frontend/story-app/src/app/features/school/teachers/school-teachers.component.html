@@ -66,8 +66,14 @@
 
         <div style="margin-bottom:20px">
           <label style="font-size:12px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:6px">كلمة المرور</label>
-          <input [(ngModel)]="form.password" type="password" placeholder="6 أحرف على الأقل"
-                 style="width:100%;max-width:300px;padding:10px 14px;border-radius:12px;border:1.5px solid rgba(244,120,138,.2);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;box-sizing:border-box" />
+          <div style="position:relative;max-width:300px">
+            <input [(ngModel)]="form.password" [type]="showPassword() ? 'text' : 'password'" placeholder="6 أحرف على الأقل"
+                   style="width:100%;padding:10px 42px 10px 14px;border-radius:12px;border:1.5px solid rgba(244,120,138,.2);font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;box-sizing:border-box" />
+            <button type="button" (click)="showPassword.set(!showPassword())"
+                    style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;line-height:1;color:var(--text-muted)">
+              {{ showPassword() ? '🙈' : '👁️' }}
+            </button>
+          </div>
         </div>
 
         <button (click)="createTeacher()" [disabled]="isSaving()"
@@ -90,7 +96,7 @@
         <table style="width:100%;border-collapse:collapse">
           <thead>
             <tr style="background:rgba(244,120,138,.05)">
-              @for (h of ['المعلم','المادة','الطلاب','متوسط الدرجات','تاريخ الانضمام','']; track h) {
+              @for (h of ['المعلم','المادة','الطلاب','متوسط الدرجات','']; track h) {
                 <th style="padding:14px 16px;font-size:13px;font-weight:800;color:var(--text-muted);text-align:right">{{ h }}</th>
               }
             </tr>
@@ -112,7 +118,7 @@
                 <td style="padding:14px 16px">
                   <span style="font-size:14px;font-weight:900" [style.color]="scoreColor(t.avgScore)">{{ t.avgScore }}%</span>
                 </td>
-                <td style="padding:14px 16px;font-size:12px;color:var(--text-muted)">{{ t.joinedAt }}</td>
+                <!-- <td style="padding:14px 16px;font-size:12px;color:var(--text-muted)">{{ t.joinedAt }}</td> -->
                 <td style="padding:10px 16px">
                   <button class="btn btn-outline-warning btn-sm fw-bold" (click)="openResetModal(t)">
                     🔑 إعادة كلمة المرور
@@ -147,8 +153,14 @@
           }
 
           <label class="form-label fw-800 small">كلمة المرور الجديدة</label>
-          <input [(ngModel)]="resetNewPassword" type="text" class="form-control rounded-3 mb-3"
-                 placeholder="6 أحرف على الأقل" />
+          <div class="position-relative mb-3">
+            <input [(ngModel)]="resetNewPassword" [type]="showResetPwd() ? 'text' : 'password'"
+                   class="form-control rounded-3" placeholder="6 أحرف على الأقل" style="padding-left:42px" />
+            <button type="button" (click)="showResetPwd.set(!showResetPwd())"
+                    style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;line-height:1;color:#6B7280">
+              {{ showResetPwd() ? '🙈' : '👁️' }}
+            </button>
+          </div>
         </div>
         <div class="modal-footer border-0 gap-2">
           <button class="btn btn-warning fw-800 flex-grow-1" (click)="confirmReset()" [disabled]="isResetting()">

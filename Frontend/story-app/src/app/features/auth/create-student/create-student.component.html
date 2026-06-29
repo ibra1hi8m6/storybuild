@@ -38,22 +38,16 @@
           <div class="form-text">أحرف إنجليزية وأرقام فقط</div>
         </div>
 
-        <!-- Avatar emoji picker -->
-        <div class="mb-3">
-          <label class="form-label fw-bold small mb-1">اختر أفاتار للطفل</label>
-          <div class="d-flex flex-wrap gap-2">
-            @for (a of avatarOptions; track a) {
-              <button type="button"
-                class="btn rounded-circle p-1 fs-4 border-2"
-                [class.border-primary]="form.avatarEmoji === a"
-                [class.border-transparent]="form.avatarEmoji !== a"
-                style="width:48px;height:48px;line-height:1"
-                (click)="form.avatarEmoji = a">
-                {{ a }}
-              </button>
-            }
+        @if (isTeacher()) {
+          <div class="mb-3">
+            <label class="form-label fw-bold small mb-1">مستوى الطالب</label>
+            <select class="form-control" [(ngModel)]="form.level" name="level">
+              <option [value]="1">المستوى الأول</option>
+              <option [value]="2">المستوى الثاني</option>
+              <option [value]="3">المستوى الثالث</option>
+            </select>
           </div>
-        </div>
+        }
 
         <div class="mb-4">
           <label class="form-label fw-bold small mb-1">رمز الدخول (اختر 1 أو 2 صورة)</label>

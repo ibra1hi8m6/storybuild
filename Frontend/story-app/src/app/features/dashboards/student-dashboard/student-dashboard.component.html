@@ -32,6 +32,7 @@
   </aside>
 
   <!-- ── Mobile bottom nav ──────────────────────────────────────────────── -->
+  
   <nav class="d-lg-none fixed-bottom d-flex justify-content-around align-items-center"
        dir="rtl"
        style="background:var(--bg-card);border-top:1.5px solid rgba(244,120,138,.12);padding:6px 0;z-index:1000;box-shadow:0 -4px 16px rgba(0,0,0,.06)">
@@ -45,20 +46,17 @@
     }
   </nav>
 
+
   <!-- ── Main ───────────────────────────────────────────────────────────── -->
   <main class="flex-grow-1 p-3 p-md-4 d-flex flex-column gap-4 pb-5 pb-lg-4" style="min-width:0">
 
-    <!-- Name lookup (first visit) -->
     @if (!data() && !isLoading()) {
       <div class="d-flex align-items-center justify-content-center py-5">
-        <div class="card p-5 text-center w-100 d-flex flex-column align-items-center gap-3" style="max-width:400px">
-          <div style="font-size:64px">🦁</div>
-          <h2 class="fw-800">أهلاً! ما اسمك؟</h2>
-          <div class="d-flex gap-2 w-100">
-            <input class="form-control" type="text" placeholder="اكتب اسمك..."
-              [(ngModel)]="nameInput" (keyup.enter)="load(nameInput)" />
-            <button class="btn btn-primary rounded-pill px-4" type="button" (click)="load(nameInput)">ابدأ</button>
-          </div>
+        <div class="text-center d-flex flex-column align-items-center gap-3">
+          <span style="font-size:48px">😕</span>
+          <p class="fw-bold text-muted mb-0">تعذّر تحميل البيانات</p>
+          <button class="btn btn-primary rounded-pill px-4" type="button"
+            (click)="load(state.currentUser()?.id ?? '')">إعادة المحاولة</button>
         </div>
       </div>
     }
@@ -78,32 +76,146 @@
         <p class="text-muted mb-0">أنت تقوم بعمل رائع! استمر.</p>
       </div>
 
-      <!-- Level progress -->
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="fw-800">
-            @switch (state.currentUser()?.level ?? 1) {
-              @case (1) { 🌱 المستوى 1 — الحروف والأصوات }
-              @case (2) { 📗 المستوى 2 — الكلمات والمعاني }
-              @case (3) { 🌟 المستوى 3 — الجمل والقراءة }
-              @default  { 🌱 المستوى 1 — الحروف والأصوات }
+      <!-- ── Content group progress cards ─────────────────────────────── -->
+      @if (progressSummary(); as ps) {
+        <div class="d-flex flex-column gap-3">
+
+          <!-- Group 1 — Letters -->
+          <div class="card p-3 p-md-4"
+               [style.border-right]="'4px solid ' + (ps.gateQuiz1Passed ? '#22C55E' : 'var(--primary)')">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-800 d-flex align-items-center gap-2">
+                <span style="font-size:20px">🔤</span>
+                المجموعة الأولى — الحروف
+              </span>
+              @if (ps.lettersTotal > 0 && ps.lettersCompleted >= ps.lettersTotal) {
+                <span class="badge rounded-pill fw-800 px-3 py-2"
+                      style="background:#F0FDF4;color:#16A34A;font-size:12px">✓ مكتمل</span>
+              } @else {
+                <span class="fw-800 small" style="color:var(--primary)">
+                  {{ ps.lettersCompleted }} / {{ ps.lettersTotal }}
+                </span>
+              }
+            </div>
+            <div class="progress mb-3" style="height:8px;border-radius:999px;background:#F3F4F6">
+              <div class="progress-bar" style="background:var(--primary-gradient);border-radius:999px;transition:width .6s ease"
+                   [style.width.%]="pct(ps.lettersCompleted, ps.lettersTotal)"></div>
+            </div>
+            @if (ps.gateQuiz1Available) {
+              <button class="btn btn-primary rounded-pill fw-800 w-100" (click)="goToQuiz1()">
+                🎯 ابدأ اختبار الانتقال للمستوى الثاني
+              </button>
+            } @else if (!ps.gateQuiz1Passed) {
+              <p class="text-muted small fw-600 mb-0 text-center">
+                أكمل جميع الحروف ({{ ps.lettersCompleted }}/{{ ps.lettersTotal }}) للوصول إلى الاختبار
+              </p>
             }
-          </span>
-          <span class="fw-800" style="color:var(--primary)">{{ d.avgScore | number:'1.0-0' }}٪</span>
+          </div>
+
+          <!-- Group 2 — Words + Sentences -->
+          <div class="card p-3 p-md-4"
+               [style.opacity]="ps.currentLevel < 2 ? '0.6' : '1'"
+               [style.border-right]="'4px solid ' + (ps.gateQuiz2Passed ? '#22C55E' : (ps.currentLevel >= 2 ? '#8B5CF6' : '#E5E7EB'))">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-800 d-flex align-items-center gap-2">
+                <span style="font-size:20px">✏️</span>
+                المجموعة الثانية — الكلمات والجمل
+              </span>
+              @if (ps.currentLevel < 2) {
+                <span class="badge rounded-pill fw-800 px-3 py-2"
+                      style="background:#F3F4F6;color:#9CA3AF;font-size:12px">🔒 مغلق</span>
+              } @else if (ps.wordsTotal > 0 && ps.wordsCompleted >= ps.wordsTotal && ps.sentencesTotal > 0 && ps.sentencesCompleted >= ps.sentencesTotal) {
+                <span class="badge rounded-pill fw-800 px-3 py-2"
+                      style="background:#F0FDF4;color:#16A34A;font-size:12px">✓ مكتمل</span>
+              }
+            </div>
+            @if (ps.currentLevel >= 2) {
+              <div class="d-flex flex-column gap-2 mb-3">
+                <div>
+                  <div class="d-flex justify-content-between small fw-600 text-muted mb-1">
+                    <span>الكلمات</span>
+                    <span>{{ ps.wordsCompleted }} / {{ ps.wordsTotal }}</span>
+                  </div>
+                  <div class="progress" style="height:6px;border-radius:999px;background:#F3F4F6">
+                    <div class="progress-bar" style="background:#8B5CF6;border-radius:999px;transition:width .6s ease"
+                         [style.width.%]="pct(ps.wordsCompleted, ps.wordsTotal)"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="d-flex justify-content-between small fw-600 text-muted mb-1">
+                    <span>الجمل</span>
+                    <span>{{ ps.sentencesCompleted }} / {{ ps.sentencesTotal }}</span>
+                  </div>
+                  <div class="progress" style="height:6px;border-radius:999px;background:#F3F4F6">
+                    <div class="progress-bar" style="background:#8B5CF6;border-radius:999px;transition:width .6s ease"
+                         [style.width.%]="pct(ps.sentencesCompleted, ps.sentencesTotal)"></div>
+                  </div>
+                </div>
+              </div>
+              @if (ps.gateQuiz2Available) {
+                <button class="btn fw-800 w-100 rounded-pill"
+                        style="background:#8B5CF6;color:#fff"
+                        (click)="goToQuiz2()">
+                  🎯 ابدأ اختبار الانتقال للمستوى الثالث
+                </button>
+              } @else if (!ps.gateQuiz2Passed) {
+                <p class="text-muted small fw-600 mb-0 text-center">
+                  أكمل جميع الكلمات والجمل للوصول إلى الاختبار
+                </p>
+              }
+            } @else {
+              <p class="text-muted small fw-600 mb-0 text-center">🔒 يُفتح بعد إتمام اختبار الحروف</p>
+            }
+          </div>
+
+          <!-- Group 3 — Lessons + Stories -->
+          <div class="card p-3 p-md-4"
+               [style.opacity]="ps.currentLevel < 3 ? '0.6' : '1'"
+               [style.border-right]="'4px solid ' + (ps.currentLevel >= 3 ? '#F59E0B' : '#E5E7EB')">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-800 d-flex align-items-center gap-2">
+                <span style="font-size:20px">📚</span>
+                المجموعة الثالثة — الكتب والقصص
+              </span>
+              @if (ps.currentLevel < 3) {
+                <span class="badge rounded-pill fw-800 px-3 py-2"
+                      style="background:#F3F4F6;color:#9CA3AF;font-size:12px">🔒 مغلق</span>
+              }
+            </div>
+            @if (ps.currentLevel >= 3) {
+              <div class="d-flex flex-column gap-2">
+                <div>
+                  <div class="d-flex justify-content-between small fw-600 text-muted mb-1">
+                    <span>الدروس</span>
+                    <span>{{ ps.lessonsCompleted }} / {{ ps.lessonsTotal }}</span>
+                  </div>
+                  <div class="progress" style="height:6px;border-radius:999px;background:#F3F4F6">
+                    <div class="progress-bar" style="background:#F59E0B;border-radius:999px;transition:width .6s ease"
+                         [style.width.%]="pct(ps.lessonsCompleted, ps.lessonsTotal)"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="d-flex justify-content-between small fw-600 text-muted mb-1">
+                    <span>القصص</span>
+                    <span>{{ ps.storiesCompleted }} / {{ ps.storiesTotal }}</span>
+                  </div>
+                  <div class="progress" style="height:6px;border-radius:999px;background:#F3F4F6">
+                    <div class="progress-bar" style="background:#F59E0B;border-radius:999px;transition:width .6s ease"
+                         [style.width.%]="pct(ps.storiesCompleted, ps.storiesTotal)"></div>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <p class="text-muted small fw-600 mb-0 text-center">🔒 يُفتح بعد إتمام اختبار الكلمات والجمل</p>
+            }
+          </div>
+
         </div>
-        <div class="progress mb-2" style="height:10px;border-radius:999px">
-          <div class="progress-bar" style="background:var(--primary-gradient);border-radius:999px"
-            [style.width.%]="d.avgScore"></div>
-        </div>
-        <div class="d-flex justify-content-between small fw-semibold text-muted">
-          <span>{{ d.lessonsCompleted }} درساً مكتملاً</span>
-          <span>{{ d.storiesRead }} قصة مكتملة</span>
-        </div>
-      </div>
+      }
 
       <!-- Stats grid -->
-      <div class="row g-3">
-        <div class="col-6 col-md-3">
+       <div class="row g-3">
+       <!-- <div class="col-6 col-md-3">
           <div class="card p-3 p-md-4 text-center h-100 d-flex flex-column align-items-center gap-2">
             <span style="font-size:28px">📚</span>
             <span class="fw-800 fs-4">{{ d.storiesRead }}</span>
@@ -116,7 +228,7 @@
             <span class="fw-800 fs-4">{{ d.lessonsCompleted }}</span>
             <span class="text-muted small fw-semibold">دروس مكتملة</span>
           </div>
-        </div>
+        </div> -->
         <div class="col-6 col-md-3">
           <div class="card p-3 p-md-4 text-center h-100 d-flex flex-column align-items-center gap-2">
             <span style="font-size:28px">⭐</span>
@@ -172,8 +284,8 @@
         </div>
       </div>
 
-      <!-- In-progress / recommended lessons -->
-      <div class="card p-4">
+      <!-- In-progress / recommended lessons — commented out -->
+      <!-- <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="fw-800 mb-0">✨ موصى به لك</h5>
           <a routerLink="/levels" class="fw-bold text-decoration-none small" style="color:var(--primary)">الدروس ›</a>
@@ -200,7 +312,7 @@
             </div>
           }
         </div>
-      </div>
+      </div> -->
 
     }
   </main>

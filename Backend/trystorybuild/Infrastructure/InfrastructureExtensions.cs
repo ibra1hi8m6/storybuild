@@ -25,9 +25,19 @@ namespace Infrastructure
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            // ── Gemini key rotation (singleton — shared across all requests) ──────
+            services.AddSingleton<GeminiKeyStore>();
+            services.AddTransient<GeminiKeyRotatingHandler>();
+
+            // ── Cloudflare account rotation (singleton) ────────────────────────────
+            services.AddSingleton<CloudflareAccountStore>();
+            services.AddTransient<CloudflareRotatingHandler>();
+
             // ── HTTP clients ───────────────────────────────────────────────────────
-            services.AddHttpClient("Gemini",     client => client.Timeout = TimeSpan.FromSeconds(120));
-            services.AddHttpClient("Cloudflare", client => client.Timeout = TimeSpan.FromSeconds(120));
+            services.AddHttpClient("Gemini", client => client.Timeout = TimeSpan.FromSeconds(120))
+                    .AddHttpMessageHandler<GeminiKeyRotatingHandler>();
+            services.AddHttpClient("Cloudflare", client => client.Timeout = TimeSpan.FromSeconds(120))
+                    .AddHttpMessageHandler<CloudflareRotatingHandler>();
 
             // ── Cloudinary (shared upload helper) ─────────────────────────────────
             services.AddScoped<CloudinaryService>();
@@ -91,9 +101,11 @@ namespace Infrastructure
 
             // ── RAG (Gemini embeddings + Chroma Cloud) ─────────────────────────────
             services.Configure<RagSettings>(configuration.GetSection("Rag"));
-            services.AddHttpClient<GeminiEmbeddingService>();
+            services.AddHttpClient<GeminiEmbeddingService>()
+                    .AddHttpMessageHandler<GeminiKeyRotatingHandler>();
             services.AddHttpClient<ChromaVectorStoreService>();
-            services.AddHttpClient<GeminiVisionDescriptionService>();
+            services.AddHttpClient<GeminiVisionDescriptionService>()
+                    .AddHttpMessageHandler<GeminiKeyRotatingHandler>();
 
             services.AddScoped<IEmbeddingService,         GeminiEmbeddingService>();
             services.AddScoped<IVectorStoreService,       ChromaVectorStoreService>();

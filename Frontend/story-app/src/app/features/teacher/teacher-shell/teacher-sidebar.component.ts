@@ -109,11 +109,11 @@ export class TeacherSidebarComponent {
   readonly state  = inject(AppStateService);
   private readonly router = inject(Router);
 
-  readonly isSchoolTeacher = computed(() => !!this.state.currentUser()?.schoolCode);
+  readonly isSchoolTeacher = computed(() => !!this.state.currentUser()?.schoolManagerId);
 
   readonly mobileNavItems = [
     { icon: '🏠', label: 'لوحتي',      route: '/teacher/students' },
-    { icon: '📚', label: 'الدروس',     route: '/teacher/lessons' },
+    // { icon: '📚', label: 'الدروس',     route: '/teacher/lessons' },
     { icon: '➕', label: 'طالب',       route: '/auth/create-student' },
     { icon: '📊', label: 'التقارير',   route: '/teacher/reports' },
     { icon: '📈', label: 'التحليلات',  route: '/teacher/analytics' },
@@ -125,11 +125,11 @@ export class TeacherSidebarComponent {
         { icon: '🏠', label: 'لوحتي',          route: '/teacher/students' },
         { icon: '🏫', label: 'فصولي',           route: '/teacher/classes' },
         { icon: '➕', label: 'إضافة طالب',     route: '/auth/create-student' },
-        { icon: '📚', label: 'الدروس',          route: '/teacher/lessons' },
-        { icon: '✨', label: 'المولّد الذكي',   route: '/teacher/ai-generator' },
+        // { icon: '📚', label: 'الدروس',          route: '/teacher/lessons' },
+        // { icon: '✨', label: 'المولّد الذكي',   route: '/teacher/ai-generator' },
         { icon: '📊', label: 'التقارير',        route: '/teacher/reports' },
         { icon: '📈', label: 'التحليلات',       route: '/teacher/analytics' },
-        { icon: '💬', label: 'إرسال تشجيع',   route: '/teacher/students' },
+        // { icon: '💬', label: 'إرسال تشجيع',   route: '/teacher/students' },
       ];
     }
     return [
@@ -137,12 +137,12 @@ export class TeacherSidebarComponent {
       { icon: '👥', label: 'طلابي بالمستوى',  route: '/teacher/students' },
       { icon: '🗂️', label: 'مجموعاتي',        route: '/teacher/groups' },
       { icon: '➕', label: 'إضافة طالب',       route: '/auth/create-student' },
-      { icon: '📚', label: 'الدروس',            route: '/teacher/lessons' },
-      { icon: '✨', label: 'المولّد الذكي',     route: '/teacher/ai-generator' },
-      { icon: '📝', label: 'إنشاء درس',        route: '/teacher/lessons/create' },
+      // { icon: '📚', label: 'الدروس',            route: '/teacher/lessons' },
+      // { icon: '✨', label: 'المولّد الذكي',     route: '/teacher/ai-generator' },
+      // { icon: '📝', label: 'إنشاء درس',        route: '/teacher/lessons/create' },
       { icon: '📊', label: 'التقارير',          route: '/teacher/reports' },
       { icon: '📈', label: 'التحليلات',         route: '/teacher/analytics' },
-      { icon: '💬', label: 'إرسال تشجيع',     route: '/teacher/students' },
+      // { icon: '💬', label: 'إرسال تشجيع',     route: '/teacher/students' },
     ];
   });
 

@@ -5,7 +5,7 @@ namespace Domain.Entities
         public Guid Id { get; set; }
         public User User { get; set; } = null!;
         public bool IsPrivate { get; set; } = true;
-        public string? SchoolCode { get; set; }
+        public Guid? SchoolManagerId { get; set; }
         public List<Student> Students { get; set; } = new();
     }
 }

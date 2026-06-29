@@ -8,6 +8,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
 import { TtsService } from '../../../services/tts.service';
+import { ProgressService } from '../../../services/progress.service';
 import { WordContentDto } from '../../../models/learning.models';
 
 type Tool = 'pen' | 'eraser';
@@ -23,11 +24,12 @@ type Stage = 'read' | 'write';
 export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly route  = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly svc    = inject(LearningService);
-  private readonly state  = inject(AppStateService);
-  private readonly tts    = inject(TtsService);
+  private readonly route    = inject(ActivatedRoute);
+  private readonly router   = inject(Router);
+  private readonly svc      = inject(LearningService);
+  private readonly state    = inject(AppStateService);
+  private readonly tts      = inject(TtsService);
+  private readonly progress = inject(ProgressService);
 
   readonly word        = signal<WordContentDto | null>(null);
   readonly isLoading   = signal(true);
@@ -48,21 +50,28 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   private recognition: any = null;
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
-    this.svc.getWord(id).subscribe({
-      next: d  => {
-        this.word.set(d);
-        this.isLoading.set(false);
-        this.speak();
-        setTimeout(() => this.initCanvas(), 0);
-        this.svc.getWords().subscribe(all => {
-          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
-          const idx = sorted.findIndex(w => w.id === id);
-          if (idx !== -1 && idx < sorted.length - 1)
-            this.nextWordId.set(sorted[idx + 1].id);
-        });
-      },
-      error: () => this.isLoading.set(false)
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id')!;
+      // Reset all state so the new word starts fresh
+      this.word.set(null);
+      this.isLoading.set(true);
+      this.result.set(null);
+      this.readResult.set(null);
+      this.nextWordId.set(null);
+      this.isChecking = false;
+      // Safe canvas reset — ctx may not exist yet on first load
+      try { if (this.ctx) { this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height); } } catch {}
+
+      this.svc.getWord(id).subscribe({
+        next: d => {
+          this.word.set(d);
+          this.isLoading.set(false);
+          this.speak();
+          setTimeout(() => this.initCanvas(), 0);
+          if (d.nextId) this.nextWordId.set(d.nextId);
+        },
+        error: () => this.isLoading.set(false)
+      });
     });
   }
 
@@ -142,40 +151,47 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
 
   startRecording(): void {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { alert('متصفحك لا يدعم التعرف على الصوت'); return; }
-    this.recognition = new SR();
-    this.recognition.lang = 'ar-SA';
-    this.recognition.interimResults = false;
-    this.recognition.onstart = () => { this.readResult.set(null); this.isRecording.set(true); };
-    this.recognition.onend   = () => this.isRecording.set(false);
-    this.recognition.onresult = (e: any) => {
-      const said = e.results[0][0].transcript.trim();
-      const w = this.word();
-      const expected = (w?.displayWord ?? '').trim();
-      const saidN = this.normalizeAr(said);
-      const expN  = this.normalizeAr(expected);
-      // Split said into individual words and require an exact word-level match.
-      // Substring .includes() is too loose — "ابدأ" contains "بدأ" as a substring.
-      const saidWords = saidN.split(/\s+/).filter(Boolean);
-      const isCorrect = saidWords.some(w => w === expN) || saidN === expN;
-      const feedback = isCorrect ? `أحسنت! قرأت: ${said} 🌟` : `قرأت: ${said}. حاول مرة أخرى ✏️`;
-      this.readResult.set({ isCorrect, feedback });
-      this.svc.saveAttempt({
-        childName: this.state.childName() ?? '',
-        studentId: this.state.currentUser()?.id,
-        contentType: 3, // WordPractice
-        contentId: w!.id,
-        attemptType: 2, // Reading
-        expectedText: expected,
-        detectedText: said,
-        score: isCorrect ? 100 : 30,
-        isCorrect,
-        feedbackText: feedback
-      }).subscribe();
-      this.speak(feedback);
-    };
-    this.recognition.onerror = () => { this.isRecording.set(false); };
-    this.recognition.start();
+    if (!SR) { alert('متصفحك لا يدعم التعرف على الصوت. استخدم Chrome أو Safari'); return; }
+    // Request mic permission explicitly — required on mobile browsers
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      stream.getTracks().forEach(t => t.stop()); // release the stream; we only needed the permission
+      this.recognition = new SR();
+      this.recognition.lang = 'ar-SA';
+      this.recognition.interimResults = false;
+      this.recognition.onstart = () => { this.readResult.set(null); this.isRecording.set(true); };
+      this.recognition.onend   = () => this.isRecording.set(false);
+      this.recognition.onresult = (e: any) => {
+        const said = e.results[0][0].transcript.trim();
+        const w = this.word();
+        const expected = (w?.displayWord ?? '').trim();
+        const saidN = this.normalizeAr(said);
+        const expN  = this.normalizeAr(expected);
+        const saidWords = saidN.split(/\s+/).filter(Boolean);
+        const isCorrect = saidWords.some(w => w === expN) || saidN === expN;
+        const feedback = isCorrect ? `أحسنت! قرأت: ${said}` : `قرأت: ${said}. حاول مرة أخرى`;
+        this.readResult.set({ isCorrect, feedback });
+        this.svc.saveAttempt({
+          childName: this.state.childName() ?? '',
+          studentId: this.state.currentUser()?.id,
+          contentType: 3,
+          contentId: w!.id,
+          attemptType: 2,
+          expectedText: expected,
+          detectedText: said,
+          score: isCorrect ? 100 : 30,
+          isCorrect,
+          feedbackText: feedback
+        }).subscribe();
+        this.speak(feedback);
+      };
+      this.recognition.onerror = (e: any) => {
+        this.isRecording.set(false);
+        if (e.error === 'not-allowed') alert('يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح');
+      };
+      this.recognition.start();
+    }).catch(() => {
+      alert('يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح');
+    });
   }
 
   stopRecording(): void { try { this.recognition?.stop(); } catch {} }
@@ -209,13 +225,13 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
         this.isChecking = false;
         this.svc.saveAttempt({
           childName:    this.state.childName() ?? '',
-          studentId:    undefined,
+          studentId:    this.state.currentUser()?.id,
           contentType:  3,
           contentId:    w.id,
           attemptType:  1,
           expectedText,
           detectedText: res.extractedText,
-          score:        Math.round(res.similarityScore * 100),
+          score:        Math.round(res.similarityScore),
           isCorrect,
           feedbackText
         }).subscribe();
@@ -231,6 +247,14 @@ export class WordPracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   goNext(): void {
+    const w = this.word();
+    const studentId = this.state.currentUser()?.id;
+    if (w && studentId) {
+      this.progress.completeWord(studentId, w.id).subscribe({
+        error: (err) => console.error('[completeWord] failed — completion not saved:', err)
+      });
+      this.state.markCompleted(w.id);
+    }
     const next = this.nextWordId();
     this.router.navigate(next ? ['/learning/words', next] : ['/learning/words']);
   }

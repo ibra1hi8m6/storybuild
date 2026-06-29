@@ -5,6 +5,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
 import { TtsService } from '../../../services/tts.service';
+import { ProgressService } from '../../../services/progress.service';
 import { SentenceContentDto } from '../../../models/learning.models';
 
 type Stage = 'choose' | 'reading' | 'writing';
@@ -20,11 +21,12 @@ type Tool  = 'pen' | 'eraser';
 export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly route  = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly svc    = inject(LearningService);
-  private readonly state  = inject(AppStateService);
-  private readonly tts    = inject(TtsService);
+  private readonly route    = inject(ActivatedRoute);
+  private readonly router   = inject(Router);
+  private readonly svc      = inject(LearningService);
+  private readonly state    = inject(AppStateService);
+  private readonly tts      = inject(TtsService);
+  private readonly progress = inject(ProgressService);
 
   readonly sentence       = signal<SentenceContentDto | null>(null);
   readonly isLoading      = signal(true);
@@ -68,19 +70,31 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   });
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
-    this.svc.getSentence(id).subscribe({
-      next: d  => {
-        this.sentence.set(d);
-        this.isLoading.set(false);
-        this.svc.getSentences().subscribe(all => {
-          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
-          const idx = sorted.findIndex(s => s.id === id);
-          if (idx !== -1 && idx < sorted.length - 1)
-            this.nextSentenceId.set(sorted[idx + 1].id);
-        });
-      },
-      error: () => this.isLoading.set(false)
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id')!;
+      // Reset all state so the new sentence starts fresh
+      this.sentence.set(null);
+      this.isLoading.set(true);
+      this.stage.set('choose');
+      this.selected.set(null);
+      this.showResult.set(false);
+      this.isPlaying.set(false);
+      this.isRecording.set(false);
+      this.writingResult.set(null);
+      this.isWritingChecking.set(false);
+      this.readingResult.set(null);
+      this.nextSentenceId.set(null);
+      this.tts.stop();
+      try { if (this.ctx) { this.ctx.clearRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height); } } catch {}
+
+      this.svc.getSentence(id).subscribe({
+        next: d => {
+          this.sentence.set(d);
+          this.isLoading.set(false);
+          if (d.nextId) this.nextSentenceId.set(d.nextId);
+        },
+        error: () => this.isLoading.set(false)
+      });
     });
   }
 
@@ -138,7 +152,12 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
 
   startRecording(): void {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { alert('متصفحك لا يدعم التعرف على الصوت'); return; }
+    if (!SR) { alert('متصفحك لا يدعم التعرف على الصوت. استخدم Chrome أو Safari'); return; }
+    this.tts.stop();
+    // Request mic permission explicitly — required on mobile browsers
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      stream.getTracks().forEach(t => t.stop()); // release stream; only needed the permission
+      setTimeout(() => {
     this.recognition = new SR();
     this.recognition.lang = 'ar-SA'; this.recognition.interimResults = false;
     this.recognition.onstart = () => this.isRecording.set(true);
@@ -150,11 +169,11 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
       const saidWords = new Set(saidN.split(/\s+/).filter(Boolean));
       const expWords = this.normalizeAr(expected).split(/\s+/).filter(Boolean);
       const matched  = expWords.filter(w => saidWords.has(w)).length;
-      const isCorrect = matched >= Math.ceil(expWords.length * 0.6);
-      const feedback = isCorrect ? `أحسنت! قرأت الجملة بشكل رائع 🌟` : `حاول مرة أخرى ✏️`;
+      const isCorrect = matched >= Math.ceil(expWords.length * 0.5);
+      const feedback = isCorrect ? `أحسنت! قرأت الجملة بشكل رائع` : `حاول مرة أخرى`;
       this.svc.saveAttempt({
         childName: this.state.childName() ?? '',
-        studentId: undefined,
+        studentId: this.state.currentUser()?.id,
         contentType: 4,
         contentId: this.sentence()!.id,
         attemptType: 2,
@@ -166,15 +185,23 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
       this.readingResult.set({ isCorrect, feedback });
       this.listenOption(feedback);
     };
-    this.recognition.onerror = () => this.isRecording.set(false);
+    this.recognition.onerror = (e: any) => {
+      this.isRecording.set(false);
+      if (e.error === 'not-allowed') alert('يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح');
+    };
     this.recognition.start();
+      }, 300);
+    }).catch(() => {
+      alert('يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح');
+    });
   }
 
   stopRecording(): void { try { this.recognition?.stop(); } catch {} }
 
   private normalizeAr(text: string): string {
     return text
-      .replace(/[ً-ٰٟ]/g, '') // strip diacritics / tashkeel
+      .replace(/[ً-ٰٟ]/g, '')           // strip diacritics / tashkeel
+      .replace(/[.،؟!,;:"\-]/g, '')     // strip punctuation (period, Arabic comma, etc.)
       .replace(/[أإآ]/g, 'ا')
       .replace(/ة/g, 'ه')
       .replace(/ى/g, 'ي')
@@ -242,13 +269,13 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
         this.isWritingChecking.set(false);
         this.svc.saveAttempt({
           childName:    this.state.childName() ?? '',
-          studentId:    undefined,
+          studentId:    this.state.currentUser()?.id,
           contentType:  4,
           contentId:    s.id,
           attemptType:  1,
           expectedText,
           detectedText: res.extractedText,
-          score:        Math.round(res.similarityScore * 100),
+          score:        Math.round(res.similarityScore),
           isCorrect,
           feedbackText
         }).subscribe();
@@ -270,6 +297,14 @@ export class SentencePracticeComponent implements OnInit, OnDestroy, AfterViewIn
   tryAgainWriting(): void { this.writingResult.set(null); this.clearCanvas(); }
 
   goNext(): void {
+    const s = this.sentence();
+    const studentId = this.state.currentUser()?.id;
+    if (s && studentId) {
+      this.progress.completeSentence(studentId, s.id).subscribe({
+        error: (err) => console.error('[completeSentence] failed — completion not saved:', err)
+      });
+      this.state.markCompleted(s.id);
+    }
     const next = this.nextSentenceId();
     this.router.navigate(next ? ['/learning/sentences', next] : ['/learning/sentences']);
   }

@@ -45,38 +45,240 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
     return text.includes('تسمع') || text.includes('صوت') || text.includes('تسمعه');
   });
 
+  // ============================================================
+  //  اختبار تحديد المستوى - 3 أجزاء × 5 أسئلة = 15 سؤال
+  // ============================================================
+  // الجزء 1: التمييز بين (حرف – كلمة – جملة)
+  // الجزء 2: التعرف على الحرف وصوته (صوتي فقط)
+  // الجزء 3: تكوين جملة بسيطة
+  // ============================================================
   private readonly mockQuestions: any[] = [
-    { id:'q1',  part:1, imageContent:'أ',  questionText:'أي حرف هذا؟',                     audioText:'أي حرف هذا؟',           correctAnswer:'B', options:[{key:'A',emoji:'',label:'ب'},{key:'B',emoji:'',label:'أ'},{key:'C',emoji:'',label:'ج'},{key:'D',emoji:'',label:'د'}] },
-    { id:'q2',  part:1, imageContent:'🦁', questionText:'ما الحيوان في الصورة؟',            audioText:'ما الحيوان في الصورة؟', correctAnswer:'B', options:[{key:'A',emoji:'🐘',label:'فيل'},{key:'B',emoji:'🦁',label:'أسد'},{key:'C',emoji:'🐸',label:'ضفدع'},{key:'D',emoji:'🐳',label:'حوت'}] },
-    { id:'q3',  part:1, imageContent:'ب',  questionText:'أي حرف هذا؟',                     audioText:'أي حرف هذا؟',           correctAnswer:'C', options:[{key:'A',emoji:'',label:'ت'},{key:'B',emoji:'',label:'ث'},{key:'C',emoji:'',label:'ب'},{key:'D',emoji:'',label:'ن'}] },
-    { id:'q4',  part:1, imageContent:'🍎', questionText:'ما لون التفاحة؟',                 audioText:'ما لون التفاحة؟',       correctAnswer:'C', options:[{key:'A',emoji:'',label:'أزرق'},{key:'B',emoji:'',label:'أخضر'},{key:'C',emoji:'',label:'أحمر'},{key:'D',emoji:'',label:'أصفر'}] },
-    { id:'q5',  part:1, imageContent:'ج',  questionText:'أي حرف هذا؟',                     audioText:'أي حرف هذا؟',           correctAnswer:'C', options:[{key:'A',emoji:'',label:'ح'},{key:'B',emoji:'',label:'خ'},{key:'C',emoji:'',label:'ج'},{key:'D',emoji:'',label:'ع'}] },
-    { id:'q6',  part:2, imageContent:'🐘', questionText:'ما أول حرف في كلمة فيل؟',          audioText:'ما أول حرف في كلمة فيل؟',  correctAnswer:'B', options:[{key:'A',emoji:'',label:'ق'},{key:'B',emoji:'',label:'ف'},{key:'C',emoji:'',label:'ب'},{key:'D',emoji:'',label:'م'}] },
-    { id:'q7',  part:2, imageContent:'🌙', questionText:'ما أول حرف في كلمة قمر؟',          audioText:'ما أول حرف في كلمة قمر؟',  correctAnswer:'A', options:[{key:'A',emoji:'',label:'ق'},{key:'B',emoji:'',label:'ك'},{key:'C',emoji:'',label:'م'},{key:'D',emoji:'',label:'ر'}] },
-    { id:'q8',  part:2, imageContent:'🏠', questionText:'ما أول حرف في كلمة بيت؟',          audioText:'ما أول حرف في كلمة بيت؟',  correctAnswer:'C', options:[{key:'A',emoji:'',label:'ت'},{key:'B',emoji:'',label:'ي'},{key:'C',emoji:'',label:'ب'},{key:'D',emoji:'',label:'هـ'}] },
-    { id:'q9',  part:2, imageContent:'🐱', questionText:'ما أول حرف في كلمة قطة؟',          audioText:'ما أول حرف في كلمة قطة؟',  correctAnswer:'C', options:[{key:'A',emoji:'',label:'ط'},{key:'B',emoji:'',label:'ة'},{key:'C',emoji:'',label:'ق'},{key:'D',emoji:'',label:'ه'}] },
-    { id:'q10', part:2, imageContent:'🌸', questionText:'ما أول حرف في كلمة زهرة؟',         audioText:'ما أول حرف في كلمة زهرة؟', correctAnswer:'B', options:[{key:'A',emoji:'',label:'هـ'},{key:'B',emoji:'',label:'ز'},{key:'C',emoji:'',label:'ر'},{key:'D',emoji:'',label:'ة'}] },
-    { id:'q11', part:3, imageContent:'📚', questionText:'رتب الكلمات: يلعب / الأسد / في / الغابة', audioText:'رتب الكلمات الصحيحة', correctAnswer:'A', options:[{key:'A',emoji:'',label:'الأسد يلعب في الغابة'},{key:'B',emoji:'',label:'يلعب الغابة في الأسد'},{key:'C',emoji:'',label:'في الأسد الغابة يلعب'},{key:'D',emoji:'',label:'الغابة في الأسد يلعب'}] },
-    { id:'q12', part:3, imageContent:'🦋', questionText:'أكمل الجملة: الفراشة ___',          audioText:'أكمل الجملة',           correctAnswer:'B', options:[{key:'A',emoji:'',label:'تسبح'},{key:'B',emoji:'',label:'تطير'},{key:'C',emoji:'',label:'تنام'},{key:'D',emoji:'',label:'تأكل الحجر'}] },
-    { id:'q13', part:3, imageContent:'🌊', questionText:'ما معنى كلمة (بحر)؟',               audioText:'ما معنى كلمة بحر؟',     correctAnswer:'C', options:[{key:'A',emoji:'',label:'جبل'},{key:'B',emoji:'',label:'غابة'},{key:'C',emoji:'',label:'ماء كثير'},{key:'D',emoji:'',label:'نهر صغير'}] },
-    { id:'q14', part:3, imageContent:'📖', questionText:'أين نقرأ القصص؟',                   audioText:'أين نقرأ القصص؟',       correctAnswer:'A', options:[{key:'A',emoji:'',label:'في الكتاب'},{key:'B',emoji:'',label:'في المطبخ'},{key:'C',emoji:'',label:'في الملعب'},{key:'D',emoji:'',label:'في الحديقة'}] },
-    { id:'q15', part:3, imageContent:'🦁', questionText:'كم عدد حروف كلمة (أسد)؟',           audioText:'كم عدد حروف كلمة أسد؟', correctAnswer:'B', options:[{key:'A',emoji:'',label:'حرفان'},{key:'B',emoji:'',label:'ثلاثة حروف'},{key:'C',emoji:'',label:'أربعة حروف'},{key:'D',emoji:'',label:'خمسة حروف'}] },
+    // ═══════════════════════════════════════════════════════
+    //  الجزء الأول: التمييز بين (حرف – كلمة – جملة) - 5 أسئلة
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 'p1-q1',
+      part: 1,
+      imageContent: 'أ',
+      questionText: 'ما هذا؟',
+      audioText: 'ما هذا؟',
+      correctAnswer: 'A',
+      options: [
+        { key: 'A', emoji: '', label: 'حرف' },
+        { key: 'B', emoji: '', label: 'كلمة' },
+        { key: 'C', emoji: '', label: 'جملة' }
+      ]
+    },
+    {
+      id: 'p1-q2',
+      part: 1,
+      imageContent: 'قطة',
+      questionText: 'ما هذا؟',
+      audioText: 'ما هذا؟',
+      correctAnswer: 'B',
+      options: [
+        { key: 'A', emoji: '', label: 'حرف' },
+        { key: 'B', emoji: '', label: 'كلمة' },
+        { key: 'C', emoji: '', label: 'جملة' }
+      ]
+    },
+    {
+      id: 'p1-q3',
+      part: 1,
+      imageContent: 'ذهب أخي إلى المدرسة.',
+      questionText: 'ما هذا؟',
+      audioText: 'ما هذا؟',
+      correctAnswer: 'C',
+      options: [
+        { key: 'A', emoji: '', label: 'حرف' },
+        { key: 'B', emoji: '', label: 'كلمة' },
+        { key: 'C', emoji: '', label: 'جملة' }
+      ]
+    },
+    {
+      id: 'p1-q4',
+      part: 1,
+      imageContent: 'ق',
+      questionText: 'ما هذا؟',
+      audioText: 'ما هذا؟',
+      correctAnswer: 'A',
+      options: [
+        { key: 'A', emoji: '', label: 'حرف' },
+        { key: 'B', emoji: '', label: 'كلمة' },
+        { key: 'C', emoji: '', label: 'جملة' }
+      ]
+    },
+    {
+      id: 'p1-q5',
+      part: 1,
+      imageContent: 'الولد يلعب بالكرة.',
+      questionText: 'ما هذا؟',
+      audioText: 'ما هذا؟',
+      correctAnswer: 'C',
+      options: [
+        { key: 'A', emoji: '', label: 'حرف' },
+        { key: 'B', emoji: '', label: 'كلمة' },
+        { key: 'C', emoji: '', label: 'جملة' }
+      ]
+    },
+
+    // ═══════════════════════════════════════════════════════
+    //  الجزء الثاني: التعرف على الحرف وصوته - 5 أسئلة (صوتي فقط)
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 'p2-q1',
+      part: 2,
+      imageContent: '',
+      questionText: 'أي حرف تسمعه؟',
+      audioText: 'ألف',
+      isAudioOnly: true,
+      correctAnswer: 'B',
+      options: [
+        { key: 'A', emoji: '', label: 'ب' },
+        { key: 'B', emoji: '', label: 'أ' },
+        { key: 'C', emoji: '', label: 'ت' },
+        { key: 'D', emoji: '', label: 'ث' }
+      ]
+    },
+    {
+      id: 'p2-q2',
+      part: 2,
+      imageContent: '',
+      questionText: 'أي حرف تسمعه؟',
+      audioText: 'باء',
+      isAudioOnly: true,
+      correctAnswer: 'A',
+      options: [
+        { key: 'A', emoji: '', label: 'ب' },
+        { key: 'B', emoji: '', label: 'ت' },
+        { key: 'C', emoji: '', label: 'ث' },
+        { key: 'D', emoji: '', label: 'ن' }
+      ]
+    },
+    {
+      id: 'p2-q3',
+      part: 2,
+      imageContent: '',
+      questionText: 'أي حرف تسمعه؟',
+      audioText: 'تاء',
+      isAudioOnly: true,
+      correctAnswer: 'B',
+      options: [
+        { key: 'A', emoji: '', label: 'ب' },
+        { key: 'B', emoji: '', label: 'ت' },
+        { key: 'C', emoji: '', label: 'ث' },
+        { key: 'D', emoji: '', label: 'ن' }
+      ]
+    },
+    {
+      id: 'p2-q4',
+      part: 2,
+      imageContent: '',
+      questionText: 'أي حرف تسمعه؟',
+      audioText: 'ثاء',
+      isAudioOnly: true,
+      correctAnswer: 'C',
+      options: [
+        { key: 'A', emoji: '', label: 'ب' },
+        { key: 'B', emoji: '', label: 'ت' },
+        { key: 'C', emoji: '', label: 'ث' },
+        { key: 'D', emoji: '', label: 'ن' }
+      ]
+    },
+    {
+      id: 'p2-q5',
+      part: 2,
+      imageContent: '',
+      questionText: 'أي حرف تسمعه؟',
+      audioText: 'جيم',
+      isAudioOnly: true,
+      correctAnswer: 'D',
+      options: [
+        { key: 'A', emoji: '', label: 'ح' },
+        { key: 'B', emoji: '', label: 'خ' },
+        { key: 'C', emoji: '', label: 'ع' },
+        { key: 'D', emoji: '', label: 'ج' }
+      ]
+    },
+
+    // ═══════════════════════════════════════════════════════
+    //  الجزء الثالث: تكوين جملة بسيطة - 5 أسئلة
+    // ═══════════════════════════════════════════════════════
+    {
+      id: 'p3-q1',
+      part: 3,
+      imageContent: '🏃‍♂️⚽',
+      questionText: 'رتب الكلمات: يلعب – الولد – الكرة',
+      audioText: 'رتب الكلمات: يلعب، الولد، الكرة',
+      correctAnswer: 'A',
+      options: [
+        { key: 'A', emoji: '', label: 'الولد يلعب الكرة' },
+        { key: 'B', emoji: '', label: 'يلعب الولد الكرة' },
+        { key: 'C', emoji: '', label: 'الكرة يلعب الولد' },
+        { key: 'D', emoji: '', label: 'يلعب الكرة الولد' }
+      ]
+    },
+    {
+      id: 'p3-q2',
+      part: 3,
+      imageContent: '🐱🥛',
+      questionText: 'رتب الكلمات: القطة – تشرب – الحليب',
+      audioText: 'رتب الكلمات: القطة، تشرب، الحليب',
+      correctAnswer: 'B',
+      options: [
+        { key: 'A', emoji: '', label: 'تشرب القطة الحليب' },
+        { key: 'B', emoji: '', label: 'القطة تشرب الحليب' },
+        { key: 'C', emoji: '', label: 'الحليب تشرب القطة' },
+        { key: 'D', emoji: '', label: 'القطة الحليب تشرب' }
+      ]
+    },
+    {
+      id: 'p3-q3',
+      part: 3,
+      imageContent: '☀️🌳',
+      questionText: 'أكمل الجملة: الشمس ___ في السماء.',
+      audioText: 'أكمل الجملة: الشمس في السماء',
+      correctAnswer: 'B',
+      options: [
+        { key: 'A', emoji: '', label: 'تنام' },
+        { key: 'B', emoji: '', label: 'تشرق' },
+        { key: 'C', emoji: '', label: 'تسبح' },
+        { key: 'D', emoji: '', label: 'تطير' }
+      ]
+    },
+    {
+      id: 'p3-q4',
+      part: 3,
+      imageContent: '🦋🌸',
+      questionText: 'أكمل الجملة: الفراشة ___ بين الزهور.',
+      audioText: 'أكمل الجملة: الفراشة بين الزهور',
+      correctAnswer: 'C',
+      options: [
+        { key: 'A', emoji: '', label: 'تسبح' },
+        { key: 'B', emoji: '', label: 'تنام' },
+        { key: 'C', emoji: '', label: 'تطير' },
+        { key: 'D', emoji: '', label: 'تجري' }
+      ]
+    },
+    {
+      id: 'p3-q5',
+      part: 3,
+      imageContent: '📖👦',
+      questionText: 'أكمل الجملة: الولد ___ القصة.',
+      audioText: 'أكمل الجملة: الولد القصة',
+      correctAnswer: 'A',
+      options: [
+        { key: 'A', emoji: '', label: 'يقرأ' },
+        { key: 'B', emoji: '', label: 'يأكل' },
+        { key: 'C', emoji: '', label: 'يلعب' },
+        { key: 'D', emoji: '', label: 'ينام' }
+      ]
+    }
   ];
 
   ngOnInit(): void {
-    this.isLoading.set(true);
-    this.service.getPlacementQuestions().subscribe({
-      next: qs => {
-        this.questions.set(this.normalizeQuestions(qs));
-        this.isLoading.set(false);
-        this.speakQuestion();
-      },
-      error: () => {
-        this.questions.set(this.mockQuestions);
-        this.isLoading.set(false);
-        this.speakQuestion();
-      }
-    });
+    this.questions.set(this.mockQuestions);
+    this.speakQuestion();
   }
 
   ngOnDestroy(): void { this.tts.stop(); }
@@ -88,6 +290,7 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
       imageContent:  q.imageContent ?? q.ImageContent ?? '',
       questionText:  q.questionText ?? q.QuestionText ?? '',
       audioText:     q.audioText    ?? q.AudioText    ?? '',
+      isAudioOnly:   q.isAudioOnly  ?? q.IsAudioOnly  ?? false,
       correctAnswer: q.correctAnswer ?? q.CorrectAnswer ?? '',
       options:       (q.options ?? q.Options ?? []).map((o: any) => ({
         key:   o.key   ?? o.Key,
@@ -97,13 +300,32 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
     }));
   }
 
-  selectOption(key: string): void {
+  selectOption(key: string, event?: MouseEvent): void {
     if (this.showFeedback()) return;
+    (event?.target as HTMLElement)?.blur(); // remove focus ring so it doesn't carry to next question
+    this.speakGen++;       // cancel any running speak sequence
+    this.tts.stop();       // stop audio immediately
     this.selected.set(key);
     this.showFeedback.set(true);
     const q = this.currentQ();
     this.answers.update(a => ({ ...a, [q.id]: key }));
     setTimeout(() => this.advance(), 1200);
+  }
+
+  skip(): void {
+    if (this.showFeedback()) return;
+    const q = this.currentQ();
+    if (!q) return;
+    this.speakGen++;
+    this.tts.stop();
+    this.answers.update(a => ({ ...a, [q.id]: '' }));
+    this.advance();
+  }
+
+  exit(): void {
+    this.speakGen++;
+    this.tts.stop();
+    this.router.navigate(['/dashboard']);
   }
 
   private advance(): void {
@@ -174,12 +396,27 @@ export class PlacementQuestionComponent implements OnInit, OnDestroy {
       : 'إجابة خاطئة، لكنك تتعلم! 💙';
   }
 
+  private speakGen = 0;
+
   speakQuestion(): void {
     const q = this.currentQ();
     if (!q) return;
-    const text = q.audioText || q.questionText;
-    if (!text) return;
+    const gen = ++this.speakGen;
     this.isPlaying.set(true);
-    void this.tts.play(text).finally(() => this.isPlaying.set(false));
+    void this.runSpeak(q, gen).finally(() => this.isPlaying.set(false));
+  }
+
+  private async runSpeak(q: any, gen: number): Promise<void> {
+    const part = q.part ?? q.Part;
+
+    if (part === 1) {
+      await this.tts.playFromAsset('/audio/placement/ma-hatha.wav', q.questionText);
+    } else if (part === 2) {
+      await this.tts.playFromAsset('/audio/placement/ayi-harf.wav', q.questionText);
+      if (gen !== this.speakGen) return; // student answered — skip the letter
+      await this.tts.playFromAsset(`/audio/placement/${q.id}.wav`, q.audioText);
+    } else {
+      await this.tts.playFromAsset(`/audio/placement/${q.id}.wav`, q.questionText);
+    }
   }
 }

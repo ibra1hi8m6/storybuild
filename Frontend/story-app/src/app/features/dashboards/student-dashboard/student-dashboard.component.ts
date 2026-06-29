@@ -4,6 +4,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
+import { ProgressService, ProgressSummary } from '../../../services/progress.service';
 
 @Component({
   selector: 'app-student-dashboard',
@@ -13,13 +14,15 @@ import { AppStateService } from '../../../services/app-state-service';
   styleUrl: './student-dashboard.component.css'
 })
 export class StudentDashboardComponent implements OnInit {
-  private readonly service = inject(StoryService);
-  readonly state           = inject(AppStateService);
-  private readonly router  = inject(Router);
+  private readonly service  = inject(StoryService);
+  readonly state            = inject(AppStateService);
+  private readonly router   = inject(Router);
+  private readonly progress = inject(ProgressService);
 
-  readonly isLoading = signal(false);
-  readonly data      = signal<any>(null);
-  nameInput          = this.state.childName() || this.state.currentUser()?.name || '';
+  readonly isLoading       = signal(false);
+  readonly data            = signal<any>(null);
+  readonly progressSummary = signal<ProgressSummary | null>(null);
+  nameInput                = this.state.childName() || this.state.currentUser()?.name || '';
 
   readonly Math     = Math;
   readonly weekDays = ['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
@@ -44,7 +47,7 @@ export class StudentDashboardComponent implements OnInit {
   readonly navItems = [
     { icon:'📊', label:'لوحتي',          route:'/dashboard' },
     { icon:'✏️', label:'محتوى التعلم',  route:'/learning' },
-    { icon:'📋', label:'تقدّمي',         route:'/progress' },
+    // { icon:'📋', label:'تقدّمي',         route:'/progress' },
     { icon:'🏆', label:'إنجازاتي',       route:'/achievements' },
     { icon:'📖', label:'قصصي',           route:'/my-stories' },
     { icon:'✨', label:'قصص ذكية',       route:'/ai-story' },
@@ -56,11 +59,14 @@ export class StudentDashboardComponent implements OnInit {
   ];
 
   readonly mobileNavItems = [
-    { icon:'📊', label:'لوحتي',         route:'/dashboard' },
-    { icon:'✏️', label:'التعلم',        route:'/learning' },
-    { icon:'🎮', label:'ألعاب',          route:'/mini-games' },
-    { icon:'💌', label:'رسائلي',        route:'/inbox' },
-    { icon:'📒', label:'مفرداتي',       route:'/my-journal' },
+     { icon:'📊', label:'لوحتي',          route:'/dashboard' },
+    { icon:'✏️', label:'محتوى التعلم',  route:'/learning' },
+   
+    { icon:'📖', label:'قصصي',           route:'/my-stories' },
+    { icon:'✨', label:'قصص ذكية',       route:'/ai-story' },
+    // { icon:'🎮', label:'ألعاب',          route:'/mini-games' },
+    // { icon:'💌', label:'رسائلي',        route:'/inbox' },
+    // { icon:'📒', label:'مفرداتي',       route:'/my-journal' },
   ];
 
   ngOnInit(): void {
@@ -75,6 +81,27 @@ export class StudentDashboardComponent implements OnInit {
       next:  d => { this.data.set(d); this.isLoading.set(false); },
       error: () => this.isLoading.set(false)
     });
+    this.progress.getSummary(studentId).subscribe({
+      next: s => {
+        this.progressSummary.set(s);
+        this.state.setCompletedIds([
+          ...(s.completedLetterIds   ?? []),
+          ...(s.completedWordIds     ?? []),
+          ...(s.completedSentenceIds ?? []),
+          ...(s.completedLessonIds   ?? []),
+          ...(s.completedStoryIds    ?? []),
+        ]);
+      },
+      error: () => {}
+    });
+  }
+
+  goToQuiz1(): void { this.router.navigate(['/quiz/gate1']); }
+  goToQuiz2(): void { this.router.navigate(['/quiz/gate2']); }
+
+  pct(done: number, total: number): number {
+    if (!total) return 0;
+    return Math.round((done / total) * 100);
   }
 
   openBook(id: string):    void { this.router.navigate(['/books', id, 'read']); }

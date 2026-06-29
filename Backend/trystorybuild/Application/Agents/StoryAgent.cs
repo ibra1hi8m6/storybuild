@@ -52,11 +52,12 @@ namespace Application.Agents
             // Step 3: Build story entity
             var story = new Story
             {
-                ChildName = request.ChildName,
-                Character = request.Character,
-                Theme = request.Theme,
-                Title = aiOutput.Title,
-                IsApproved = judgeResult.IsApproved
+                ChildName  = request.ChildName,
+                Character  = request.Character,
+                Theme      = request.Theme,
+                Title      = aiOutput.Title,
+                IsApproved = judgeResult.IsApproved,
+                StudentId  = request.StudentId
             };
 
             // Step 4: Generate images via Cloudflare (hard cap: 3 images per story)
@@ -103,6 +104,7 @@ namespace Application.Agents
                          p.ImagePath,
                          p.IsUnlocked
                         ))
-                     .ToList());
+                     .ToList(),
+                (int)story.Source);
     }
 }

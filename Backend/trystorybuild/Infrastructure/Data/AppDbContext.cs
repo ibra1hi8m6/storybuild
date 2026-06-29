@@ -72,6 +72,9 @@ namespace Infrastructure.Data
         public DbSet<SentenceContent> SentenceContents => Set<SentenceContent>();
         public DbSet<LearningAttempt> LearningAttempts => Set<LearningAttempt>();
 
+        // Progress tracking — one row per student per completed content item
+        public DbSet<StudentContentCompletion> StudentContentCompletions => Set<StudentContentCompletion>();
+
         // Auth / Identity
         public DbSet<User> Users => Set<User>();
         public DbSet<Parent> Parents => Set<Parent>();

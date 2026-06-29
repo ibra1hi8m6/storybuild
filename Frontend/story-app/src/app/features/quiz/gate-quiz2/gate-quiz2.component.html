@@ -1,0 +1,162 @@
+<div class="quiz-shell" dir="rtl">
+
+  <!-- ── Loading ─────────────────────────────────────────────────── -->
+  @if (phase() === 'loading') {
+    <div class="center-box">
+      <div class="spinner-border" style="color:var(--primary);width:52px;height:52px"></div>
+      <p class="fw-800 mt-3">جارٍ تحميل الاختبار…</p>
+    </div>
+  }
+
+  <!-- ── Submitting ───────────────────────────────────────────────── -->
+  @if (phase() === 'submitting') {
+    <div class="center-box">
+      <div class="spinner-border" style="color:#8B5CF6;width:52px;height:52px"></div>
+      <p class="fw-800 mt-3">جارٍ تصحيح الاختبار…</p>
+    </div>
+  }
+
+  <!-- ── Part 1: Words ────────────────────────────────────────────── -->
+  @if (phase() === 'words' && currentWord(); as w) {
+    <div class="quiz-card">
+
+      <div class="quiz-header">
+        <span class="fw-800">✏️ اكتب الكلمة — الجزء الأول</span>
+        <span class="text-muted fw-700" style="font-size:14px">
+          {{ wordIndex() + 1 }} / {{ words().length }}
+        </span>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="dots-row">
+        @for (done of wordDots(); track $index) {
+          <div class="dot" [class.done]="done" [class.current]="$index === wordIndex()"></div>
+        }
+      </div>
+
+      <!-- Prompt -->
+      <div class="d-flex align-items-center justify-content-between">
+        <p class="question-text mb-0">اكتب هذه الكلمة في المساحة:</p>
+        <button class="play-btn" (click)="playAudio(w.audioText)" title="استمع للكلمة">🔊</button>
+      </div>
+
+      <!-- Target word display -->
+      <div class="word-target">{{ w.displayWord }}</div>
+
+      <!-- Canvas -->
+      <div class="canvas-wrap">
+        <canvas #canvas width="400" height="180" class="drawing-canvas"></canvas>
+      </div>
+
+      <!-- Feedback -->
+      @if (wordFeedback()) {
+        <div class="feedback-banner" [class.correct]="wordFeedback()?.includes('أحسنت')">
+          {{ wordFeedback() }}
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="d-flex gap-2">
+        <button class="btn-outline-secondary flex-1" (click)="clearCanvas()" [disabled]="isEvaluating()">
+          مسح ↺
+        </button>
+        <button class="btn-primary-pill flex-2" (click)="submitWord()" [disabled]="isEvaluating()">
+          @if (isEvaluating()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+          تحقق ✓
+        </button>
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Part 2: Sentences ─────────────────────────────────────────── -->
+  @if (phase() === 'sentences' && currentSentence(); as s) {
+    <div class="quiz-card">
+
+      <div class="quiz-header">
+        <span class="fw-800">🎙️ اقرأ الجملة — الجزء الثاني</span>
+        <span class="text-muted fw-700" style="font-size:14px">
+          {{ sentenceIndex() + 1 }} / {{ sentences().length }}
+        </span>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="dots-row">
+        @for (done of sentenceDots(); track $index) {
+          <div class="dot" [class.done]="done" [class.current]="$index === sentenceIndex()"></div>
+        }
+      </div>
+
+      <p class="question-text">اقرأ هذه الجملة بصوت عالٍ:</p>
+
+      <!-- Sentence display -->
+      <div class="sentence-target">{{ s.sentenceText }}</div>
+
+      <!-- Listen button -->
+      <button class="play-btn mx-auto d-flex align-items-center gap-2 px-4"
+              style="font-size:15px;width:fit-content"
+              (click)="playAudio(s.audioText)">
+        🔊 استمع للجملة
+      </button>
+
+      <!-- Record button -->
+      <div class="record-area">
+        @if (recordState() === 'idle') {
+          <button class="record-btn" (click)="startRecording()">
+            🎤
+            <span class="d-block" style="font-size:13px;margin-top:4px">ابدأ التسجيل</span>
+          </button>
+        } @else if (recordState() === 'recording') {
+          <button class="record-btn recording pulse" (click)="stopRecording()">
+            ⏹️
+            <span class="d-block" style="font-size:13px;margin-top:4px">إيقاف</span>
+          </button>
+        } @else {
+          <div class="center-box">
+            <div class="spinner-border" style="color:#8B5CF6;width:36px;height:36px"></div>
+            <p class="fw-700 small mt-2">جارٍ التقييم…</p>
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ── Result ────────────────────────────────────────────────────── -->
+  @if (phase() === 'result') {
+    @if (error()) {
+      <div class="result-card">
+        <div class="result-icon">⚠️</div>
+        <h2 class="result-title">{{ error() }}</h2>
+        <button class="btn-primary-pill" (click)="goToDashboard()">العودة للوحة</button>
+      </div>
+    } @else if (passed()) {
+      <div class="result-card">
+        <div class="result-icon celebrate">🎉</div>
+        <h2 class="result-title" style="color:#16A34A">ممتاز! لقد نجحت!</h2>
+        <p class="result-sub">
+          الكلمات: {{ wordScore() }} / {{ words().length }} &nbsp;·&nbsp;
+          الجمل: {{ sentenceScore() }} / {{ sentences().length }}
+        </p>
+        <p class="result-sub fw-800" style="color:#8B5CF6">لقد انتقلت إلى المستوى الثالث 🚀</p>
+        <button class="btn-primary-pill" style="background:#8B5CF6" (click)="goToDashboard()">
+          العودة للوحة
+        </button>
+      </div>
+    } @else {
+      <div class="result-card">
+        <div class="result-icon">😔</div>
+        <h2 class="result-title" style="color:#EF4444">حاول مرة أخرى</h2>
+        <p class="result-sub">
+          الكلمات: {{ wordScore() }} / {{ words().length }} &nbsp;·&nbsp;
+          الجمل: {{ sentenceScore() }} / {{ sentences().length }}
+        </p>
+        <p class="result-sub">يجب الحصول على 5/5 في كلا الجزأين — عُد وتدرّب مجدداً</p>
+        <button class="btn-primary-pill" style="background:#8B5CF6" (click)="goToWordsSentences()">
+          العودة للكلمات والجمل
+        </button>
+      </div>
+    }
+  }
+
+</div>

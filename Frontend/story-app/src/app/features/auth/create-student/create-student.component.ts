@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -19,9 +19,10 @@ export class CreateStudentComponent implements OnInit {
 
   returnTo = 'parent';
 
-  readonly isLoading = signal(false);
-  readonly error     = signal<string | null>(null);
-  readonly done      = signal(false);
+  readonly isLoading  = signal(false);
+  readonly error      = signal<string | null>(null);
+  readonly done       = signal(false);
+  readonly isTeacher  = computed(() => ['teacher', 'school'].includes(this.state.userRole()));
 
   form = {
     name:        '',

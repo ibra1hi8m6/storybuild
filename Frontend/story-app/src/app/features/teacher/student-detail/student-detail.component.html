@@ -7,8 +7,36 @@
     <!-- Back + title -->
     <div class="d-flex align-items-center gap-3 mb-4">
       <a routerLink="/teacher/students" class="fw-bold text-decoration-none small text-muted">← العودة</a>
-      <h2 class="fw-900 mb-0 fs-4">👤 {{ studentName() }}</h2>
+      <h2 class="fw-900 mb-0 fs-4 flex-grow-1">👤 {{ studentName() }}</h2>
+      <button (click)="confirmDelete()"
+              class="btn btn-sm fw-bold"
+              style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626;border-radius:10px;font-family:'Cairo',sans-serif">
+        🗑️ حذف الطالب
+      </button>
     </div>
+
+    <!-- Delete confirmation dialog -->
+    @if (showDeleteConfirm()) {
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;display:flex;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:18px;padding:32px;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.18)" dir="rtl">
+          <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+          <h5 style="font-weight:900;margin-bottom:8px">حذف {{ studentName() }}؟</h5>
+          <p style="color:#6B7280;font-size:14px;margin-bottom:24px">
+            سيتم حذف جميع بيانات الطالب نهائياً — التقدم، الكتابة، القراءة. لا يمكن التراجع.
+          </p>
+          <div style="display:flex;gap:12px;justify-content:center">
+            <button (click)="cancelDelete()"
+                    style="flex:1;padding:10px 0;border-radius:10px;background:#F3F4F6;border:none;font-weight:800;font-family:'Cairo',sans-serif;cursor:pointer">
+              إلغاء
+            </button>
+            <button (click)="deleteStudent()" [disabled]="deleteLoading()"
+                    style="flex:1;padding:10px 0;border-radius:10px;background:#DC2626;border:none;color:#fff;font-weight:800;font-family:'Cairo',sans-serif;cursor:pointer">
+              {{ deleteLoading() ? 'جارٍ الحذف…' : 'نعم، احذف' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (isLoading()) {
       <div class="text-center py-5 text-muted">جارٍ التحميل…</div>
@@ -81,6 +109,42 @@
             }
           }
         </div>
+      }
+
+      <!-- ── Tab: Progress ─────────────────────────────────────────────── -->
+      @if (activeTab() === 'progress') {
+        @if (!progressSummary()) {
+          <div class="text-center py-5 text-muted">جارٍ تحميل بيانات التقدم…</div>
+        } @else {
+          <div class="d-flex align-items-center gap-3 mb-3 p-3 card border-0" style="border-radius:16px;background:var(--bg-card)">
+            <div style="font-size:32px">🎓</div>
+            <div>
+              <div class="fw-900 fs-5">المستوى {{ progressSummary()!.currentLevel }}</div>
+              <div class="small text-muted">المستوى الحالي للطالب</div>
+            </div>
+          </div>
+          <div class="d-flex flex-column gap-3">
+            @for (item of [
+              { icon:'🔤', label:'الحروف',   done: progressSummary()!.lettersCompleted,   total: progressSummary()!.lettersTotal,   color:'#2563EB' },
+              { icon:'📝', label:'الكلمات',  done: progressSummary()!.wordsCompleted,     total: progressSummary()!.wordsTotal,     color:'#7C3AED' },
+              { icon:'💬', label:'الجمل',    done: progressSummary()!.sentencesCompleted, total: progressSummary()!.sentencesTotal, color:'#EC4899' },
+              { icon:'📚', label:'الدروس',   done: progressSummary()!.lessonsCompleted,   total: progressSummary()!.lessonsTotal,   color:'#059669' },
+              { icon:'📖', label:'القصص',    done: progressSummary()!.storiesCompleted,   total: progressSummary()!.storiesTotal,   color:'#D97706' }
+            ]; track item.label) {
+              <div class="card p-4 border-0" style="border-radius:16px;background:var(--bg-card)">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fw-800">{{ item.icon }} {{ item.label }}</span>
+                  <span class="fw-900 fs-5" [style.color]="item.color">{{ pct(item.done, item.total) }}٪</span>
+                </div>
+                <div class="progress mb-1" style="height:10px;border-radius:8px">
+                  <div class="progress-bar" [style.background]="item.color" style="border-radius:8px"
+                       [style.width.%]="pct(item.done, item.total)"></div>
+                </div>
+                <div class="small text-muted">{{ item.done }} / {{ item.total }}</div>
+              </div>
+            }
+          </div>
+        }
       }
 
       <!-- ── Tab: Writing ────────────────────────────────────────────── -->

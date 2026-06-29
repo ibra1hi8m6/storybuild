@@ -17,7 +17,7 @@ import { LessonSummary } from '../../models/story.models';
 })
 export class LessonsListComponent implements OnInit {
   private readonly storyService = inject(StoryService);
-  private readonly state        = inject(AppStateService);
+  readonly state                = inject(AppStateService);
   private readonly router       = inject(Router);
 
   readonly isLoading = signal(false);

@@ -43,4 +43,22 @@ export class GroupsService {
   getTeacherAssignments(teacherId: string): Observable<LessonAssignmentDto[]> {
     return this.http.get<LessonAssignmentDto[]>(`${this.api}/api/groups/assignments/teacher/${teacherId}`);
   }
+
+  getDirectStudents(teacherId: string): Observable<{ id: string; name: string; level: number }[]> {
+    return this.http.get<{ id: string; name: string; level: number }[]>(
+      `${this.api}/api/groups/teacher/${teacherId}/direct-students`
+    );
+  }
+
+  addDirectStudent(teacherId: string, identifier: string): Observable<{ id: string; name: string; level: number }> {
+    return this.http.post<{ id: string; name: string; level: number }>(
+      `${this.api}/api/groups/teacher/${teacherId}/direct-students`, { identifier }
+    );
+  }
+
+  removeDirectStudent(teacherId: string, studentId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.api}/api/groups/teacher/${teacherId}/direct-students/${studentId}`
+    );
+  }
 }

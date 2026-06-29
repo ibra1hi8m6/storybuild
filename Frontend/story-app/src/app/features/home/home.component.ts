@@ -17,21 +17,21 @@ export class HomeComponent {
   readonly levels = [
     {
       number: 1,
-      title: 'الحروف والأصوات',
+      title: 'الحروف ',
       subtitle: 'تعلّم 28 حرفاً عربياً',
       icon: '📖',
       locked: false,
     },
     {
       number: 2,
-      title: 'الكلمات والمفردات',
+      title: 'الكلمات و الجمل',
       subtitle: 'تعلّم أكثر من 200 كلمة',
       icon: '📝',
       locked: true,
     },
     {
       number: 3,
-      title: 'الجمل والقصص',
+      title: 'الكتيبات والقصص',
       subtitle: 'اقرأ جملاً وقصصاً كاملة',
       icon: '📚',
       locked: true,

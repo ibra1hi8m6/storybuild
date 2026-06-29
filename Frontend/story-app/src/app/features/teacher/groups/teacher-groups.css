@@ -175,3 +175,69 @@
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ── Student Picker ── */
+.student-picker {
+  margin-top: 10px;
+  border: 1.5px solid #f3e8ff;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fafafa;
+}
+
+.picker-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 6px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.picker-row:last-of-type { border-bottom: none; }
+
+.picker-name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.picker-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.pager-btn {
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #374151;
+  transition: .15s;
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: #ede9fe;
+  border-color: #c084fc;
+  color: #6d28d9;
+}
+
+.pager-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pager-info {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  min-width: 60px;
+  text-align: center;
+}

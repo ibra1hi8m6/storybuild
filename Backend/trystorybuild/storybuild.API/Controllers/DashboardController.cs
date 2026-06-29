@@ -25,10 +25,14 @@ namespace storybuild.API.Controllers
                 ?? throw new InvalidOperationException("Invalid token."));
             if (callerId != studentId) return Forbid();
 
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return NotFound(new { error = "الطالب غير موجود." });
+
             var data = await dashboardService.GetStudentDashboardAsync(studentId);
-            if (data is null)
-                return NotFound(new { error = "لم يتم العثور على بيانات لهذا الطالب." });
-            return Ok(data);
+            return Ok(data ?? new StudentDashboardDto(
+                student.Name, 0, 0, 0, 0, 0.0, 0, 0, 0.0, "مبتدئ", 0, new int[7],
+                new List<LessonSummaryDto>(), new List<TopContentDto>(), new List<TopContentDto>(),
+                new List<ExamHistoryDto>(), new List<RecentActivityDto>()));
         }
 
         [HttpGet("parent/{studentId:guid}")]
@@ -49,6 +53,31 @@ namespace storybuild.API.Controllers
             if (data is null)
                 return NotFound(new { error = "لم يتم العثور على بيانات لهذا الطفل." });
             return Ok(data);
+        }
+
+        [HttpGet("teacher/student/{studentId:guid}")]
+        [Authorize(Roles = "Teacher")]
+        [ProducesResponseType(typeof(StudentDashboardDto), 200)]
+        public async Task<IActionResult> GetTeacherStudentView(Guid studentId)
+        {
+            var teacherId = Guid.Parse(
+                User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? throw new InvalidOperationException("Invalid token."));
+
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null || student.TeacherId != teacherId) return Forbid();
+
+            var data = await dashboardService.GetStudentDashboardAsync(studentId);
+            // return zero-stats DTO for new students with no activity yet
+            return Ok(data ?? new StudentDashboardDto(
+                student.Name, 0, 0, 0, 0, 0.0, 0, 0, 0.0,
+                "مبتدئ", 0, new int[7],
+                new List<LessonSummaryDto>(),
+                new List<TopContentDto>(),
+                new List<TopContentDto>(),
+                new List<ExamHistoryDto>(),
+                new List<RecentActivityDto>()));
         }
 
         [HttpGet("teacher")]
@@ -76,22 +105,22 @@ namespace storybuild.API.Controllers
                 ?? throw new InvalidOperationException("Invalid token."));
 
             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            string schoolCode;
+            Guid schoolManagerId;
 
             if (role == "Teacher")
             {
                 var teacher = await db.Teachers.FindAsync(userId);
-                if (teacher is null || string.IsNullOrEmpty(teacher.SchoolCode))
+                if (teacher is null || !teacher.SchoolManagerId.HasValue)
                     return Forbid();
-                schoolCode = teacher.SchoolCode;
+                schoolManagerId = teacher.SchoolManagerId.Value;
             }
             else
             {
-                // SchoolAdmin and SystemAdmin: schoolCode derived from userId
-                schoolCode = userId.ToString("N")[..8].ToUpper();
+                // SchoolAdmin and SystemAdmin: their own userId IS the school identifier
+                schoolManagerId = userId;
             }
 
-            var data = await dashboardService.GetSchoolDashboardAsync(schoolCode);
+            var data = await dashboardService.GetSchoolDashboardAsync(schoolManagerId);
             return Ok(data);
         }
 

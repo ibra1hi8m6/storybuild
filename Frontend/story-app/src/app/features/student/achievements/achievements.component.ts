@@ -21,19 +21,20 @@ interface Badge {
 })
 export class AchievementsComponent implements OnInit {
   private readonly svc    = inject(StoryService);
-  private readonly state  = inject(AppStateService);
+  readonly state          = inject(AppStateService);
   private readonly router = inject(Router);
 
   readonly isLoading = signal(false);
   readonly data      = signal<StudentDashboardDto | null>(null);
 
   readonly navItems = [
-    { icon: '📊', label: 'لوحتي',    route: '/dashboard' },
-    { icon: '✏️', label: 'الدروس',   route: '/lessons-list' },
-    { icon: '📋', label: 'تقدّمي',    route: '/progress' },
-    { icon: '🏆', label: 'إنجازاتي', route: '/achievements' },
-    { icon: '📖', label: 'قصصي',     route: '/my-stories' },
-    { icon: '✨', label: 'قصص ذكية', route: '/ai-story' },
+    { icon: '📊', label: 'لوحتي',          route: '/dashboard' },
+    { icon: '✏️', label: 'محتوى التعلم',   route: '/learning' },
+    // { icon: '✏️', label: 'الدروس',       route: '/lessons-list' },
+    // { icon: '📋', label: 'تقدّمي',          route: '/progress' },
+    { icon: '🏆', label: 'إنجازاتي',       route: '/achievements' },
+    { icon: '📖', label: 'قصصي',           route: '/my-stories' },
+    { icon: '✨', label: 'قصص ذكية',       route: '/ai-story' },
   ];
 
   readonly badges = computed<Badge[]>(() => {

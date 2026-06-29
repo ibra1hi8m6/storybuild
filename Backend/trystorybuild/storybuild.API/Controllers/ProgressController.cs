@@ -147,6 +147,168 @@ namespace storybuild.API.Controllers
             return Ok(map);
         }
 
+        // ── GET /api/progress/summary/{studentId} ─────────────────────────────
+        [HttpGet("summary/{studentId:guid}")]
+        public async Task<IActionResult> GetSummary(Guid studentId)
+        {
+            var student = await db.Students.FindAsync(studentId);
+            if (student is null) return NotFound();
+
+            var completions = await db.StudentContentCompletions
+                .Where(c => c.StudentId == studentId)
+                .ToListAsync();
+
+            var lettersCompleted   = completions.Count(c => c.ContentType == ContentCompletionType.Letter);
+            var wordsCompleted     = completions.Count(c => c.ContentType == ContentCompletionType.Word);
+            var sentencesCompleted = completions.Count(c => c.ContentType == ContentCompletionType.Sentence);
+            var lessonsCompleted   = completions.Count(c => c.ContentType == ContentCompletionType.Lesson);
+            var storiesCompleted   = completions.Count(c => c.ContentType == ContentCompletionType.Story);
+
+            var lettersTotal   = await db.LetterContents.CountAsync(l => l.IsPublished);
+            var wordsTotal     = await db.WordContents.CountAsync(w => w.IsPublished);
+            var sentencesTotal = await db.SentenceContents.CountAsync(s => s.IsPublished);
+            var lessonsTotal   = await db.Lessons.CountAsync(l => l.IsPublished);
+            var storiesTotal   = await db.Stories.CountAsync(s => s.IsPublished && s.Source == Domain.Entities.StorySource.PdfImport);
+
+            var level = student.Level;
+            var gateQuiz1Available = level == 1 && lettersTotal > 0 && lettersCompleted >= lettersTotal;
+            var gateQuiz2Available = level == 2
+                && wordsTotal     > 0 && wordsCompleted     >= wordsTotal
+                && sentencesTotal > 0 && sentencesCompleted >= sentencesTotal;
+
+            return Ok(new ProgressSummaryDto(
+                CurrentLevel:        level,
+                LettersCompleted:    lettersCompleted,
+                LettersTotal:        lettersTotal,
+                WordsCompleted:      wordsCompleted,
+                WordsTotal:          wordsTotal,
+                SentencesCompleted:  sentencesCompleted,
+                SentencesTotal:      sentencesTotal,
+                LessonsCompleted:    lessonsCompleted,
+                LessonsTotal:        lessonsTotal,
+                StoriesCompleted:    storiesCompleted,
+                StoriesTotal:        storiesTotal,
+                GateQuiz1Available:  gateQuiz1Available,
+                GateQuiz1Passed:     level >= 2,
+                GateQuiz2Available:  gateQuiz2Available,
+                GateQuiz2Passed:     level >= 3,
+                CompletedLetterIds:   completions.Where(c => c.ContentType == ContentCompletionType.Letter)  .Select(c => c.ContentId).ToList(),
+                CompletedWordIds:     completions.Where(c => c.ContentType == ContentCompletionType.Word)    .Select(c => c.ContentId).ToList(),
+                CompletedSentenceIds: completions.Where(c => c.ContentType == ContentCompletionType.Sentence).Select(c => c.ContentId).ToList(),
+                CompletedLessonIds:   completions.Where(c => c.ContentType == ContentCompletionType.Lesson)  .Select(c => c.ContentId).ToList(),
+                CompletedStoryIds:    completions.Where(c => c.ContentType == ContentCompletionType.Story)   .Select(c => c.ContentId).ToList()));
+        }
+
+        // ── POST /api/progress/complete/letter ────────────────────────────────
+        [HttpPost("complete/letter")]
+        public async Task<IActionResult> CompleteLetter([FromBody] MarkCompleteRequest req)
+        {
+            var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                c.StudentId   == req.StudentId &&
+                c.ContentType == ContentCompletionType.Letter &&
+                c.ContentId   == req.ContentId);
+
+            if (!alreadyDone)
+            {
+                db.StudentContentCompletions.Add(new StudentContentCompletion
+                {
+                    StudentId   = req.StudentId,
+                    ContentType = ContentCompletionType.Letter,
+                    ContentId   = req.ContentId
+                });
+                await db.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // ── POST /api/progress/complete/word ──────────────────────────────────
+        [HttpPost("complete/word")]
+        public async Task<IActionResult> CompleteWord([FromBody] MarkCompleteRequest req)
+        {
+            var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                c.StudentId   == req.StudentId &&
+                c.ContentType == ContentCompletionType.Word &&
+                c.ContentId   == req.ContentId);
+
+            if (!alreadyDone)
+            {
+                db.StudentContentCompletions.Add(new StudentContentCompletion
+                {
+                    StudentId   = req.StudentId,
+                    ContentType = ContentCompletionType.Word,
+                    ContentId   = req.ContentId
+                });
+                await db.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // ── POST /api/progress/complete/sentence ──────────────────────────────
+        [HttpPost("complete/sentence")]
+        public async Task<IActionResult> CompleteSentence([FromBody] MarkCompleteRequest req)
+        {
+            var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                c.StudentId   == req.StudentId &&
+                c.ContentType == ContentCompletionType.Sentence &&
+                c.ContentId   == req.ContentId);
+
+            if (!alreadyDone)
+            {
+                db.StudentContentCompletions.Add(new StudentContentCompletion
+                {
+                    StudentId   = req.StudentId,
+                    ContentType = ContentCompletionType.Sentence,
+                    ContentId   = req.ContentId
+                });
+                await db.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // ── POST /api/progress/complete/lesson ────────────────────────────────
+        [HttpPost("complete/lesson")]
+        public async Task<IActionResult> CompleteLesson([FromBody] MarkCompleteRequest req)
+        {
+            var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                c.StudentId   == req.StudentId &&
+                c.ContentType == ContentCompletionType.Lesson &&
+                c.ContentId   == req.ContentId);
+
+            if (!alreadyDone)
+            {
+                db.StudentContentCompletions.Add(new StudentContentCompletion
+                {
+                    StudentId   = req.StudentId,
+                    ContentType = ContentCompletionType.Lesson,
+                    ContentId   = req.ContentId
+                });
+                await db.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        // ── POST /api/progress/complete/story ─────────────────────────────────
+        [HttpPost("complete/story")]
+        public async Task<IActionResult> CompleteStory([FromBody] MarkCompleteRequest req)
+        {
+            var alreadyDone = await db.StudentContentCompletions.AnyAsync(c =>
+                c.StudentId   == req.StudentId &&
+                c.ContentType == ContentCompletionType.Story &&
+                c.ContentId   == req.ContentId);
+
+            if (!alreadyDone)
+            {
+                db.StudentContentCompletions.Add(new StudentContentCompletion
+                {
+                    StudentId   = req.StudentId,
+                    ContentType = ContentCompletionType.Story,
+                    ContentId   = req.ContentId
+                });
+                await db.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
         private async Task UpdateWeaknessMapAsync(Guid studentId, Guid? lessonId, int correct, int total)
         {
             if (lessonId is null || total == 0) return;
@@ -192,4 +354,28 @@ namespace storybuild.API.Controllers
     }
     public class SkillStat  { public int Attempts { get; set; } public int Correct { get; set; } }
     public class LessonStat { public string Title { get; set; } = ""; public string Letter { get; set; } = ""; public int Attempts { get; set; } public int Correct { get; set; } }
+
+    public record ProgressSummaryDto(
+        int        CurrentLevel,
+        int        LettersCompleted,
+        int        LettersTotal,
+        int        WordsCompleted,
+        int        WordsTotal,
+        int        SentencesCompleted,
+        int        SentencesTotal,
+        int        LessonsCompleted,
+        int        LessonsTotal,
+        int        StoriesCompleted,
+        int        StoriesTotal,
+        bool       GateQuiz1Available,
+        bool       GateQuiz1Passed,
+        bool       GateQuiz2Available,
+        bool       GateQuiz2Passed,
+        List<Guid> CompletedLetterIds,
+        List<Guid> CompletedWordIds,
+        List<Guid> CompletedSentenceIds,
+        List<Guid> CompletedLessonIds,
+        List<Guid> CompletedStoryIds);
+
+    public record MarkCompleteRequest(Guid StudentId, Guid ContentId);
 }

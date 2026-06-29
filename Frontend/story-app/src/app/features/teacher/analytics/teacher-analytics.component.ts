@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
-import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
+import { TeacherSidebarComponent } from '../teacher-shell/teacher-sidebar.component';
 import {
   AnalyticsSummaryDto, StudentAnalyticsDto, WeakLetterDto, TeacherAssignmentOverview
 } from '../../../models/story.models';
@@ -11,7 +11,7 @@ import {
 @Component({
   selector: 'app-teacher-analytics',
   standalone: true,
-  imports: [CommonModule, RouterLink, NavbarComponent],
+  imports: [CommonModule, RouterLink, TeacherSidebarComponent],
   templateUrl: './teacher-analytics.component.html',
   styleUrl: './teacher-analytics.component.css'
 })

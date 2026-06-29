@@ -17,6 +17,11 @@
           [style.width.%]="progress()"></div>
       </div>
     </div>
+    <button type="button" (click)="exit()"
+      class="btn btn-sm fw-bold rounded-pill flex-shrink-0"
+      style="background:#FEE2E2;color:#DC2626;border:none;padding:6px 14px;font-size:12px">
+      إلغاء
+    </button>
   </div>
 
   <!-- Question card -->
@@ -46,12 +51,23 @@
 
       <!-- Options -->
       <div class="options-grid">
-        @for (opt of currentQ().options; track opt.key) {
-          <button [class]="optionClass(opt.key)" type="button" (click)="selectOption(opt.key)">
+        @for (opt of currentQ().options; track currentQ().id + '_' + opt.key) {
+          <button [class]="optionClass(opt.key)" type="button" (click)="selectOption(opt.key, $event)">
             {{ opt.label }}
           </button>
         }
       </div>
+
+      <!-- Skip button -->
+      @if (!showFeedback()) {
+        <div class="d-flex justify-content-center pt-2 pb-3">
+          <button type="button" (click)="skip()"
+            class="btn btn-sm fw-bold rounded-pill"
+            style="background:#F3F4F6;color:#6B7280;border:none;padding:8px 24px;font-size:13px">
+            تخطى ←
+          </button>
+        </div>
+      }
 
       <!-- Feedback toast -->
       @if (showFeedback()) {

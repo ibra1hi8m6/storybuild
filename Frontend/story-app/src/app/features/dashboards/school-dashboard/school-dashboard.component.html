@@ -57,39 +57,94 @@
       </div>
     </div>
 
-    <!-- Hero stat circles -->
-    <div class="row g-3 justify-content-center">
-      @if (data(); as d) {
-        @for (circle of [
-          {val: d.totalStudents, lbl: 'طالب',         c: '#F4788A'},
-          {val: ((d.avgSchoolScore ?? 0) | number:'1.0-0') + '٪', lbl: 'متوسط التقدم', c: '#FCD34D'}
-        ]; track circle.lbl) {
-          <div class="col-6 col-md-3 d-flex justify-content-center">
-            <div class="d-flex flex-column align-items-center justify-content-center rounded-circle"
-                 [style.border]="'4px solid ' + circle.c"
-                 [style.background]="circle.c + '22'"
-                 style="width:140px;height:140px;gap:4px">
-              <span class="fw-800" style="font-size:28px" [style.color]="circle.c">{{ circle.val }}</span>
-              <span class="fw-700 small text-muted">{{ circle.lbl }}</span>
+    <!-- Aggregate progress cards (school-wide) -->
+    @if (data(); as d) {
+      <div class="row g-3">
+
+        <!-- Card 1: حروف -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                <span style="font-size:20px">🔤</span>
+                <span class="fw-800 small">الحروف</span>
+              </div>
+              <span class="badge rounded-pill fw-800 small" style="background:#F3E8FF;color:#7C3AED">
+                {{ d.totalStudents }} طالب
+              </span>
+            </div>
+            <span class="fw-800 fs-4" style="color:var(--primary)">{{ (d.lettersAvgPct ?? 0) | number:'1.0-0' }}٪</span>
+            <div class="progress" style="height:6px">
+              <div class="progress-bar" [style.width]="(d.lettersAvgPct ?? 0) + '%'" style="background:var(--primary)"></div>
+            </div>
+            <span class="small text-muted">متوسط المدرسة</span>
+          </div>
+        </div>
+
+        <!-- Card 2: كلمات + جمل -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:20px">📝</span>
+              <span class="fw-800 small">الكلمات والجمل</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">كلمات</span>
+                <span class="fw-700" style="color:#8B5CF6">{{ (d.wordsAvgPct ?? 0) | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.wordsAvgPct ?? 0) + '%'" style="background:#8B5CF6"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">جمل</span>
+                <span class="fw-700" style="color:#EC4899">{{ (d.sentencesAvgPct ?? 0) | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.sentencesAvgPct ?? 0) + '%'" style="background:#EC4899"></div>
+              </div>
             </div>
           </div>
-        }
-      } @else {
-        @for (circle of [
-          {lbl: 'طالب', c: '#F4788A'},{lbl: 'متوسط التقدم', c: '#FCD34D'}
-        ]; track circle.lbl) {
-          <div class="col-6 col-md-3 d-flex justify-content-center">
-            <div class="d-flex flex-column align-items-center justify-content-center rounded-circle"
-                 [style.border]="'4px solid ' + circle.c"
-                 [style.background]="circle.c + '22'"
-                 style="width:140px;height:140px;gap:4px">
-              <span class="fw-800" style="font-size:28px" [style.color]="circle.c">—</span>
-              <span class="fw-700 small text-muted">{{ circle.lbl }}</span>
+        </div>
+
+        <!-- Card 3: دروس + قصص -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:20px">📚</span>
+              <span class="fw-800 small">الدروس والقصص</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">دروس</span>
+                <span class="fw-700" style="color:#10B981">{{ (d.lessonsAvgPct ?? 0) | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.lessonsAvgPct ?? 0) + '%'" style="background:#10B981"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">قصص</span>
+                <span class="fw-700" style="color:#F59E0B">{{ (d.storiesAvgPct ?? 0) | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.storiesAvgPct ?? 0) + '%'" style="background:#F59E0B"></div>
+              </div>
             </div>
           </div>
-        }
-      }
-    </div>
+        </div>
+
+        <!-- Card 4: متوسط الأداء + نشاط الأسبوع -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
+            <span style="font-size:26px">📊</span>
+            <span class="fw-800 fs-3" style="color:var(--primary)">{{ d.avgSchoolScore | number:'1.0-0' }}٪</span>
+            <span class="small fw-semibold text-muted">متوسط الأداء الكتابي</span>
+            <span class="small text-muted" style="font-size:11px">{{ d.activeThisWeek }} نشط هذا الأسبوع</span>
+          </div>
+        </div>
+
+      </div>
+    }
 
     <!-- Grid: table + charts -->
     <div class="row g-3">

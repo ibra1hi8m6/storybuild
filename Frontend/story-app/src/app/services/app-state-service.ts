@@ -4,10 +4,10 @@ import { StoryResponse, StoryPage, ExamResult, LessonDetail, LessonPage } from '
 export interface CurrentUser {
   id:          string;
   name:        string;
-  role:        'student' | 'parent' | 'teacher' | 'school' | 'admin';
+  role:        'student' | 'parent' | 'teacher' | 'school' | 'schooladmin' | 'admin' | 'systemadmin';
   level?:      number;
   avatar?:     string;
-  schoolCode?: string;
+  schoolManagerId?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +25,23 @@ export class AppStateService {
     if (typeof localStorage !== 'undefined') localStorage.setItem('lughati_user', JSON.stringify(user));
   }
 
+  // ── Completed content IDs (per-student, loaded on dashboard init) ────────
+  private readonly _completedIds = signal<Set<string>>(new Set());
+
+  setCompletedIds(ids: string[]): void {
+    this._completedIds.set(new Set(ids));
+  }
+
+  markCompleted(id: string): void {
+    const next = new Set(this._completedIds());
+    next.add(id);
+    this._completedIds.set(next);
+  }
+
+  isCompleted(id: string): boolean {
+    return this._completedIds().has(id);
+  }
+
   logout(): void {
     this._user.set(null);
     if (typeof localStorage !== 'undefined') {
@@ -33,6 +50,7 @@ export class AppStateService {
       localStorage.removeItem('lughati_child');
     }
     this._childName.set('');
+    this._completedIds.set(new Set());
     this.currentStory.set(null);
     this.currentLesson.set(null);
     this.currentExamResult.set(null);

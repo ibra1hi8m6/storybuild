@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
 import { TtsService } from '../../services/tts.service';
+import { ProgressService } from '../../services/progress.service';
 import { environment } from '../../../environments/environment';
 import { ListenModeComponent } from '../fluency/reading-journey/listen-mode.component';
 import { RecordModeComponent } from '../fluency/reading-journey/record-mode.component';
@@ -23,6 +24,7 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   private readonly storyService = inject(StoryService);
   private readonly state        = inject(AppStateService);
   private readonly tts          = inject(TtsService);
+  private readonly progress     = inject(ProgressService);
 
   readonly isLoading   = signal(false);
   readonly story       = signal<any>(null);
@@ -44,9 +46,12 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
     Array.from({ length: this.totalPages() }, (_, i) => i + 1)
   );
 
+  private returnTo = '/levels';
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) { this.router.navigate(['/levels']); return; }
+    this.returnTo = this.route.snapshot.queryParamMap.get('returnTo') ?? '/levels';
     this.storyId.set(id);
     this.loadStory(id);
   }
@@ -71,6 +76,10 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
         this.story.set(s);
         this.state.setStory(s);
         this.isLoading.set(false);
+        // source 0 = AiGenerated (no cover) → start at page 1
+        // source 1 = PdfImport (has cover)  → start at page 2
+        const isPdfImport = s.source === 1;
+        if (isPdfImport && (s.pages?.length ?? 0) > 1) this.pageNum.set(2);
       },
       error: () => { this.isLoading.set(false); this.router.navigate(['/levels']); }
     });
@@ -86,7 +95,21 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   }
 
   next(): void {
-    if (this.isLast()) { this.router.navigate(['/dashboard']); return; }
+    if (this.isLast()) {
+      // Only record completion for uploaded PDF stories (source=1).
+      // AI-generated stories (source=0) are for fun and must not count as progress.
+      const isPreview  = this.returnTo !== '/levels';
+      const isPdfStory = this.story()?.source === 1;
+      if (!isPreview && isPdfStory) {
+        const studentId = this.state.currentUser()?.id;
+        const storyId   = this.storyId();
+        if (studentId && storyId) {
+          this.progress.completeStory(studentId, storyId).subscribe();
+        }
+      }
+      this.router.navigate([this.returnTo]);
+      return;
+    }
     this.tts.stop();
     this.isPlaying.set(false);
     this.imageLoaded.set(false);
@@ -118,5 +141,5 @@ export class StoryReaderComponent implements OnInit, OnDestroy {
   }
 
   onImgLoad(): void { this.imageLoaded.set(true); }
-  goBack(): void { this.router.navigate(['/levels']); }
+  goBack(): void { this.router.navigate([this.returnTo]); }
 }

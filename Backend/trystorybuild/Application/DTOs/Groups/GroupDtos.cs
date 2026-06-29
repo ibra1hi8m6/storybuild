@@ -15,6 +15,8 @@ namespace Application.DTOs
 
     public record AddGroupMemberRequest(Guid StudentId);
 
+    public record AddDirectStudentRequest(string Identifier); // username or nationalId
+
     // ── Lesson Assignments ─────────────────────────────────────────────────────
     public record AssignLessonRequest(
         Guid LessonId,

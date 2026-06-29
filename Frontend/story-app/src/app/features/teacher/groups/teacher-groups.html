@@ -1,4 +1,6 @@
-<div class="page-wrapper" dir="rtl">
+<div class="d-flex min-vh-100" dir="rtl" style="background:var(--bg-base)">
+  <app-teacher-sidebar />
+  <div class="page-wrapper flex-grow-1" dir="rtl">
   <div class="page-header">
     <h1>المجموعات الدراسية</h1>
   </div>
@@ -50,19 +52,47 @@
             }
           </div>
 
-          <!-- Add member -->
+          <!-- Add member — paginated picker -->
           <div class="add-member-row">
-            <select [(ngModel)]="addStudentId[group.id]" class="form-control form-sm">
-              <option value="">-- اختر طالباً --</option>
-              @for (s of myStudents(); track s.id) {
-                <option [value]="s.id">{{ s.name }}</option>
-              }
-            </select>
-            <button class="btn-outline-sm" (click)="addMember(group.id)">إضافة طالب</button>
+            <button class="btn-outline-sm" (click)="togglePicker(group.id)">
+              {{ pickerOpen[group.id] ? '✕ إغلاق' : '+ إضافة طالب' }}
+            </button>
           </div>
 
+          @if (pickerOpen[group.id]) {
+            <div class="student-picker">
+              <!-- Search -->
+              <input class="form-control form-sm mb-2"
+                     placeholder="🔍 بحث باسم الطالب…"
+                     [(ngModel)]="pickerSearch[group.id]"
+                     (ngModelChange)="onSearchChange(group.id)" />
+
+              <!-- Student rows -->
+              @if (pagedStudents(group.id).length === 0) {
+                <p class="text-muted small text-center py-2">لا يوجد طلاب.</p>
+              }
+              @for (s of pagedStudents(group.id); track s.id) {
+                <div class="picker-row">
+                  <span class="picker-name">👤 {{ s.name }}</span>
+                  <button class="btn-primary-sm" (click)="addMember(group.id, s.id)">إضافة</button>
+                </div>
+              }
+
+              <!-- Pagination -->
+              <div class="picker-pagination">
+                <button class="pager-btn" [disabled]="(pickerPage[group.id] ?? 0) === 0"
+                        (click)="prevPage(group.id)">‹ السابق</button>
+                <span class="pager-info">
+                  {{ (pickerPage[group.id] ?? 0) + 1 }} / {{ totalPages(group.id) }}
+                </span>
+                <button class="pager-btn" [disabled]="(pickerPage[group.id] ?? 0) >= totalPages(group.id) - 1"
+                        (click)="nextPage(group.id)">التالي ›</button>
+              </div>
+            </div>
+          }
+
           <!-- Assign lesson -->
-          <div class="assign-section" (click)="initAssignForm(group.id)">
+          <!-- <div class="assign-section" (click)="initAssignForm(group.id)">
             @if (assignForm[group.id]) {
               <div class="assign-row">
                 <select [(ngModel)]="assignForm[group.id].lessonId" class="form-control form-sm">
@@ -88,9 +118,12 @@
             } @else {
               <button class="btn-outline-sm" (click)="initAssignForm(group.id)">تعيين درس</button>
             }
-          </div>
+          </div> -->
         </div>
       }
     </div>
   }
+
+
+  </div>
 </div>

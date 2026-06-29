@@ -11,7 +11,7 @@ namespace Application.Interfaces
         Task<Parent>        SaveParentAsync(Parent parent);
         Task<Teacher>       SaveTeacherAsync(Teacher teacher);
         Task<Teacher?>      GetTeacherByIdAsync(Guid userId);
-        Task<List<Teacher>> GetTeachersBySchoolCodeAsync(string schoolCode);
+        Task<List<Teacher>> GetTeachersBySchoolManagerIdAsync(Guid schoolManagerId);
     }
 
     // ── Student Repository ─────────────────────────────────────────────────────
@@ -24,5 +24,6 @@ namespace Application.Interfaces
         Task<List<Student>>  GetByParentIdAsync(Guid parentId);
         Task<List<Student>>  GetByTeacherIdAsync(Guid teacherId);
         Task<bool>           UpdateLevelAsync(Guid id, int level);
+        Task<bool>           SetTeacherAsync(Guid studentId, Guid? teacherId);
     }
 }

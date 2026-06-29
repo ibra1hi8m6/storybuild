@@ -2,7 +2,7 @@
 
   <app-admin-sidebar />
 
-  <main style="flex:1;padding:32px 24px;max-width:1100px">
+  <main class="p-2 p-md-4" style="flex:1;max-width:1100px">
 
     <h2 style="font-size:24px;font-weight:900;margin-bottom:6px">📖 إدارة القصص</h2>
     <p style="color:var(--text-muted);font-size:13px;margin-bottom:24px">{{ stories().length }} قصة في النظام</p>
@@ -46,7 +46,7 @@
               </div>
               <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">{{ pageCount(story) }} صفحات</p>
               <div style="display:flex;gap:8px">
-                <a [routerLink]="['/books', story.id, 'read']"
+                <a [routerLink]="['/books', story.id, 'read']" [queryParams]="{returnTo: '/admin/stories'}"
                    style="flex:1;text-align:center;padding:7px 0;border-radius:10px;background:rgba(244,120,138,.08);color:var(--primary);text-decoration:none;font-size:12px;font-weight:800">
                   معاينة
                 </a>

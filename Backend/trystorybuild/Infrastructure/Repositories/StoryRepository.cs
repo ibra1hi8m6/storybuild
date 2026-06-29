@@ -51,6 +51,13 @@ namespace Infrastructure.Repositories
                     .OrderByDescending(s => s.CreatedAt)
                     .ToListAsync();
 
+            public async Task<List<Story>> GetByStudentIdAsync(Guid studentId) =>
+                await db.Stories
+                    .Include(s => s.Pages)
+                    .Where(s => s.StudentId == studentId)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToListAsync();
+
             public async Task<bool> DeleteAsync(Guid id)
             {
                 var story = await db.Stories.FindAsync(id);
@@ -132,6 +139,17 @@ namespace Infrastructure.Repositories
                     .Include(l => l.Pages).ThenInclude(p => p.WritingAttempts)
                     .FirstOrDefaultAsync(l => l.Id == id);
                 if (lesson is null) return false;
+
+                var progress = db.StudentProgress.Where(p => p.LessonId == id);
+                db.StudentProgress.RemoveRange(progress);
+
+                var pageCompletions = db.LessonPageCompletions.Where(c => c.LessonId == id);
+                db.LessonPageCompletions.RemoveRange(pageCompletions);
+
+                var contentCompletions = db.StudentContentCompletions
+                    .Where(c => c.ContentType == Domain.Entities.ContentCompletionType.Lesson && c.ContentId == id);
+                db.StudentContentCompletions.RemoveRange(contentCompletions);
+
                 db.Lessons.Remove(lesson);
                 await db.SaveChangesAsync();
                 return true;

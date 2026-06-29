@@ -7,9 +7,9 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
       <h1 class="fw-800 mb-0" style="font-size:24px">👥 طلابي</h1>
       <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" routerLink="/teacher/lessons/create">
+        <!-- <a class="btn btn-outline-primary rounded-pill px-4 fw-bold" routerLink="/teacher/lessons/create">
           <i class="bi bi-plus-circle me-1"></i> إنشاء درس
-        </a>
+        </a> -->
         <a class="btn btn-outline-secondary rounded-pill px-4 fw-bold" routerLink="/teacher/reports">
           <i class="bi bi-bar-chart me-1"></i> التقارير
         </a>
@@ -27,36 +27,91 @@
 
     @if (data(); as d) {
 
-      <!-- Stats -->
+      <!-- Stats — class-wide content progress -->
       <div class="row g-3">
+
+        <!-- Card 1: حروف -->
         <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-1 h-100">
-            <span style="font-size:26px">👥</span>
-            <span class="fw-800 fs-3" style="color:#16A34A">{{ d.totalStudents }}</span>
-            <span class="small fw-semibold text-muted">الطلاب</span>
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                <span style="font-size:20px">🔤</span>
+                <span class="fw-800 small">الحروف</span>
+              </div>
+              <span class="badge rounded-pill fw-800 small" style="background:#F3E8FF;color:#7C3AED">
+                {{ d.totalStudents }} طالب
+              </span>
+            </div>
+            <span class="fw-800 fs-4" style="color:var(--primary)">{{ d.lettersAvgPct | number:'1.0-0' }}٪</span>
+            <div class="progress" style="height:6px">
+              <div class="progress-bar" [style.width]="(d.lettersAvgPct ?? 0) + '%'" style="background:var(--primary)"></div>
+            </div>
+            <span class="small text-muted">متوسط الفصل</span>
           </div>
         </div>
+
+        <!-- Card 2: كلمات + جمل -->
         <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-1 h-100">
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:20px">📝</span>
+              <span class="fw-800 small">الكلمات والجمل</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">كلمات</span>
+                <span class="fw-700" style="color:#8B5CF6">{{ d.wordsAvgPct | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.wordsAvgPct ?? 0) + '%'" style="background:#8B5CF6"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">جمل</span>
+                <span class="fw-700" style="color:#EC4899">{{ d.sentencesAvgPct | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.sentencesAvgPct ?? 0) + '%'" style="background:#EC4899"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: دروس + قصص -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 h-100 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:20px">📚</span>
+              <span class="fw-800 small">الكتيبات والقصص</span>
+            </div>
+            <div class="d-flex flex-column gap-1 small">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">كتيبات</span>
+                <span class="fw-700" style="color:#10B981">{{ d.lessonsAvgPct | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress mb-1" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.lessonsAvgPct ?? 0) + '%'" style="background:#10B981"></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">قصص</span>
+                <span class="fw-700" style="color:#F59E0B">{{ d.storiesAvgPct | number:'1.0-0' }}٪</span>
+              </div>
+              <div class="progress" style="height:5px">
+                <div class="progress-bar" [style.width]="(d.storiesAvgPct ?? 0) + '%'" style="background:#F59E0B"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: متوسط الأداء الكتابي -->
+        <div class="col-6 col-md-3">
+          <div class="card p-4 text-center d-flex flex-column align-items-center gap-2 h-100">
             <span style="font-size:26px">📊</span>
             <span class="fw-800 fs-3" style="color:var(--primary)">{{ d.avgClassScore | number:'1.0-0' }}٪</span>
-            <span class="small fw-semibold text-muted">متوسط الأداء</span>
+            <span class="small fw-semibold text-muted">متوسط الأداء الكتابي</span>
+            <span class="small text-muted" style="font-size:11px">{{ d.activeThisWeek }} نشط هذا الأسبوع</span>
           </div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-1 h-100">
-            <span style="font-size:26px">📝</span>
-            <span class="fw-800 fs-3" style="color:#7C3AED">{{ d.activeThisWeek }}</span>
-            <span class="small fw-semibold text-muted">نشطون هذا الأسبوع</span>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-1 h-100">
-            <span style="font-size:26px">⭐</span>
-            <span class="fw-800 fs-3" style="color:#D97706">{{ d.topContent?.length ?? 0 }}</span>
-            <span class="small fw-semibold text-muted">دروس نشطة</span>
-          </div>
-        </div>
+
       </div>
 
       <!-- Performance bands -->
@@ -117,11 +172,11 @@
                       {{ group.students.length }} طالب
                     </span>
                   </div>
-                  <button class="btn btn-sm rounded-pill fw-800" type="button"
+                  <!-- <button class="btn btn-sm rounded-pill fw-800" type="button"
                     (click)="assignLessonToLevel(group.level)"
                     style="border:2px solid #6366F1;color:#6366F1;background:transparent">
                     📤 تعيين درس للمستوى
-                  </button>
+                  </button> -->
                 </div>
                 @if (group.students.length === 0) {
                   <p class="text-muted small mb-0">لا يوجد طلاب في هذا المستوى.</p>
@@ -143,9 +198,9 @@
                           <button class="btn btn-sm rounded-pill fw-800 flex-shrink-0"
                             style="border:1.5px solid rgba(244,120,138,.3);color:var(--primary);background:transparent;font-size:11px"
                             type="button" (click)="viewStudent(s.id, s.childName)">عرض</button>
-                          <button class="btn btn-sm rounded-pill fw-800 flex-shrink-0"
+                          <!-- <button class="btn btn-sm rounded-pill fw-800 flex-shrink-0"
                             style="border:1.5px solid rgba(99,102,241,.3);color:#6366F1;background:transparent;font-size:11px"
-                            type="button" (click)="sendFeedback(s.id, s.childName)">💬</button>
+                            type="button" (click)="sendFeedback(s.id, s.childName)">💬</button> -->
                         </div>
                       </div>
                     }
@@ -171,76 +226,85 @@
           }
         </div>
       } @else {
-        <!-- School teacher: flat table view -->
-        <div class="card overflow-hidden p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle" style="font-size:14px">
-              <thead>
-                <tr style="border-bottom:2px solid rgba(244,120,138,.12)">
-                  <th class="fw-800 px-4 py-3" style="color:var(--primary);white-space:nowrap">الاسم</th>
-                  <th class="fw-800 px-4 py-3" style="color:var(--primary);white-space:nowrap">المستوى</th>
-                  <th class="fw-800 px-4 py-3" style="color:var(--primary);white-space:nowrap">التقدم</th>
-                  <th class="fw-800 px-4 py-3" style="color:var(--primary);white-space:nowrap">آخر نشاط</th>
-                  <th class="fw-800 px-4 py-3" style="color:var(--primary)">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (filteredStudents().length === 0) {
-                  <tr>
-                    <td colspan="5" class="text-center text-muted py-5 fw-semibold">لا يوجد طلاب بعد.</td>
-                  </tr>
-                }
-                @for (s of filteredStudents(); track s.childName) {
-                  <tr>
-                    <td class="px-4 py-3">
-                      <div class="d-flex align-items-center gap-2 fw-800">
-                        <div class="d-flex align-items-center justify-content-center rounded-circle fw-800 flex-shrink-0"
-                             style="width:36px;height:36px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:16px">
-                          {{ s.childName.charAt(0) }}
-                        </div>
-                        {{ s.childName }}
-                      </div>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span class="badge rounded-pill fw-800"
-                        [style.background]="levelNumColor(s.level || 1) + '22'"
-                        [style.color]="levelNumColor(s.level || 1)"
-                        style="font-size:12px;padding:5px 12px">
-                        المستوى {{ s.level || 1 }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="d-flex align-items-center gap-2">
-                        <div class="flex-grow-1 rounded-pill overflow-hidden" style="height:8px;background:#F3F4F6;max-width:120px">
-                          <div class="h-100 rounded-pill" style="transition:width .6s ease"
-                               [style.width.%]="s.avgScore"
-                               [style.background]="progressColor(s.avgScore)"></div>
-                        </div>
-                        <span class="fw-800 small" [style.color]="progressColor(s.avgScore)">
-                          {{ s.avgScore | number:'1.0-0' }}٪
-                        </span>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3 small fw-semibold text-muted">{{ lastActiveLabel(s.lastActivity) }}</td>
-                    <td class="px-4 py-3">
-                      <div class="d-flex gap-2">
-                        <button class="btn btn-sm rounded-pill fw-800"
-                          style="border:2px solid rgba(244,120,138,.3);color:var(--primary);background:transparent"
-                          type="button" (click)="viewStudent(s.id, s.childName)">
-                          عرض
-                        </button>
-                        <button class="btn btn-sm rounded-pill fw-800"
-                          style="border:2px solid rgba(99,102,241,.3);color:#6366F1;background:transparent"
-                          type="button" (click)="sendFeedback(s.id, s.childName)">
-                          💬 تشجيع
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+        <!-- School teacher: grouped by classroom -->
+        @if (studentsByClassroom().length === 0) {
+          <div class="card p-5 text-center text-muted fw-semibold">لا يوجد طلاب بعد.</div>
+        }
+        <div class="d-flex flex-column gap-3">
+          @for (cls of studentsByClassroom(); track cls.name) {
+            <div class="card p-4">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <span style="font-size:20px">🏫</span>
+                  <h5 class="fw-800 mb-0">{{ cls.name }}</h5>
+                  <span class="badge rounded-pill fw-800 small" style="background:#F3E8FF;color:#7C3AED">
+                    {{ cls.students.length }} طالب
+                  </span>
+                </div>
+              </div>
+              <div class="card overflow-hidden p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0 align-middle" style="font-size:14px">
+                    <thead>
+                      <tr style="border-bottom:2px solid rgba(244,120,138,.12)">
+                        <th class="fw-800 px-3 py-2" style="color:var(--primary)">الاسم</th>
+                        <th class="fw-800 px-3 py-2" style="color:var(--primary)">المستوى</th>
+                        <th class="fw-800 px-3 py-2" style="color:var(--primary)">التقدم</th>
+                        <th class="fw-800 px-3 py-2" style="color:var(--primary)">آخر نشاط</th>
+                        <th class="fw-800 px-3 py-2" style="color:var(--primary)">إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (s of cls.students; track s.childName) {
+                        <tr>
+                          <td class="px-3 py-2">
+                            <div class="d-flex align-items-center gap-2 fw-800">
+                              <div class="d-flex align-items-center justify-content-center rounded-circle fw-800 flex-shrink-0"
+                                   style="width:32px;height:32px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:14px">
+                                {{ s.childName.charAt(0) }}
+                              </div>
+                              {{ s.childName }}
+                            </div>
+                          </td>
+                          <td class="px-3 py-2">
+                            <span class="badge rounded-pill fw-800"
+                              [style.background]="levelNumColor(s.level || 1) + '22'"
+                              [style.color]="levelNumColor(s.level || 1)"
+                              style="font-size:11px;padding:4px 10px">
+                              المستوى {{ s.level || 1 }}
+                            </span>
+                          </td>
+                          <td class="px-3 py-2">
+                            <div class="d-flex align-items-center gap-2">
+                              <div class="flex-grow-1 rounded-pill overflow-hidden" style="height:6px;background:#F3F4F6;max-width:100px">
+                                <div class="h-100 rounded-pill" style="transition:width .6s ease"
+                                     [style.width.%]="s.avgScore"
+                                     [style.background]="progressColor(s.avgScore)"></div>
+                              </div>
+                              <span class="fw-800 small" [style.color]="progressColor(s.avgScore)">
+                                {{ s.avgScore | number:'1.0-0' }}٪
+                              </span>
+                            </div>
+                          </td>
+                          <td class="px-3 py-2 small fw-semibold text-muted">{{ lastActiveLabel(s.lastActivity) }}</td>
+                          <td class="px-3 py-2">
+                            <div class="d-flex gap-2">
+                              <button class="btn btn-sm rounded-pill fw-800"
+                                style="border:2px solid rgba(244,120,138,.3);color:var(--primary);background:transparent"
+                                type="button" (click)="viewStudent(s.id, s.childName)">عرض</button>
+                              <button class="btn btn-sm rounded-pill fw-800"
+                                style="border:2px solid rgba(99,102,241,.3);color:#6366F1;background:transparent"
+                                type="button" (click)="sendFeedback(s.id, s.childName)">💬</button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          }
         </div>
       }
 

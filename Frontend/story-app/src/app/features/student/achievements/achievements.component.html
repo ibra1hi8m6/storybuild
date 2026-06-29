@@ -1,18 +1,32 @@
 <div dir="rtl" style="min-height:100vh;background:var(--bg-base);display:flex">
 
   <!-- Sidebar nav -->
-  <aside style="width:210px;flex-shrink:0;background:var(--bg-card);border-left:1.5px solid rgba(244,120,138,.1);padding:24px 14px;display:flex;flex-direction:column;gap:6px;height:100vh;position:sticky;top:0">
-    <div style="font-size:22px;font-weight:900;padding:8px 4px 18px;background:var(--primary-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent">لغتي ✨</div>
-    @for (item of navItems; track item.route) {
-      <a [routerLink]="item.route" routerLinkActive="active-nav"
-         style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:700;color:var(--text-muted);transition:.2s">
-        <span>{{ item.icon }}</span><span>{{ item.label }}</span>
-      </a>
-    }
-    <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(244,120,138,.08)">
-      <button (click)="logout()"
-              style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:none;background:none;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;color:#EF4444;cursor:pointer;width:100%;transition:.2s">
-        🚪 تسجيل الخروج
+  <aside class="d-none d-lg-flex flex-column gap-3 bg-white p-3 border-start flex-shrink-0" style="width:240px;position:sticky;top:0;height:100vh;overflow-y:auto;border-color:rgba(244,120,138,.1)!important">
+    <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:rgba(244,120,138,.05)">
+      <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+           style="width:52px;height:52px;background:linear-gradient(135deg,#FFE4E8,#F3E8FF);font-size:26px">{{ state.currentUser()?.avatar || '🦁' }}</div>
+      <div>
+        <div class="fw-800">{{ state.currentUser()?.name || 'الطالب' }}</div>
+        <span class="badge rounded-pill mt-1" style="background:var(--primary);font-size:11px">
+          المستوى {{ state.currentUser()?.level ?? '—' }}
+        </span>
+      </div>
+    </div>
+    <nav class="d-flex flex-column gap-1 flex-grow-1">
+      @for (item of navItems; track item.route) {
+        <a class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 rounded-3 text-decoration-none fw-bold"
+           [routerLink]="item.route" routerLinkActive="active">
+          <span style="font-size:18px">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+    <div class="mt-auto pt-2 border-top" style="border-color:rgba(244,120,138,.1)!important">
+      <button class="d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 bg-transparent fw-bold w-100"
+              style="color:#EF4444;font-family:'Cairo',sans-serif;font-size:14px;cursor:pointer"
+              (click)="logout()">
+        <span style="font-size:18px">🚪</span>
+        <span>تسجيل الخروج</span>
       </button>
     </div>
   </aside>
@@ -59,5 +73,7 @@
 </div>
 
 <style>
-  .active-nav { background: rgba(244,120,138,.1) !important; color: var(--primary) !important; }
+  .sidebar-link { color: var(--text-muted); }
+  .sidebar-link:hover { background: rgba(244,120,138,.06); color: var(--primary); }
+  .sidebar-link.active { background: rgba(244,120,138,.1); color: var(--primary); }
 </style>

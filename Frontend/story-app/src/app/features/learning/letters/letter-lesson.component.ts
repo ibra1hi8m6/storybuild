@@ -8,6 +8,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { LearningService } from '../../../services/learning.service';
 import { AppStateService } from '../../../services/app-state-service';
 import { TtsService } from '../../../services/tts.service';
+import { ProgressService } from '../../../services/progress.service';
 import { LetterContentDto } from '../../../models/learning.models';
 import { environment } from '../../../../environments/environment';
 
@@ -23,11 +24,12 @@ type Tool = 'pen' | 'eraser';
 export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly route  = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly svc    = inject(LearningService);
-  private readonly state  = inject(AppStateService);
-  private readonly tts    = inject(TtsService);
+  private readonly route    = inject(ActivatedRoute);
+  private readonly router   = inject(Router);
+  private readonly svc      = inject(LearningService);
+  private readonly state    = inject(AppStateService);
+  private readonly tts      = inject(TtsService);
+  private readonly progress = inject(ProgressService);
   readonly api = environment.apiUrl;
 
   readonly letter       = signal<LetterContentDto | null>(null);
@@ -47,21 +49,30 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
   private lastY = 0;
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
-    this.svc.getLetter(id).subscribe({
-      next: d  => {
-        this.letter.set(d);
-        this.isLoading.set(false);
-        this.speak();
-        setTimeout(() => this.initCanvas(), 0);
-        this.svc.getLetters().subscribe(all => {
-          const sorted = [...all].sort((a, b) => a.sortOrder - b.sortOrder);
-          const idx = sorted.findIndex(l => l.id === id);
-          if (idx !== -1 && idx < sorted.length - 1)
-            this.nextLetterId.set(sorted[idx + 1].id);
-        });
-      },
-      error: () => this.isLoading.set(false)
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id')!;
+      this.letter.set(null);
+      this.result.set(null);
+      this.nextLetterId.set(null);
+      this.isLoading.set(true);
+
+      this.svc.getLetter(id).subscribe({
+        next: d => {
+          this.letter.set(d);
+          this.isLoading.set(false);
+          this.speak();
+          setTimeout(() => this.initCanvas(), 0);
+          this.svc.getLetters().subscribe({
+            next: all => {
+              const idx = all.findIndex(l => l.id === id);
+              if (idx !== -1 && idx < all.length - 1)
+                this.nextLetterId.set(all[idx + 1].id);
+            },
+            error: () => {}
+          });
+        },
+        error: () => this.isLoading.set(false)
+      });
     });
   }
 
@@ -162,9 +173,8 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isChecking.set(true);
     this.svc.evaluateCanvas(base64, expectedText).subscribe({
       next: res => {
-        const isCorrect   = res.isAccepted;
+        const isCorrect    = res.isAccepted;
         const feedbackText = res.displayMessage || (isCorrect ? 'أحسنت! 🌟' : 'حاول مرة أخرى ✏️');
-        this.result.set({ isCorrect, feedback: feedbackText });
         this.isChecking.set(false);
         this.svc.saveAttempt({
           childName:    this.state.childName() ?? '',
@@ -174,17 +184,20 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
           attemptType:  1,
           expectedText,
           detectedText: res.extractedText,
-          score:        Math.round(res.similarityScore * 100),
+          score:        Math.round(res.similarityScore),
           isCorrect,
           feedbackText
         }).subscribe();
-        this.speak(res.spokenFeedback || feedbackText);
+        this.speak(res.spokenFeedback || feedbackText, () => {
+          this.result.set({ isCorrect, feedback: feedbackText });
+        });
       },
       error: () => {
         this.isChecking.set(false);
         const msg = 'حدث خطأ أثناء التقييم، حاول مرة أخرى.';
-        this.result.set({ isCorrect: false, feedback: msg });
-        this.speak(msg);
+        this.speak(msg, () => {
+          this.result.set({ isCorrect: false, feedback: msg });
+        });
       }
     });
   }
@@ -197,15 +210,23 @@ export class LetterLessonComponent implements OnInit, OnDestroy, AfterViewInit {
     return false;
   }
 
-  speak(text?: string): void {
+  speak(text?: string, onStart?: () => void): void {
     const l = this.letter();
     const t = text || l?.audioText || l?.displaySentence || l?.letterName || '';
-    if (!t) return;
+    if (!t) { onStart?.(); return; }
     this.isPlaying.set(true);
-    void this.tts.play(t).finally(() => this.isPlaying.set(false));
+    void this.tts.play(t, 'Kore', onStart).finally(() => this.isPlaying.set(false));
   }
 
   goNext(): void {
+    const l = this.letter();
+    const studentId = this.state.currentUser()?.id;
+    if (l && studentId) {
+      this.progress.completeLetter(studentId, l.id).subscribe({
+        error: (err) => console.error('[completeLetter] failed — completion not saved:', err)
+      });
+      this.state.markCompleted(l.id);
+    }
     const next = this.nextLetterId();
     this.router.navigate(next ? ['/learning/letters', next] : ['/learning/letters']);
   }

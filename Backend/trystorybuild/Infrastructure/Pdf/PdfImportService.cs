@@ -141,10 +141,7 @@ public class PdfImportService(
     {
         var apiKey = configuration["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            logger.LogWarning("[PdfImport] Gemini:ApiKey not configured — returning empty sentence.");
-            return string.Empty;
-        }
+            throw new InvalidOperationException("Gemini:ApiKey غير مهيأ. لا يمكن استيراد الدرس بدون مفتاح API.");
 
         try
         {
@@ -196,7 +193,8 @@ public class PdfImportService(
         catch (Exception ex)
         {
             logger.LogError(ex, "[PdfImport] Gemini OCR failed for {Path}", imagePath);
-            return string.Empty;
+            throw new InvalidOperationException(
+                $"فشل استخراج النص من الصفحة. تحقق من مفتاح API وحاول مرة أخرى. ({ex.Message})", ex);
         }
     }
 

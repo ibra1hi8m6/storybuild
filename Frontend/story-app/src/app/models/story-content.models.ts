@@ -2,6 +2,7 @@ export interface GenerateStoryRequest {
   childName: string;
   character: string;
   theme:     string;
+  studentId?: string;
 }
 
 export interface StoryPage {
@@ -17,6 +18,7 @@ export interface StoryResponse {
   title:      string;
   isApproved: boolean;
   pages:      StoryPage[];
+  source?:    number; // 0 = AiGenerated, 1 = PdfImport
 }
 
 export interface UploadedStoryDto {

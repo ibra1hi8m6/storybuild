@@ -172,7 +172,8 @@ public class UploadedStoryImportService(
     private async Task<string> ExtractSentenceAsync(string imagePath, CancellationToken ct)
     {
         var apiKey = configuration["Gemini:ApiKey"];
-        if (string.IsNullOrWhiteSpace(apiKey)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("Gemini:ApiKey غير مهيأ. لا يمكن استيراد القصة بدون مفتاح API.");
 
         // Retry delays in ms for 429 responses: 8s, 15s, 30s
         var retryDelaysMs = new[] { 8000, 15000, 30000 };
@@ -250,11 +251,12 @@ public class UploadedStoryImportService(
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "[StoryImport] Gemini OCR failed for {Path} (attempt {N})", imagePath, attempt + 1);
-                return string.Empty;
+                if (attempt < retryDelaysMs.Length) continue;
+                throw new InvalidOperationException(
+                    $"فشل استخراج النص من الصفحة. تحقق من مفتاح API وحاول مرة أخرى. ({ex.Message})", ex);
             }
         }
 
-        logger.LogWarning("[StoryImport] Gemini OCR exhausted all retries for {Path}", imagePath);
-        return string.Empty;
+        throw new InvalidOperationException("فشل استخراج النص من الصفحة بعد عدة محاولات. الرجاء المحاولة لاحقاً.");
     }
 }

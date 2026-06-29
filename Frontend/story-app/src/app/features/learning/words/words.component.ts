@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { LearningService } from '../../../services/learning.service';
+import { AppStateService } from '../../../services/app-state-service';
 import { WordContentDto } from '../../../models/learning.models';
 
 @Component({
@@ -15,6 +16,7 @@ import { WordContentDto } from '../../../models/learning.models';
 export class WordsComponent implements OnInit {
   private readonly svc    = inject(LearningService);
   private readonly router = inject(Router);
+  readonly state = inject(AppStateService);
 
   readonly isLoading      = signal(true);
   readonly letters        = signal<string[]>([]);

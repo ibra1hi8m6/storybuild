@@ -78,6 +78,7 @@ export interface StudentSummaryDto {
   performanceLevel: string;
   lastActivity:     string | null;
   level?:           number;
+  classroomName?:   string | null;
 }
 
 export interface StudentDashboardDto {
@@ -118,6 +119,14 @@ export interface ParentDashboardDto {
   topStories:            TopContentDto[];
   examHistory:           ExamHistoryDto[];
   recentActivity:        RecentActivityDto[];
+  lettersCompleted:      number;
+  lettersTotal:          number;
+  wordsCompleted:        number;
+  wordsTotal:            number;
+  sentencesCompleted:    number;
+  sentencesTotal:        number;
+  lessonsTotal:          number;
+  storiesTotal:          number;
 }
 
 export interface TeacherDashboardDto {
@@ -142,4 +151,14 @@ export interface SchoolDashboardDto {
   performanceBands:  PerformanceBandDto[];
   classrooms:        ClassroomStatsDto[];
   levelDistribution: LevelDistributionDto[];
+  lettersAvgPct?:    number;
+  lettersTotal?:     number;
+  wordsAvgPct?:      number;
+  wordsTotal?:       number;
+  sentencesAvgPct?:  number;
+  sentencesTotal?:   number;
+  lessonsAvgPct?:    number;
+  lessonsTotal?:     number;
+  storiesAvgPct?:    number;
+  storiesTotal?:     number;
 }

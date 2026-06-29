@@ -123,8 +123,9 @@ export class StoryService {
   uploadKnowledgeDocument(file: File, name: string, description: string): Observable<any> { return this.rag.uploadKnowledgeDocument(file, name, description); }
 
   // ── Dashboards ────────────────────────────────────────────────────────────
-  getStudentDashboard(studentId: string): Observable<StudentDashboardDto>  { return this.dashboard.getStudentDashboard(studentId); }
-  getParentDashboard(studentId: string): Observable<ParentDashboardDto>    { return this.dashboard.getParentDashboard(studentId); }
+  getStudentDashboard(studentId: string): Observable<StudentDashboardDto>     { return this.dashboard.getStudentDashboard(studentId); }
+  getTeacherStudentView(studentId: string): Observable<StudentDashboardDto>  { return this.dashboard.getTeacherStudentView(studentId); }
+  getParentDashboard(studentId: string): Observable<ParentDashboardDto>      { return this.dashboard.getParentDashboard(studentId); }
   getTeacherDashboard(): Observable<TeacherDashboardDto>                   { return this.dashboard.getTeacherDashboard(); }
   getSchoolDashboard(): Observable<SchoolDashboardDto>                     { return this.dashboard.getSchoolDashboard(); }
   getKnownStudentNames(): Observable<string[]>                             { return this.dashboard.getKnownStudentNames(); }
@@ -161,6 +162,9 @@ export class StoryService {
   assignLesson(req: AssignLessonRequest): Observable<{ id: string; message: string }> { return this.groups.assignLesson(req); }
   getAssignedLessons(studentId: string): Observable<LessonAssignmentDto[]> { return this.groups.getAssignedLessons(studentId); }
   getTeacherAssignments(teacherId: string): Observable<LessonAssignmentDto[]> { return this.groups.getTeacherAssignments(teacherId); }
+  getDirectStudents(teacherId: string): Observable<{ id: string; name: string; level: number }[]> { return this.groups.getDirectStudents(teacherId); }
+  addDirectStudent(teacherId: string, identifier: string): Observable<{ id: string; name: string; level: number }> { return this.groups.addDirectStudent(teacherId, identifier); }
+  removeDirectStudent(teacherId: string, studentId: string): Observable<void> { return this.groups.removeDirectStudent(teacherId, studentId); }
 
   // ── Assignments ────────────────────────────────────────────────────────────
   getStudentAssignments(studentId: string): Observable<AssignmentDto[]>    { return this.assignments.getStudentAssignments(studentId); }

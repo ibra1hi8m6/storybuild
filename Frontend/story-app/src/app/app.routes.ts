@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, studentGuard, parentGuard, teacherGuard, schoolGuard, adminGuard } from './core/auth.guard';
+import { authGuard, studentGuard, parentGuard, teacherGuard, schoolGuard, adminGuard, level2Guard, level3Guard } from './core/auth.guard';
 
 export const routes: Routes = [
   // ── Public ──────────────────────────────────────────────────────────────────
@@ -82,31 +82,31 @@ export const routes: Routes = [
     path: 'learning/words-sentences',
     loadComponent: () =>
       import('./features/learning/words/words-sentences-hub.component').then(m => m.WordsSentencesHubComponent),
-    canActivate: [authGuard]
+    canActivate: [level2Guard]
   },
   {
     path: 'learning/words',
     loadComponent: () =>
       import('./features/learning/words/words.component').then(m => m.WordsComponent),
-    canActivate: [authGuard]
+    canActivate: [level2Guard]
   },
   {
     path: 'learning/words/:id',
     loadComponent: () =>
       import('./features/learning/words/word-practice.component').then(m => m.WordPracticeComponent),
-    canActivate: [authGuard]
+    canActivate: [level2Guard]
   },
   {
     path: 'learning/sentences',
     loadComponent: () =>
       import('./features/learning/sentences/sentences.component').then(m => m.SentencesComponent),
-    canActivate: [authGuard]
+    canActivate: [level2Guard]
   },
   {
     path: 'learning/sentences/:id',
     loadComponent: () =>
       import('./features/learning/sentences/sentence-practice.component').then(m => m.SentencePracticeComponent),
-    canActivate: [authGuard]
+    canActivate: [level2Guard]
   },
   {
     path: 'learning/booklets-stories',
@@ -154,7 +154,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/fluency/reading-journey/reading-journey-host.component')
         .then(m => m.ReadingJourneyHostComponent),
-    canActivate: [authGuard],
+    canActivate: [level3Guard],
     data: { pageType: 'Lesson' }
   },
 
@@ -358,6 +358,20 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/school/subscription/school-subscription.component').then(m => m.SchoolSubscriptionComponent),
     canActivate: [schoolGuard]
+  },
+
+  // ── Gate Quizzes ──────────────────────────────────────────────────────────────
+  {
+    path: 'quiz/gate1',
+    loadComponent: () =>
+      import('./features/quiz/gate-quiz1/gate-quiz1.component').then(m => m.GateQuiz1Component),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'quiz/gate2',
+    loadComponent: () =>
+      import('./features/quiz/gate-quiz2/gate-quiz2.component').then(m => m.GateQuiz2Component),
+    canActivate: [authGuard]
   },
 
   // ── Exam ──────────────────────────────────────────────────────────────────────

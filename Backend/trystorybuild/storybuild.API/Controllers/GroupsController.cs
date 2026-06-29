@@ -3,8 +3,10 @@ using System.Security.Claims;
 using Application.DTOs;
 using Application.Interfaces;
 using Domain.Entities;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace storybuild.API.Controllers;
 
@@ -14,7 +16,8 @@ namespace storybuild.API.Controllers;
 public class GroupsController(
     IStudentGroupRepository groupRepository,
     ILessonAssignmentRepository assignmentRepository,
-    IStudentRepository studentRepository) : ControllerBase
+    IStudentRepository studentRepository,
+    AppDbContext db) : ControllerBase
 {
     // ── Get teacher's groups ───────────────────────────────────────────────────
     [HttpGet("teacher/{teacherId:guid}")]
@@ -67,6 +70,45 @@ public class GroupsController(
     {
         var deleted = await groupRepository.DeleteAsync(groupId);
         return deleted ? NoContent() : NotFound(new { error = "المجموعة غير موجودة." });
+    }
+
+    // ── Direct students (individual, no group) ─────────────────────────────────
+
+    [HttpGet("teacher/{teacherId:guid}/direct-students")]
+    public async Task<IActionResult> GetDirectStudents(Guid teacherId)
+    {
+        // Students already assigned to any group belonging to this teacher
+        var groupedIds = await db.Set<StudentGroupMember>()
+            .Where(m => m.Group.TeacherId == teacherId)
+            .Select(m => m.StudentId)
+            .ToListAsync();
+
+        var students = await studentRepository.GetByTeacherIdAsync(teacherId);
+        var direct   = students.Where(s => !groupedIds.Contains(s.Id));
+        return Ok(direct.Select(s => new { id = s.Id, name = s.Name, level = s.Level }));
+    }
+
+    [HttpPost("teacher/{teacherId:guid}/direct-students")]
+    public async Task<IActionResult> AddDirectStudent(Guid teacherId, [FromBody] AddDirectStudentRequest req)
+    {
+        var student = await studentRepository.FindByUsernameAsync(req.Identifier)
+                   ?? await studentRepository.FindByNationalIdAsync(req.Identifier);
+        if (student is null)
+            return NotFound(new { error = "لم يتم العثور على طالب بهذا الاسم أو الرقم." });
+        if (student.TeacherId.HasValue && student.TeacherId != teacherId)
+            return Conflict(new { error = "هذا الطالب مرتبط بمعلم آخر بالفعل." });
+        await studentRepository.SetTeacherAsync(student.Id, teacherId);
+        return Ok(new { id = student.Id, name = student.Name, level = student.Level });
+    }
+
+    [HttpDelete("teacher/{teacherId:guid}/direct-students/{studentId:guid}")]
+    public async Task<IActionResult> RemoveDirectStudent(Guid teacherId, Guid studentId)
+    {
+        var student = await studentRepository.FindByIdAsync(studentId);
+        if (student is null || student.TeacherId != teacherId)
+            return NotFound(new { error = "الطالب غير موجود في قائمتك المباشرة." });
+        await studentRepository.SetTeacherAsync(studentId, null);
+        return Ok(new { message = "تمت إزالة الطالب من قائمتك المباشرة." });
     }
 
     // ── Assign lesson to student or group ──────────────────────────────────────

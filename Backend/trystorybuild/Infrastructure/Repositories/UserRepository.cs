@@ -37,10 +37,10 @@ namespace Infrastructure.Repositories
         public Task<Teacher?> GetTeacherByIdAsync(Guid userId) =>
             db.Teachers.FirstOrDefaultAsync(t => t.Id == userId);
 
-        public Task<List<Teacher>> GetTeachersBySchoolCodeAsync(string schoolCode) =>
+        public Task<List<Teacher>> GetTeachersBySchoolManagerIdAsync(Guid schoolManagerId) =>
             db.Teachers
               .Include(t => t.User)
-              .Where(t => t.SchoolCode == schoolCode)
+              .Where(t => t.SchoolManagerId == schoolManagerId)
               .ToListAsync();
     }
 }
