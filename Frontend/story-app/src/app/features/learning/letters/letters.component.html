@@ -4,9 +4,6 @@
   <div class="page-header">
     <button class="back-btn" (click)="goBack()">→ رجوع</button>
     <h1 class="page-title">الحروف والأصوات</h1>
-    <!-- <button class="recognition-btn" (click)="goRecognition()">
-      🔤 نشاط التعرف على الحروف
-    </button> -->
   </div>
 
   @if (isLoading()) {
@@ -21,10 +18,23 @@
   } @else {
     <div class="letters-grid">
       @for (l of letters(); track l.id) {
-        <button class="letter-card" (click)="openLetter(l.id)" style="position:relative">
-          @if (state.isCompleted(l.id)) {
+        <button class="letter-card"
+                (click)="openLetter(l)"
+                style="position:relative"
+                [style.opacity]="l.isLocked ? '0.85' : '1'">
+
+          @if (!l.isLocked && state.isCompleted(l.id)) {
             <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:1">✓</span>
           }
+
+          @if (l.isLocked) {
+            <div style="position:absolute;inset:0;background:rgba(255,255,255,.6);border-radius:inherit;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+              <span style="font-size:22px">🔒</span>
+              <span style="font-size:11px;font-weight:800;color:#6B7280">مغلق</span>
+              <span style="font-size:10px;font-weight:700;background:var(--primary-gradient,linear-gradient(135deg,#F4788A,#C084FC));color:#fff;padding:3px 10px;border-radius:99px">فعّل الاشتراك</span>
+            </div>
+          }
+
           @if (l.imagePath) {
             <img [src]="l.imagePath" class="letter-img" [alt]="l.letter">
           } @else {

@@ -19,6 +19,7 @@ export class SchoolDashboardComponent implements OnInit {
   readonly isLoading = signal(false);
   readonly data      = signal<any>(null);
 
+  readonly schoolName        = computed(() => this.state.currentUser()?.name ?? 'المدرسة');
   readonly classrooms        = computed(() => (this.data()?.classrooms         ?? []) as any[]);
   readonly levelDistribution = computed(() => (this.data()?.levelDistribution  ?? []) as any[]);
   readonly maxClassProgress  = computed(() => Math.max(...this.classrooms().map((c: any) => c.avgProgress), 1));

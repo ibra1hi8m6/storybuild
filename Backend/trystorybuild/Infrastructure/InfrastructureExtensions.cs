@@ -96,6 +96,9 @@ namespace Infrastructure
             // ── Dashboard Service ──────────────────────────────────────────────────
             services.AddScoped<IDashboardService, DashboardService>();
 
+            // ── Subscription Service ───────────────────────────────────────────────
+            services.AddScoped<ISubscriptionService, SubscriptionService>();
+
             // ── Email Service ──────────────────────────────────────────────────────
             services.AddScoped<IEmailService, EmailService>();
 

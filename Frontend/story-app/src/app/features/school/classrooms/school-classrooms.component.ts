@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { StoryService } from '../../../services/story';
 import { AuthService } from '../../../services/auth.service';
+import { SubscriptionService, MySubscription } from '../../../services/subscription.service';
 
 interface Classroom {
   id:           string;
@@ -26,9 +27,18 @@ interface Classroom {
   templateUrl: './school-classrooms.component.html',
 })
 export class SchoolClassroomsComponent implements OnInit {
-  private readonly svc   = inject(StoryService);
-  private readonly auth  = inject(AuthService);
-  private readonly route = inject(ActivatedRoute);
+  private readonly svc    = inject(StoryService);
+  private readonly auth   = inject(AuthService);
+  private readonly route  = inject(ActivatedRoute);
+  private readonly subSvc = inject(SubscriptionService);
+
+  readonly subscription = signal<MySubscription | null>(null);
+  readonly atClassLimit = computed(() => {
+    const s = this.subscription();
+    const max = s?.maxClasses ?? 1;
+    const count = s?.classesCount ?? this.classrooms().length;
+    return count >= max;
+  });
 
   readonly isLoading      = signal(false);
   readonly saving         = signal(false);
@@ -55,6 +65,7 @@ export class SchoolClassroomsComponent implements OnInit {
   readonly filteredClassrooms = computed(() => this.classrooms());
 
   ngOnInit(): void {
+    this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
     if (this.route.snapshot.queryParamMap.get('openForm') === '1') this.showForm.set(true);
     this.loadClassrooms();
     this.auth.getSchoolTeachers().subscribe({
@@ -93,7 +104,10 @@ export class SchoolClassroomsComponent implements OnInit {
           this.saving.set(false);
           this.toggleForm();
         },
-        error: () => { this.formError = 'فشل الإنشاء. حاول مرة أخرى.'; this.saving.set(false); }
+        error: (err: any) => {
+          this.formError = err?.error?.message ?? err?.error?.error ?? 'فشل الإنشاء. حاول مرة أخرى.';
+          this.saving.set(false);
+        }
       });
   }
 
@@ -193,7 +207,7 @@ export class SchoolClassroomsComponent implements OnInit {
         this.addingStudent.set(false);
         this.closeAddStudent();
       },
-      error: () => { alert('فشل الإضافة.'); this.addingStudent.set(false); }
+      error: (err: any) => { alert(err?.error?.message ?? err?.error?.error ?? 'فشل الإضافة.'); this.addingStudent.set(false); }
     });
   }
 

@@ -17,6 +17,7 @@ export interface LessonSummary {
   pageCount:     number;
   isPublished:   boolean;
   status:        string;
+  isLocked?:     boolean;
 }
 
 export interface LessonDetail {

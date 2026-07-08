@@ -1,17 +1,20 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NavbarComponent } from '../../../shared/components/navbar/navbar.component';
 import { AuthService, StudentSummary } from '../../../services/auth.service';
+import { SubscriptionService, MySubscription, PLAN_LABELS } from '../../../services/subscription.service';
 
 @Component({
   selector: 'app-parent-children',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, NavbarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, NavbarComponent],
   templateUrl: './parent-children.component.html',
 })
 export class ParentChildrenComponent implements OnInit {
-  private readonly auth = inject(AuthService);
+  private readonly auth    = inject(AuthService);
+  private readonly subSvc  = inject(SubscriptionService);
 
   readonly isLoading    = signal(false);
   readonly children     = signal<StudentSummary[]>([]);
@@ -19,6 +22,24 @@ export class ParentChildrenComponent implements OnInit {
   readonly editingId    = signal<string | null>(null);
   readonly savingId     = signal<string | null>(null);
   readonly saveError    = signal<string | null>(null);
+  readonly subscription = signal<MySubscription | null>(null);
+
+  readonly atChildLimit = computed(() => {
+    const sub = this.subscription();
+    const max = sub?.maxChildren ?? 1;
+    const count = sub?.childrenCount ?? this.children().length;
+    return count >= max;
+  });
+
+  readonly planLabel = computed(() => {
+    const s = this.subscription();
+    return s ? (PLAN_LABELS[s.activePlan] ?? s.activePlan) : '—';
+  });
+
+  readonly activationCode    = signal('');
+  readonly isActivating      = signal(false);
+  readonly activationError   = signal<string | null>(null);
+  readonly activationSuccess = signal<string | null>(null);
 
   readonly levels = [
     { value: 1, label: 'المستوى الأول', color: '#F4788A' },
@@ -27,6 +48,7 @@ export class ParentChildrenComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
     this.isLoading.set(true);
     this.auth.getMyStudents().subscribe({
       next:  c => { this.children.set(c); this.isLoading.set(false); },
@@ -52,6 +74,26 @@ export class ParentChildrenComponent implements OnInit {
       error: () => {
         this.savingId.set(null);
         this.saveError.set('تعذّر تحديث المستوى. حاول مجدداً.');
+      }
+    });
+  }
+
+  activateCode(): void {
+    const code = this.activationCode().trim();
+    if (!code) return;
+    this.isActivating.set(true);
+    this.activationError.set(null);
+    this.activationSuccess.set(null);
+    this.subSvc.activate(code).subscribe({
+      next: res => {
+        this.isActivating.set(false);
+        this.activationSuccess.set(res.message);
+        this.activationCode.set('');
+        this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
+      },
+      error: (err: Error) => {
+        this.isActivating.set(false);
+        this.activationError.set(err.message);
       }
     });
   }

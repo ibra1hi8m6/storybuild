@@ -81,6 +81,10 @@ namespace Infrastructure.Data
         public DbSet<Teacher> Teachers => Set<Teacher>();
         public DbSet<Student> Students => Set<Student>();
 
+        // Subscriptions
+        public DbSet<Subscription> Subscriptions => Set<Subscription>();
+        public DbSet<SubscriptionActivationCode> SubscriptionActivationCodes => Set<SubscriptionActivationCode>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // StudentGroupMember composite PK
@@ -108,6 +112,17 @@ namespace Infrastructure.Data
             modelBuilder.Entity<TtsAudioCache>()
                 .HasIndex(t => t.TextHash)
                 .IsUnique();
+
+            // Subscription → User (one user → many subscriptions)
+            modelBuilder.Entity<Subscription>()
+                .HasOne(s => s.User)
+                .WithMany(u => u.Subscriptions)
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Index for fast active-subscription lookups
+            modelBuilder.Entity<Subscription>()
+                .HasIndex(s => new { s.UserId, s.IsActive });
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             base.OnModelCreating(modelBuilder);

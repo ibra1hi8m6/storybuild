@@ -2,7 +2,9 @@ using Application.Agents;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Mapping;
+using Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace storybuild.API.Controllers;
 
@@ -10,29 +12,86 @@ namespace storybuild.API.Controllers;
 [Route("api/lessons")]
 public class LessonsController(
     ILessonRepository lessonRepository,
-    LessonGenerationAgent generationAgent) : ControllerBase
+    LessonGenerationAgent generationAgent,
+    ISubscriptionService subscriptionService) : ControllerBase
 {
     // ── Student: get lessons by level ──────────────────────────────────────────
     [HttpGet]
     [ProducesResponseType(typeof(List<LessonSummaryDto>), 200)]
-    public async Task<IActionResult> GetByLevel([FromQuery] int level = 1)
+    public async Task<IActionResult> GetByLevel([FromQuery] int level = 1, [FromQuery] Guid? studentId = null)
     {
         if (level < 1)
             return BadRequest(new { error = "المستوى غير صالح." });
 
         var lessons = await lessonRepository.GetByLevelAsync(level);
+
+        var sid = ResolveStudentId(studentId);
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Booklets);
+            if (access.IsFree)
+            {
+                var firstId = lessons.OrderBy(l => l.CreatedAt).Select(l => l.Id).FirstOrDefault();
+                if (firstId != Guid.Empty)
+                    lessons = lessons.Where(l => l.Id == firstId).ToList();
+            }
+        }
+
         return Ok(lessons.Select(LessonMapper.ToSummary).ToList());
+    }
+
+    // ── Catalog: full list with isLocked for frontend locked-card UX ──────────
+    [HttpGet("catalog")]
+    [ProducesResponseType(200)]
+    public async Task<IActionResult> GetCatalog([FromQuery] int level = 1, [FromQuery] Guid? studentId = null)
+    {
+        if (level < 1) return BadRequest(new { error = "المستوى غير صالح." });
+
+        var lessons = await lessonRepository.GetByLevelAsync(level);
+        var sid = ResolveStudentId(studentId);
+        HashSet<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Booklets);
+            if (access.IsFree)
+            {
+                var firstId = lessons.OrderBy(l => l.CreatedAt).Select(l => l.Id).FirstOrDefault();
+                if (firstId != Guid.Empty)
+                    freeIds = new HashSet<Guid> { firstId };
+            }
+        }
+
+        return Ok(lessons.OrderBy(l => l.CreatedAt).Select(l => new
+        {
+            id           = l.Id,
+            title        = l.Title,
+            level        = l.Level,
+            letter       = l.Letter,
+            letterName   = l.LetterName,
+            coverImageUrl= LessonMapper.ToSummary(l).CoverImageUrl,
+            pageCount    = l.Pages.Count,
+            isLocked     = freeIds is not null && !freeIds.Contains(l.Id),
+        }));
     }
 
     // ── Get lesson detail ──────────────────────────────────────────────────────
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(LessonDetailResponse), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(Guid id)
+    public async Task<IActionResult> GetById(Guid id, [FromQuery] Guid? studentId = null)
     {
         var lesson = await lessonRepository.GetByIdAsync(id);
         if (lesson is null)
             return NotFound(new { error = "الدرس غير موجود." });
+
+        var sid = ResolveStudentId(studentId);
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Booklets, id);
+            if (!access.IsAllowed)
+                return StatusCode(402, new { message = access.Reason ?? "هذا الكتيب خارج نطاق الخطة المجانية.", feature = "Booklets", requiresUpgrade = true });
+        }
 
         return Ok(LessonMapper.ToDetail(lesson));
     }
@@ -122,5 +181,19 @@ public class LessonsController(
             .Select(LessonMapper.ToSummary)
             .ToList();
         return Ok(mine);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private Guid? ResolveStudentId(Guid? queryStudentId)
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        if (role == "Student")
+        {
+            var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(raw, out var jwtId))
+                return jwtId;
+        }
+        return queryStudentId;
     }
 }

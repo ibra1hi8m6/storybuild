@@ -39,6 +39,26 @@ public class GroupsController(
         if (string.IsNullOrWhiteSpace(req.Name))
             return BadRequest(new { error = "يرجى إدخال اسم المجموعة." });
 
+        var isPrivate = await db.Teachers
+            .Where(t => t.Id == teacherId)
+            .Select(t => !t.SchoolManagerId.HasValue)
+            .FirstOrDefaultAsync();
+
+        if (isPrivate)
+        {
+            var plan = await GetActivePlanAsync(teacherId);
+            if (plan != SubscriptionPlan.DemoFullAccess)
+            {
+                var maxGroups = plan == SubscriptionPlan.TeacherPremium
+                    ? SubscriptionConstants.TeacherPremiumMaxGroups
+                    : SubscriptionConstants.FreeTeacherMaxGroups;
+
+                var groupCount = await db.Set<StudentGroup>().CountAsync(g => g.TeacherId == teacherId);
+                if (groupCount >= maxGroups)
+                    return StatusCode(403, new { message = "لقد وصلت إلى الحد الأقصى لعدد المجموعات في خطتك الحالية." });
+            }
+        }
+
         var group = new StudentGroup { Name = req.Name.Trim(), TeacherId = teacherId };
         var saved = await groupRepository.SaveAsync(group);
         return Ok(new StudentGroupDto(saved.Id, saved.Name, saved.TeacherId, 0, saved.CreatedAt, new()));
@@ -97,6 +117,31 @@ public class GroupsController(
             return NotFound(new { error = "لم يتم العثور على طالب بهذا الاسم أو الرقم." });
         if (student.TeacherId.HasValue && student.TeacherId != teacherId)
             return Conflict(new { error = "هذا الطالب مرتبط بمعلم آخر بالفعل." });
+
+        // Only check limit for new assignments (student not already assigned to this teacher)
+        if (student.TeacherId != teacherId)
+        {
+            var isPrivate = await db.Teachers
+                .Where(t => t.Id == teacherId)
+                .Select(t => !t.SchoolManagerId.HasValue)
+                .FirstOrDefaultAsync();
+
+            if (isPrivate)
+            {
+                var plan = await GetActivePlanAsync(teacherId);
+                if (plan != SubscriptionPlan.DemoFullAccess)
+                {
+                    var maxStudents = plan == SubscriptionPlan.TeacherPremium
+                        ? SubscriptionConstants.TeacherPremiumMaxStudents
+                        : SubscriptionConstants.FreeTeacherMaxStudents;
+
+                    var count = await db.Students.CountAsync(s => s.TeacherId == teacherId);
+                    if (count >= maxStudents)
+                        return StatusCode(403, new { message = "لقد وصلت إلى الحد الأقصى لعدد الطلاب في خطتك الحالية." });
+                }
+            }
+        }
+
         await studentRepository.SetTeacherAsync(student.Id, teacherId);
         return Ok(new { id = student.Id, name = student.Name, level = student.Level });
     }
@@ -165,5 +210,15 @@ public class GroupsController(
             a.TargetGroupId, null,
             a.AssignedAt)).ToList();
         return Ok(dtos);
+    }
+
+    private async Task<SubscriptionPlan?> GetActivePlanAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        return await db.Subscriptions
+            .Where(s => s.UserId == userId && s.IsActive && (s.ExpiresAt == null || s.ExpiresAt > now))
+            .OrderByDescending(s => s.Plan)
+            .Select(s => (SubscriptionPlan?)s.Plan)
+            .FirstOrDefaultAsync();
     }
 }

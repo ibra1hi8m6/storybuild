@@ -200,6 +200,7 @@ public static class DbSeeder
         await BackfillClassroomStudentsAsync(db);
         await ClampCorruptedScoresAsync(db);
         await RemoveAiStoryCompletionsAsync(db);
+        await SeedSubscriptionsAsync(db);
     }
 
     // Copies successful LearningAttempt records into StudentContentCompletions.
@@ -329,6 +330,62 @@ public static class DbSeeder
             Console.WriteLine($"[Cleanup] Removed {removed} AI-story completion record(s) from StudentContentCompletions.");
         else
             Console.WriteLine("[Cleanup] No AI-story completions found — nothing to remove.");
+    }
+
+    // Marks seeded demo users as IsDemo = true and ensures each has a DemoFullAccess
+    // subscription. Idempotent — safe to run on every startup.
+    private static async Task SeedSubscriptionsAsync(AppDbContext db)
+    {
+        var demoEmails = new[]
+        {
+            "admin@lughati.com",
+            "school@lughati.com",
+            "teacher@lughati.com",
+            "parent@lughati.com",
+            "testparent@lughati.com",
+        };
+
+        bool anyChange = false;
+
+        foreach (var email in demoEmails)
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user is null) continue;
+
+            // Mark as demo if not already
+            if (!user.IsDemo)
+            {
+                user.IsDemo = true;
+                anyChange = true;
+            }
+
+            // Seed DemoFullAccess subscription if missing
+            var hasSub = await db.Subscriptions.AnyAsync(
+                s => s.UserId == user.Id && s.Plan == SubscriptionPlan.DemoFullAccess);
+
+            if (!hasSub)
+            {
+                db.Subscriptions.Add(new Subscription
+                {
+                    UserId    = user.Id,
+                    Plan      = SubscriptionPlan.DemoFullAccess,
+                    StartsAt  = DateTime.UtcNow,
+                    ExpiresAt = null,   // never expires
+                    IsActive  = true,
+                });
+                anyChange = true;
+            }
+        }
+
+        if (anyChange)
+        {
+            await db.SaveChangesAsync();
+            Console.WriteLine("[Subscription] Demo users marked and DemoFullAccess subscriptions seeded.");
+        }
+        else
+        {
+            Console.WriteLine("[Subscription] Demo subscriptions already up to date — nothing to seed.");
+        }
     }
 
     // Clamps LearningAttempt.Score and WritingAttempt.SimilarityScore to [0, 100].

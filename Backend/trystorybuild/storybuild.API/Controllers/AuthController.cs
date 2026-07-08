@@ -26,6 +26,29 @@ namespace storybuild.API.Controllers
         {
             try
             {
+                // Teacher limit check (applies to all school plans)
+                if (request.Role?.ToLower() == "teacher" && request.SchoolManagerId.HasValue)
+                {
+                    var schoolManagerId = request.SchoolManagerId.Value;
+                    var now = DateTime.UtcNow;
+                    var subscription = await db.Subscriptions
+                        .Where(s => s.UserId == schoolManagerId && s.IsActive && (s.ExpiresAt == null || s.ExpiresAt > now))
+                        .OrderByDescending(s => s.Plan)
+                        .FirstOrDefaultAsync();
+
+                    var schoolPlan = subscription?.Plan;
+                    if (schoolPlan != SubscriptionPlan.DemoFullAccess)
+                    {
+                        var maxTeachers = schoolPlan == SubscriptionPlan.SchoolPremium
+                            ? (subscription!.MaxTeachers ?? SubscriptionConstants.SchoolPremiumDefaultMaxTeachers)
+                            : SubscriptionConstants.FreeSchoolMaxTeachers;
+
+                        var teacherCount = await db.Teachers.CountAsync(t => t.SchoolManagerId == schoolManagerId);
+                        if (teacherCount >= maxTeachers)
+                            return StatusCode(403, new { message = "لقد وصلت إلى الحد الأقصى لعدد المعلمين في خطتك الحالية." });
+                    }
+                }
+
                 var result = await authService.RegisterAsync(request);
                 // If a school admin creates a teacher, send welcome email with credentials
                 if (request.Role?.ToLower() == "teacher" && request.SchoolManagerId.HasValue)
@@ -215,9 +238,11 @@ namespace storybuild.API.Controllers
                 .ToListAsync();
 
             var countByClassroom = countsByClassroom.ToDictionary(x => x.ClassroomId, x => x.Count);
-            var countByTeacher   = classrooms.ToDictionary(
-                c => c.TeacherId,
-                c => countByClassroom.GetValueOrDefault(c.Id, 0));
+            var countByTeacher   = classrooms
+                .GroupBy(c => c.TeacherId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(c => countByClassroom.GetValueOrDefault(c.Id, 0)));
 
             var result = teachers.Select(t => new
             {

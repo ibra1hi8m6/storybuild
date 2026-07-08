@@ -2,97 +2,164 @@
   <app-admin-sidebar />
   <main class="flex-grow-1 p-2 p-md-4 d-flex flex-column gap-4" style="overflow-y:auto">
 
-    <h1 class="fw-800 mb-0" style="font-size:24px">💳 الاشتراكات</h1>
+    <!-- Welcome header -->
+    <div style="background:var(--primary-gradient);border-radius:20px;padding:20px 28px;color:#fff">
+      <div style="font-size:13px;opacity:.85;font-weight:600;margin-bottom:2px">لوحة إدارة النظام</div>
+      <h2 style="font-size:22px;font-weight:900;margin:0">💳 إدارة الاشتراكات</h2>
+    </div>
 
-    @if (isLoading()) {
-      <div class="d-flex justify-content-center py-5">
-        <div class="spinner-border" style="color:var(--primary);width:44px;height:44px" role="status"></div>
-      </div>
-    }
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <h1 class="fw-800 mb-0" style="font-size:24px">💳 إدارة الاشتراكات</h1>
+      <button (click)="showCreate.set(!showCreate())"
+              style="background:var(--primary-gradient);color:#fff;border:none;border-radius:12px;padding:10px 22px;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer">
+        {{ showCreate() ? '✕ إغلاق' : '+ إنشاء كود تفعيل' }}
+      </button>
+    </div>
 
-    @if (data(); as d) {
-      <!-- Stats -->
-      <div class="row g-3">
-        @for (stat of [
-          {icon:'👥', val: d.totalSubscribers,                          lbl:'مشترك إجمالي'},
-          {icon:'💰', val: (d.monthlyRevenue | number:'1.0-0'),         lbl:'إيراد هذا الشهر ($)'},
-          {icon:'📈', val: d.activeTrials,                              lbl:'تجربة مجانية نشطة'},
-          {icon:'🔄', val: (d.renewalRate | number:'1.0-0') + '٪',     lbl:'معدل التجديد'}
-        ]; track stat.lbl) {
-          <div class="col-6 col-md-3">
-            <div class="card p-4 text-center d-flex flex-column align-items-center gap-1 h-100">
-              <span style="font-size:28px">{{ stat.icon }}</span>
-              <span class="fw-800 fs-3" style="color:var(--primary)">{{ stat.val }}</span>
-              <span class="small fw-600 text-muted">{{ stat.lbl }}</span>
-            </div>
+    <!-- Create code form -->
+    @if (showCreate()) {
+      <div style="background:var(--bg-card);border-radius:18px;padding:24px;border:1.5px solid rgba(244,120,138,.15)">
+        <h5 style="font-weight:900;margin-bottom:20px;font-size:16px">🔑 إنشاء كود تفعيل جديد</h5>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:16px">
+
+          <!-- Plan -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">نوع الخطة</label>
+            <select [(ngModel)]="form.plan"
+                    style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;background:var(--bg-base)">
+              @for (p of availablePlans; track p.value) {
+                <option [value]="p.value">{{ p.label }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Duration -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">المدة (يوم)</label>
+            <input type="number" [(ngModel)]="form.durationDays" min="1" max="3650"
+                   style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px" />
+          </div>
+
+          <!-- Max uses -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">الحد الأقصى للاستخدام</label>
+            <input type="number" [(ngModel)]="form.maxUses" min="1" max="10000"
+                   style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px" />
+          </div>
+
+          <!-- Custom code (optional) -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">كود مخصص (اختياري)</label>
+            <input type="text" [(ngModel)]="form.code" placeholder="يُولَّد تلقائيًا"
+                   style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase" />
+          </div>
+
+          <!-- Expires at (optional) -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">تاريخ انتهاء الكود (اختياري)</label>
+            <input type="date" [(ngModel)]="form.expiresAt"
+                   style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px" />
+          </div>
+
+          <!-- Notes -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:800;color:var(--text-muted)">ملاحظات (اختياري)</label>
+            <input type="text" [(ngModel)]="form.notes" placeholder="وصف أو جهة الاستخدام"
+                   style="border:1.5px solid rgba(244,120,138,.2);border-radius:10px;padding:9px 12px;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px" />
+          </div>
+
+        </div>
+
+        <button (click)="createCode()" [disabled]="isSaving()"
+                style="background:var(--primary-gradient);color:#fff;border:none;border-radius:12px;padding:11px 28px;font-family:'Cairo',sans-serif;font-weight:800;font-size:14px;cursor:pointer">
+          {{ isSaving() ? 'جارٍ الإنشاء...' : '✓ إنشاء الكود' }}
+        </button>
+
+        @if (saveSuccess()) {
+          <div style="margin-top:12px;background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700">
+            ✅ {{ saveSuccess() }}
+          </div>
+        }
+        @if (saveError()) {
+          <div style="margin-top:12px;background:#FEF2F2;border:1.5px solid #FECACA;color:#DC2626;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700">
+            ⚠️ {{ saveError() }}
           </div>
         }
       </div>
     }
 
-    <!-- Plans -->
-    <h4 class="fw-800 mb-0">خطط الاشتراك</h4>
-    <div class="row g-3">
-      @for (plan of plans; track plan.name) {
-        <div class="col-md-4">
-          <div class="card p-4 h-100 d-flex flex-column gap-3"
-               [style.border-top]="'4px solid ' + plan.color">
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="fw-800 mb-0">{{ plan.name }}</h5>
-              <span class="fw-800" style="font-size:20px;color:var(--primary)">
-                @if (plan.price === 0) { مجاني } @else { ${{ plan.price }}<small class="small fw-600 text-muted">/شهر</small> }
-              </span>
-            </div>
-            <ul class="list-unstyled d-flex flex-column gap-1 mb-0">
-              @for (f of plan.features; track f) {
-                <li class="small fw-600">✓ {{ f }}</li>
-              }
-            </ul>
-          </div>
-        </div>
-      }
-    </div>
+    <!-- Codes table -->
+    <div style="background:var(--bg-card);border-radius:18px;overflow:hidden;border:1.5px solid rgba(244,120,138,.08)">
+      <div style="padding:16px 24px;font-weight:900;font-size:15px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;justify-content:space-between">
+        <span>🗂 أكواد التفعيل</span>
+        <button (click)="loadCodes()" style="background:transparent;border:none;cursor:pointer;color:var(--text-muted);font-size:18px">↻</button>
+      </div>
 
-    <!-- Recent subscribers -->
-    @if (data()?.recentSubscribers?.length > 0) {
-      <div class="card overflow-hidden p-0">
-        <div class="px-4 py-3 fw-800" style="font-size:15px;border-bottom:1px solid #F3F4F6">آخر المشتركين</div>
-        <div class="table-responsive">
-          <table class="table table-hover mb-0 align-middle" style="font-size:14px">
+      @if (isLoading()) {
+        <div style="text-align:center;padding:48px;color:var(--text-muted)">جارٍ التحميل…</div>
+      } @else if (codes().length === 0) {
+        <div style="text-align:center;padding:48px;color:var(--text-muted)">لا توجد أكواد بعد. أنشئ أول كود.</div>
+      } @else {
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
             <thead>
-              <tr style="border-bottom:2px solid #F3F4F6">
-                <th class="fw-800 text-muted small px-4 py-3">المستخدم</th>
-                <th class="fw-800 text-muted small px-4 py-3">الخطة</th>
-                <th class="fw-800 text-muted small px-4 py-3">تاريخ الاشتراك</th>
-                <th class="fw-800 text-muted small px-4 py-3">الحالة</th>
+              <tr style="border-bottom:2px solid #F3F4F6;background:#FAFAFA">
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">الكود</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">الخطة</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">الاستخدام</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">انتهاء الكود</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">الحالة</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">ملاحظات</th>
+                <th style="padding:12px 20px;font-weight:800;color:var(--text-muted);text-align:right;white-space:nowrap">إجراءات</th>
               </tr>
             </thead>
             <tbody>
-              @for (s of data().recentSubscribers; track s.id) {
-                <tr>
-                  <td class="px-4 py-3 fw-700">{{ s.name }}</td>
-                  <td class="px-4 py-3">
-                    <span class="badge rounded-pill fw-800 px-3 py-1"
-                      style="background:rgba(244,120,138,.1);color:var(--primary);font-size:12px">
-                      {{ s.plan }}
+              @for (c of codes(); track c.id) {
+                <tr style="border-bottom:1px solid #F3F4F6">
+                  <td style="padding:12px 20px;font-weight:900;letter-spacing:2px;font-size:14px;font-family:monospace">{{ c.code }}</td>
+                  <td style="padding:12px 20px">
+                    <span style="background:rgba(244,120,138,.1);color:var(--primary);padding:4px 10px;border-radius:99px;font-weight:800;font-size:12px">
+                      {{ planLabel(c.plan) }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 small text-muted">{{ s.startDate }}</td>
-                  <td class="px-4 py-3">
-                    <span class="badge rounded-pill fw-800 px-2 py-1"
-                      [style.background]="s.active ? '#F0FDF4' : '#FEF2F2'"
-                      [style.color]="s.active ? '#22C55E' : '#EF4444'"
-                      style="font-size:12px">
-                      {{ s.active ? 'نشط' : 'منتهي' }}
+                  <td style="padding:12px 20px;font-weight:700">
+                    {{ c.usedCount }} / {{ c.maxUses }}
+                  </td>
+                  <td style="padding:12px 20px;color:var(--text-muted);font-weight:600">
+                    {{ formatDate(c.expiresAt) }}
+                  </td>
+                  <td style="padding:12px 20px">
+                    <span [style.background]="c.isActive ? '#F0FDF4' : '#F3F4F6'"
+                          [style.color]="c.isActive ? '#16A34A' : '#9CA3AF'"
+                          style="padding:4px 10px;border-radius:99px;font-weight:800;font-size:12px">
+                      {{ c.isActive ? 'نشط' : 'مُعطَّل' }}
                     </span>
+                  </td>
+                  <td style="padding:12px 20px;color:var(--text-muted);font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    {{ c.notes || '—' }}
+                  </td>
+                  <td style="padding:12px 20px">
+                    <div style="display:flex;gap:8px">
+                      <button (click)="copyCode(c.code, c.id)"
+                              style="background:rgba(244,120,138,.08);color:var(--primary);border:none;border-radius:8px;padding:6px 12px;font-family:'Cairo',sans-serif;font-weight:800;font-size:12px;cursor:pointer">
+                        {{ copiedId() === c.id ? '✓ نُسخ' : '📋 نسخ' }}
+                      </button>
+                      @if (c.isActive) {
+                        <button (click)="deactivate(c.id)"
+                                style="background:#FEF2F2;color:#DC2626;border:none;border-radius:8px;padding:6px 12px;font-family:'Cairo',sans-serif;font-weight:800;font-size:12px;cursor:pointer">
+                          تعطيل
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-      </div>
-    }
+      }
+    </div>
 
   </main>
 </div>

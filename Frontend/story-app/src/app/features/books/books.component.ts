@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { NavbarComponent } from '../../shared/components/navbar/navbar.component';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
+import { SubscriptionAlertService } from '../../core/subscription-alert.service';
 import { LessonSummary } from '../../models/story.models';
 
 @Component({
@@ -18,6 +19,7 @@ export class BooksComponent implements OnInit {
   private readonly route   = inject(ActivatedRoute);
   private readonly service = inject(StoryService);
   private readonly state   = inject(AppStateService);
+  private readonly alert   = inject(SubscriptionAlertService);
 
   readonly levelId   = signal(1);
   readonly isLoading = signal(false);
@@ -36,13 +38,18 @@ export class BooksComponent implements OnInit {
 
   private load(level: number): void {
     this.isLoading.set(true);
-    this.service.getLessonsByLevel(level).subscribe({
+    this.service.getLessonsCatalog(level).subscribe({
       next:  ls => { this.lessons.set(ls); this.isLoading.set(false); },
       error: ()  => { this.error.set('تعذّر تحميل الكتب.'); this.isLoading.set(false); }
     });
   }
 
   openBook(lesson: LessonSummary): void {
+    if (lesson.isLocked) {
+      this.alert.show('هذا الكتيب متاح في الخطة المميزة. فعّل اشتراكك للوصول إلى جميع الكتب.', 'Booklets');
+      this.router.navigate(['/upgrade']);
+      return;
+    }
     this.router.navigate(['/lessons', lesson.id]);
   }
 

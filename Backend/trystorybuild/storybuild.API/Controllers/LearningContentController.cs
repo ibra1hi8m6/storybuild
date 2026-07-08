@@ -1,16 +1,18 @@
 using Application.DTOs;
+using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.AI;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace storybuild.API.Controllers;
 
 [ApiController]
 [Route("api/learning")]
-public class LearningContentController(AppDbContext db, CloudinaryService cloudinary) : ControllerBase
+public class LearningContentController(AppDbContext db, CloudinaryService cloudinary, ISubscriptionService subscriptionService) : ControllerBase
 {
     // ════════════════════════════════════════════════════════════
     //  LETTERS
@@ -18,10 +20,28 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
     [HttpGet("letters")]
     [ProducesResponseType(typeof(List<LetterContentDto>), 200)]
-    public async Task<IActionResult> GetLetters()
+    public async Task<IActionResult> GetLetters([FromQuery] Guid? studentId = null)
     {
-        var items = await db.LetterContents
-            .Where(l => l.IsPublished)
+        var sid = ResolveStudentId(studentId);
+        List<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Letters);
+            if (access.IsFree)
+                freeIds = await db.LetterContents
+                    .Where(l => l.IsPublished)
+                    .OrderBy(l => l.SortOrder)
+                    .Take(3)
+                    .Select(l => l.Id)
+                    .ToListAsync();
+        }
+
+        var query = db.LetterContents.Where(l => l.IsPublished);
+        if (freeIds is not null)
+            query = query.Where(l => freeIds.Contains(l.Id));
+
+        var items = await query
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.CreatedAt)
             .Select(l => Map(l))
@@ -45,10 +65,19 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     [HttpGet("letters/{id:guid}")]
     [ProducesResponseType(typeof(LetterContentDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetLetter(Guid id)
+    public async Task<IActionResult> GetLetter(Guid id, [FromQuery] Guid? studentId = null)
     {
         var item = await db.LetterContents.FindAsync(id);
         if (item is null) return NotFound();
+
+        var sid = ResolveStudentId(studentId);
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Letters, id);
+            if (!access.IsAllowed)
+                return StatusCode(402, new { message = access.Reason ?? "هذا الحرف خارج نطاق الخطة المجانية.", feature = "Letters", requiresUpgrade = true });
+        }
+
         return Ok(Map(item));
     }
 
@@ -136,10 +165,28 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
     [HttpGet("words")]
     [ProducesResponseType(typeof(List<WordContentDto>), 200)]
-    public async Task<IActionResult> GetWords()
+    public async Task<IActionResult> GetWords([FromQuery] Guid? studentId = null)
     {
-        var items = await db.WordContents
-            .Where(w => w.IsPublished)
+        var sid = ResolveStudentId(studentId);
+        List<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Words);
+            if (access.IsFree)
+                freeIds = await db.WordContents
+                    .Where(w => w.IsPublished)
+                    .OrderBy(w => w.SortOrder)
+                    .Take(3)
+                    .Select(w => w.Id)
+                    .ToListAsync();
+        }
+
+        var query = db.WordContents.Where(w => w.IsPublished);
+        if (freeIds is not null)
+            query = query.Where(w => freeIds.Contains(w.Id));
+
+        var items = await query
             .OrderBy(w => w.RelatedLetter)
             .ThenBy(w => w.SortOrder)
             .Select(w => MapWord(w))
@@ -162,10 +209,28 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
     [HttpGet("words/by-letter/{letter}")]
     [ProducesResponseType(typeof(List<WordContentDto>), 200)]
-    public async Task<IActionResult> GetWordsByLetter(string letter)
+    public async Task<IActionResult> GetWordsByLetter(string letter, [FromQuery] Guid? studentId = null)
     {
-        var items = await db.WordContents
-            .Where(w => w.IsPublished && w.RelatedLetter == letter)
+        var sid = ResolveStudentId(studentId);
+        List<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Words);
+            if (access.IsFree)
+                freeIds = await db.WordContents
+                    .Where(w => w.IsPublished)
+                    .OrderBy(w => w.SortOrder)
+                    .Take(3)
+                    .Select(w => w.Id)
+                    .ToListAsync();
+        }
+
+        var query = db.WordContents.Where(w => w.IsPublished && w.RelatedLetter == letter);
+        if (freeIds is not null)
+            query = query.Where(w => freeIds.Contains(w.Id));
+
+        var items = await query
             .OrderBy(w => w.SortOrder)
             .Select(w => MapWord(w))
             .ToListAsync();
@@ -174,10 +239,28 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
     [HttpGet("words/letters")]
     [ProducesResponseType(typeof(List<string>), 200)]
-    public async Task<IActionResult> GetWordLetters()
+    public async Task<IActionResult> GetWordLetters([FromQuery] Guid? studentId = null)
     {
-        var letters = await db.WordContents
-            .Where(w => w.IsPublished)
+        var sid = ResolveStudentId(studentId);
+        List<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Words);
+            if (access.IsFree)
+                freeIds = await db.WordContents
+                    .Where(w => w.IsPublished)
+                    .OrderBy(w => w.SortOrder)
+                    .Take(3)
+                    .Select(w => w.Id)
+                    .ToListAsync();
+        }
+
+        var query = db.WordContents.Where(w => w.IsPublished);
+        if (freeIds is not null)
+            query = query.Where(w => freeIds.Contains(w.Id));
+
+        var letters = await query
             .Select(w => w.RelatedLetter)
             .Distinct()
             .OrderBy(l => l)
@@ -188,10 +271,18 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     [HttpGet("words/{id:guid}")]
     [ProducesResponseType(typeof(WordContentDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetWord(Guid id)
+    public async Task<IActionResult> GetWord(Guid id, [FromQuery] Guid? studentId = null)
     {
         var item = await db.WordContents.FindAsync(id);
         if (item is null) return NotFound();
+
+        var sid = ResolveStudentId(studentId);
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Words, id);
+            if (!access.IsAllowed)
+                return StatusCode(402, new { message = access.Reason ?? "هذه الكلمة خارج نطاق الخطة المجانية.", feature = "Words", requiresUpgrade = true });
+        }
 
         var next = await db.WordContents
             .Where(w => w.IsPublished && (
@@ -275,10 +366,28 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
 
     [HttpGet("sentences")]
     [ProducesResponseType(typeof(List<SentenceContentDto>), 200)]
-    public async Task<IActionResult> GetSentences()
+    public async Task<IActionResult> GetSentences([FromQuery] Guid? studentId = null)
     {
-        var items = await db.SentenceContents
-            .Where(s => s.IsPublished)
+        var sid = ResolveStudentId(studentId);
+        List<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Sentences);
+            if (access.IsFree)
+                freeIds = await db.SentenceContents
+                    .Where(s => s.IsPublished)
+                    .OrderBy(s => s.SortOrder)
+                    .Take(3)
+                    .Select(s => s.Id)
+                    .ToListAsync();
+        }
+
+        var query = db.SentenceContents.Where(s => s.IsPublished);
+        if (freeIds is not null)
+            query = query.Where(s => freeIds.Contains(s.Id));
+
+        var items = await query
             .OrderBy(s => s.SortOrder)
             .ThenBy(s => s.CreatedAt)
             .Select(s => MapSentence(s))
@@ -302,10 +411,18 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     [HttpGet("sentences/{id:guid}")]
     [ProducesResponseType(typeof(SentenceContentDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetSentence(Guid id)
+    public async Task<IActionResult> GetSentence(Guid id, [FromQuery] Guid? studentId = null)
     {
         var item = await db.SentenceContents.FindAsync(id);
         if (item is null) return NotFound();
+
+        var sid = ResolveStudentId(studentId);
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Sentences, id);
+            if (!access.IsAllowed)
+                return StatusCode(402, new { message = access.Reason ?? "هذه الجملة خارج نطاق الخطة المجانية.", feature = "Sentences", requiresUpgrade = true });
+        }
 
         var next = await db.SentenceContents
             .Where(s => s.IsPublished &&
@@ -386,6 +503,123 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
         db.SentenceContents.Remove(entity);
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  CATALOG ENDPOINTS (full list + isLocked for frontend UX)
+    // ════════════════════════════════════════════════════════════
+
+    [HttpGet("letters/catalog")]
+    public async Task<IActionResult> GetLettersCatalog([FromQuery] Guid? studentId = null)
+    {
+        var sid = ResolveStudentId(studentId);
+        HashSet<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Letters);
+            if (access.IsFree)
+            {
+                var ids = await db.LetterContents
+                    .Where(l => l.IsPublished)
+                    .OrderBy(l => l.SortOrder).ThenBy(l => l.CreatedAt)
+                    .Take(SubscriptionConstants.FreeLettersLimit)
+                    .Select(l => l.Id)
+                    .ToListAsync();
+                freeIds = ids.ToHashSet();
+            }
+        }
+
+        var items = await db.LetterContents
+            .Where(l => l.IsPublished)
+            .OrderBy(l => l.SortOrder).ThenBy(l => l.CreatedAt)
+            .ToListAsync();
+
+        return Ok(items.Select(l => new
+        {
+            id          = l.Id,
+            letter      = l.Letter,
+            letterName  = l.LetterName,
+            exampleWord = l.ExampleWord,
+            imagePath   = l.ImagePath,
+            sortOrder   = l.SortOrder,
+            isLocked    = freeIds is not null && !freeIds.Contains(l.Id),
+        }));
+    }
+
+    [HttpGet("words/catalog")]
+    public async Task<IActionResult> GetWordsCatalog([FromQuery] Guid? studentId = null)
+    {
+        var sid = ResolveStudentId(studentId);
+        HashSet<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Words);
+            if (access.IsFree)
+            {
+                var ids = await db.WordContents
+                    .Where(w => w.IsPublished)
+                    .OrderBy(w => w.SortOrder).ThenBy(w => w.CreatedAt)
+                    .Take(SubscriptionConstants.FreeWordsLimit)
+                    .Select(w => w.Id)
+                    .ToListAsync();
+                freeIds = ids.ToHashSet();
+            }
+        }
+
+        var items = await db.WordContents
+            .Where(w => w.IsPublished)
+            .OrderBy(w => w.RelatedLetter).ThenBy(w => w.SortOrder)
+            .ToListAsync();
+
+        return Ok(items.Select(w => new
+        {
+            id            = w.Id,
+            displayWord   = w.DisplayWord,
+            relatedLetter = w.RelatedLetter,
+            imagePath     = w.ImagePath,
+            sortOrder     = w.SortOrder,
+            isLocked      = freeIds is not null && !freeIds.Contains(w.Id),
+        }));
+    }
+
+    [HttpGet("sentences/catalog")]
+    public async Task<IActionResult> GetSentencesCatalog([FromQuery] Guid? studentId = null)
+    {
+        var sid = ResolveStudentId(studentId);
+        HashSet<Guid>? freeIds = null;
+
+        if (sid.HasValue)
+        {
+            var access = await subscriptionService.CheckAccessAsync(sid.Value, SubscriptionFeature.Sentences);
+            if (access.IsFree)
+            {
+                var ids = await db.SentenceContents
+                    .Where(s => s.IsPublished)
+                    .OrderBy(s => s.SortOrder).ThenBy(s => s.CreatedAt)
+                    .Take(SubscriptionConstants.FreeSentencesLimit)
+                    .Select(s => s.Id)
+                    .ToListAsync();
+                freeIds = ids.ToHashSet();
+            }
+        }
+
+        var items = await db.SentenceContents
+            .Where(s => s.IsPublished)
+            .OrderBy(s => s.SortOrder).ThenBy(s => s.CreatedAt)
+            .ToListAsync();
+
+        return Ok(items.Select(s => new
+        {
+            id        = s.Id,
+            imagePath = s.ImagePath,
+            option1   = s.Option1,
+            option2   = s.Option2,
+            option3   = s.Option3,
+            sortOrder = s.SortOrder,
+            isLocked  = freeIds is not null && !freeIds.Contains(s.Id),
+        }));
     }
 
     // ════════════════════════════════════════════════════════════
@@ -507,6 +741,22 @@ public class LearningContentController(AppDbContext db, CloudinaryService cloudi
     // ════════════════════════════════════════════════════════════
     //  HELPERS
     // ════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Resolves a studentId from JWT (Student role) → query param → null.
+    /// Returns null when neither source is available; callers allow access in that case.
+    /// </summary>
+    private Guid? ResolveStudentId(Guid? queryStudentId)
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        if (role == "Student")
+        {
+            var raw = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(raw, out var jwtId))
+                return jwtId;
+        }
+        return queryStudentId;
+    }
 
     private async Task<string> UploadImage(IFormFile file, string folder)
     {

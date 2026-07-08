@@ -1,80 +1,79 @@
 <div dir="rtl" style="min-height:100vh;background:var(--bg-base)">
   <app-navbar />
-  <div class="container" style="max-width:960px;padding-top:88px;padding-bottom:60px">
+  <div class="container" style="max-width:1020px;padding-top:88px;padding-bottom:60px">
 
     <!-- Hero -->
-    <div class="text-center mb-5">
-      <h1 class="fw-800 mb-2" style="font-size:32px">✨ ارفع مستوى التعلم</h1>
-      <p class="fw-600 text-muted mb-4">افتح كل قصة وأداة ذكاء اصطناعي لطفلك</p>
-      <div class="d-inline-flex gap-1 p-1 rounded-3" style="background:#F3F4F6">
-        <button class="btn rounded-3 fw-700"
-          [class.btn-white]="billingCycle() !== 'monthly'"
-          [style.background]="billingCycle() === 'monthly' ? '#fff' : 'transparent'"
-          [style.color]="billingCycle() === 'monthly' ? 'var(--text-dark)' : 'var(--text-muted)'"
-          [style.box-shadow]="billingCycle() === 'monthly' ? '0 2px 8px rgba(0,0,0,.08)' : 'none'"
-          (click)="billingCycle.set('monthly')">شهري</button>
-        <button class="btn rounded-3 fw-700 d-flex align-items-center gap-2"
-          [style.background]="billingCycle() === 'yearly' ? '#fff' : 'transparent'"
-          [style.color]="billingCycle() === 'yearly' ? 'var(--text-dark)' : 'var(--text-muted)'"
-          [style.box-shadow]="billingCycle() === 'yearly' ? '0 2px 8px rgba(0,0,0,.08)' : 'none'"
-          (click)="billingCycle.set('yearly')">
-          سنوي
-          <span class="badge fw-800" style="background:#22C55E;font-size:11px">وفّر 35%</span>
-        </button>
-      </div>
+    <div style="text-align:center;margin-bottom:44px">
+      <h1 style="font-size:32px;font-weight:900;margin-bottom:8px">✨ ارفع مستوى التعلّم</h1>
+      <p style="color:var(--text-muted);font-size:15px;font-weight:600;margin:0">
+        افتح كل المحتوى التعليمي لأطفالك أو طلابك بكود تفعيل
+      </p>
     </div>
 
     <!-- Plans -->
-    <div class="row g-4 mb-4">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:40px">
       @for (plan of plans; track plan.id) {
-        <div class="col-md-6">
-          <div class="card p-4 text-center d-flex flex-column align-items-center gap-3 position-relative h-100"
-               [style.border]="(plan.popular || selectedPlan() === plan.id) ? '2px solid ' + plan.color : '2px solid transparent'"
-               [style.transform]="selectedPlan() === plan.id ? 'translateY(-4px)' : ''"
-               style="transition:all .2s ease">
-            @if (plan.popular) {
-              <div class="position-absolute top-0 start-50 translate-middle badge fw-800 rounded-pill px-3 py-2"
-                   [style.background]="plan.color" style="font-size:12px;white-space:nowrap">الأكثر شعبية</div>
-            }
-            <span style="font-size:48px">{{ plan.icon }}</span>
-            <h2 class="fw-800 mb-0" style="font-size:22px">{{ plan.name }}</h2>
-            <div class="d-flex align-items-end gap-1">
-              <span class="fw-800" style="font-size:40px;line-height:1" [style.color]="plan.color">${{ price(plan) }}</span>
-              <span class="small fw-600 text-muted pb-1">/شهر</span>
-            </div>
-            @if (billingCycle() === 'yearly') {
-              <p class="small fw-700 mb-0" style="color:#22C55E">تبادل ${{ savings(plan) }}/سنة</p>
-            }
-            <ul class="list-unstyled w-100 d-flex flex-column gap-2 mb-0 text-end">
-              @for (f of plan.features; track f) {
-                <li class="small fw-600">✓ {{ f }}</li>
-              }
-            </ul>
-            <button class="btn rounded-pill fw-800 w-100 text-white"
-              [style.background]="plan.color"
-              (click)="selectedPlan.set(plan.id)">
-              {{ selectedPlan() === plan.id ? '✅ تم الاختيار' : 'اختر هذه الخطة' }}
-            </button>
+        <div style="background:var(--bg-card);border-radius:20px;padding:28px;border:2px solid {{ plan.color }}22;position:relative;display:flex;flex-direction:column;gap:16px">
+
+          <!-- audience badge -->
+          <div style="position:absolute;top:-12px;right:20px;background:{{ plan.color }};color:#fff;padding:4px 14px;border-radius:99px;font-size:11px;font-weight:800">
+            {{ plan.audience }}
           </div>
+
+          <div style="text-align:center">
+            <div style="font-size:52px;margin-bottom:8px">{{ plan.icon }}</div>
+            <h3 style="font-size:20px;font-weight:900;margin:0;color:{{ plan.color }}">{{ plan.name }}</h3>
+          </div>
+
+          <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px">
+            @for (f of plan.features; track f) {
+              <li style="display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:700">
+                <span [style.color]="plan.color" style="flex-shrink:0;font-size:15px">✓</span>
+                {{ f }}
+              </li>
+            }
+          </ul>
+
         </div>
       }
     </div>
 
-    <!-- Checkout bar -->
-    @if (selectedPlan()) {
-      <div class="card p-4 d-flex flex-row justify-content-between align-items-center gap-3 flex-wrap mb-3"
-           style="border:2px solid rgba(244,120,138,.2)">
-        <span class="fw-700">
-          الخطة المختارة: <strong>{{ selectedPlan() === 'family' ? 'العائلي' : 'المدرسي' }}</strong>
-          — ${{ price(plans[selectedPlan() === 'family' ? 0 : 1]) }}/شهر
-        </span>
-        <button class="btn btn-primary rounded-pill fw-800 px-4">متابعة الدفع →</button>
+    <!-- Activation Code -->
+    <div style="background:var(--bg-card);border-radius:20px;padding:32px;border:2px solid rgba(244,120,138,.12);margin-bottom:24px">
+      <h4 style="font-weight:900;margin-bottom:8px;font-size:20px">🔑 لديك كود تفعيل؟</h4>
+      <p style="color:var(--text-muted);font-size:13px;font-weight:600;margin-bottom:20px">
+        أدخل الكود الذي حصلت عليه من المدرسة أو الجهة الداعمة لتفعيل اشتراكك فوراً
+      </p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <input
+          type="text"
+          [(ngModel)]="activationCode"
+          placeholder="أدخل الكود هنا"
+          [disabled]="isActivating()"
+          style="flex:1;min-width:200px;border:1.5px solid rgba(244,120,138,.25);border-radius:12px;padding:12px 16px;font-family:'Cairo',sans-serif;font-weight:800;letter-spacing:3px;text-transform:uppercase;font-size:14px;background:var(--bg-base)" />
+        <button
+          (click)="activate()"
+          [disabled]="isActivating() || !activationCode().trim()"
+          style="background:var(--primary-gradient);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'Cairo',sans-serif;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap">
+          {{ isActivating() ? 'جارٍ التفعيل...' : '🔓 تفعيل الاشتراك' }}
+        </button>
       </div>
-    }
+      @if (activationSuccess()) {
+        <div style="margin-top:16px;background:#F0FDF4;border:1.5px solid #BBF7D0;color:#15803D;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800">
+          ✅ {{ activationSuccess() }}
+        </div>
+      }
+      @if (activationError()) {
+        <div style="margin-top:16px;background:#FEF2F2;border:1.5px solid #FECACA;color:#DC2626;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800">
+          ⚠️ {{ activationError() }}
+        </div>
+      }
+    </div>
 
     <!-- Free note -->
-    <div class="text-center small fw-600 text-muted">
-      تبقى على الخطة المجانية؟ <a routerLink="/levels" class="fw-800 text-decoration-none" style="color:var(--primary)">تصفح القصص المجانية</a>
+    <div style="text-align:center;font-size:13px;font-weight:600;color:var(--text-muted)">
+      تبقى على الخطة المجانية؟
+      <a routerLink="/levels" style="color:var(--primary);font-weight:800;text-decoration:none">تصفح المحتوى المتاح مجاناً</a>
     </div>
 
   </div>

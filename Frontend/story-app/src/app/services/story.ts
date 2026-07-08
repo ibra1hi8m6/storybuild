@@ -55,6 +55,7 @@ export class StoryService {
   deleteStory(id: string): Observable<void>                          { return this.stories.deleteStory(id); }
   uploadStoryPdf(title: string, file: File): Observable<UploadedStoryDto>   { return this.stories.uploadStoryPdf(title, file); }
   getUploadedStories(): Observable<UploadedStoryDto[]>               { return this.stories.getUploadedStories(); }
+  getUploadedStoriesCatalog(): Observable<UploadedStoryDto[]>        { return this.stories.getUploadedStoriesCatalog(); }
   getUploadedStory(id: string): Observable<UploadedStoryDto>         { return this.stories.getUploadedStory(id); }
   deleteUploadedStory(id: string): Observable<void>                  { return this.stories.deleteUploadedStory(id); }
 
@@ -76,6 +77,7 @@ export class StoryService {
 
   // ── Lessons ────────────────────────────────────────────────────────────────
   getLessonsByLevel(level: number): Observable<LessonSummary[]>      { return this.lessons.getLessonsByLevel(level); }
+  getLessonsCatalog(level: number): Observable<LessonSummary[]>      { return this.lessons.getLessonsCatalog(level); }
   getLesson(id: string): Observable<LessonDetail>                    { return this.lessons.getLesson(id); }
   deleteLesson(id: string): Observable<void>                         { return this.lessons.deleteLesson(id); }
   createManualLesson(req: any): Observable<any>                      { return this.lessons.createManualLesson(req); }

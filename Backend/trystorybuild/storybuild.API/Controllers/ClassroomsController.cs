@@ -1,3 +1,4 @@
+using Application.DTOs;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -84,11 +85,24 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Name) || req.TeacherId == Guid.Empty)
             return BadRequest("Name and TeacherId are required.");
 
+        var adminId = CurrentUserId();
+        var plan = await GetActivePlanAsync(adminId);
+        if (plan != SubscriptionPlan.DemoFullAccess)
+        {
+            var maxClasses = plan == SubscriptionPlan.SchoolPremium
+                ? SubscriptionConstants.SchoolPremiumMaxClasses
+                : SubscriptionConstants.FreeSchoolMaxClasses;
+
+            var classCount = await db.Classrooms.CountAsync(c => c.SchoolManagerId == adminId);
+            if (classCount >= maxClasses)
+                return StatusCode(403, new { message = "لقد وصلت إلى الحد الأقصى لعدد الفصول الدراسية في خطتك الحالية." });
+        }
+
         var classroom = new Classroom
         {
             Name            = req.Name.Trim(),
             Level           = req.Level,
-            SchoolManagerId = CurrentUserId(),
+            SchoolManagerId = adminId,
             TeacherId       = req.TeacherId,
         };
         db.Classrooms.Add(classroom);
@@ -155,6 +169,11 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
         bool exists = await db.ClassroomStudents
             .AnyAsync(cs => cs.ClassroomId == id && cs.StudentId == req.StudentId);
         if (exists) return Ok(new { message = "Already enrolled." });
+
+        // 30-student cap applies to ALL school plans
+        var enrolled = await db.ClassroomStudents.CountAsync(cs => cs.ClassroomId == id);
+        if (enrolled >= SubscriptionConstants.SchoolPremiumMaxStudentsPerClass)
+            return StatusCode(403, new { message = $"الفصل الدراسي ممتلئ. الحد الأقصى هو {SubscriptionConstants.SchoolPremiumMaxStudentsPerClass} طالبًا في الفصل الواحد." });
 
         db.ClassroomStudents.Add(new ClassroomStudent { ClassroomId = id, StudentId = req.StudentId });
         await db.SaveChangesAsync();
@@ -278,6 +297,16 @@ public class ClassroomsController(AppDbContext db) : ControllerBase
             })
         });
         return Ok(result);
+    }
+
+    private async Task<SubscriptionPlan?> GetActivePlanAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        return await db.Subscriptions
+            .Where(s => s.UserId == userId && s.IsActive && (s.ExpiresAt == null || s.ExpiresAt > now))
+            .OrderByDescending(s => s.Plan)
+            .Select(s => (SubscriptionPlan?)s.Plan)
+            .FirstOrDefaultAsync();
     }
 }
 

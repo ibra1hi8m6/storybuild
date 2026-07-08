@@ -1,6 +1,7 @@
 using Application.Agents;
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,8 @@ namespace storybuild.API.Controllers
     [Route("api/writing")]
     public class WritingController(
         WritingCorrectionAgent writingAgent,
-        IWritingAttemptRepository writingRepo) : ControllerBase
+        IWritingAttemptRepository writingRepo,
+        ISubscriptionService subscriptionService) : ControllerBase
     {
         private static readonly JsonSerializerOptions _json = new() { PropertyNameCaseInsensitive = true };
 
@@ -20,6 +22,7 @@ namespace storybuild.API.Controllers
         [HttpPost("evaluate")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(WritingCorrectionResponse), 200)]
+        [ProducesResponseType(402)]
         public async Task<IActionResult> Evaluate(
             [FromForm] Guid lessonId,
             [FromForm] Guid lessonPageId,
@@ -37,6 +40,20 @@ namespace storybuild.API.Controllers
 
             if (image.Length > 10 * 1024 * 1024)
                 return BadRequest(new { error = "حجم الصورة كبير جداً (الحد الأقصى 10 ميغابايت)." });
+
+            // ── Subscription check (before Gemini OCR + correction calls) ─────────
+            // studentId and lessonPageId are guaranteed non-null by the form binding above.
+            var access = await subscriptionService.CheckAccessAsync(
+                studentId, SubscriptionFeature.WritingEvaluation, lessonPageId);
+
+            if (!access.IsAllowed)
+                return StatusCode(402, new
+                {
+                    message         = access.Reason ?? "لقد وصلت إلى الحد الأقصى من محاولات الكتابة المجانية لهذا المحتوى.",
+                    feature         = "WritingEvaluation",
+                    requiresUpgrade = true,
+                });
+            // ─────────────────────────────────────────────────────────────────────
 
             var result = await writingAgent.EvaluateAsync(lessonPageId, lessonId, studentId, childName, image);
             return Ok(result);

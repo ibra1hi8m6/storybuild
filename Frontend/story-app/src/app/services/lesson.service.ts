@@ -15,6 +15,10 @@ export class LessonService {
     return this.http.get<LessonSummary[]>(`${this.api}/api/lessons?level=${level}`);
   }
 
+  getLessonsCatalog(level: number): Observable<LessonSummary[]> {
+    return this.http.get<LessonSummary[]>(`${this.api}/api/lessons/catalog?level=${level}`);
+  }
+
   getLesson(id: string): Observable<LessonDetail> {
     return this.http.get<any>(`${this.api}/api/lessons/${id}`).pipe(
       map(l => ({

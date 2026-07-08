@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,11 +12,14 @@ namespace storybuild.API.Controllers
     [Authorize]
     public class FluencyController(
         IFluencyAssessorAgent fluencyAgent,
-        IAudioRecordingRepository recordingRepository) : ControllerBase
+        IAudioRecordingRepository recordingRepository,
+        ISubscriptionService subscriptionService) : ControllerBase
     {
         // POST /api/fluency/evaluate
         [HttpPost("evaluate")]
         [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(FluencyReportDto), 200)]
+        [ProducesResponseType(402)]
         public async Task<ActionResult<FluencyReportDto>> Evaluate(
             [FromForm] string? pageId,
             [FromForm] string? pageType,
@@ -30,6 +34,22 @@ namespace storybuild.API.Controllers
                 return BadRequest(new { error = "Invalid pageId." });
 
             var studentId = CurrentUserId();
+
+            // ── Subscription check (before audio upload + Gemini transcription) ───
+            // studentId: from JWT via CurrentUserId() — always valid (controller is [Authorize])
+            // pageGuid:  already validated above — always valid when execution reaches here
+            var access = await subscriptionService.CheckAccessAsync(
+                studentId, SubscriptionFeature.ReadingFluency, pageGuid);
+
+            if (!access.IsAllowed)
+                return StatusCode(402, new
+                {
+                    message         = access.Reason ?? "لقد وصلت إلى الحد الأقصى من محاولات القراءة المجانية لهذا المحتوى.",
+                    feature         = "ReadingFluency",
+                    requiresUpgrade = true,
+                });
+            // ─────────────────────────────────────────────────────────────────────
+
             var report = await fluencyAgent.EvaluateReadingAsync(
                 studentId, pageGuid, pageType ?? "Story", audio, expectedText);
             return Ok(report);

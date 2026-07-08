@@ -70,7 +70,8 @@ namespace Application.DTOs
         string PerformanceLevel,
         DateTime? LastActivity,
         int Level = 1,
-        string? ClassroomName = null);
+        string? ClassroomName = null,
+        Guid? ClassroomId = null);
 
     // ── Parent Dashboard ──────────────────────────────────────────────────────
 
@@ -103,6 +104,13 @@ namespace Application.DTOs
 
     // ── Teacher Dashboard ─────────────────────────────────────────────────────
 
+    public record ClassroomGroupDto(
+        Guid ClassroomId,
+        string ClassroomName,
+        int ClassroomLevel,
+        int StudentCount,
+        List<StudentSummaryDto> Students);
+
     public record TeacherDashboardDto(
         int TotalStudents,
         int ActiveThisWeek,
@@ -120,7 +128,8 @@ namespace Application.DTOs
         double LessonsAvgPct = 0,
         int LessonsTotal = 0,
         double StoriesAvgPct = 0,
-        int StoriesTotal = 0);
+        int StoriesTotal = 0,
+        List<ClassroomGroupDto>? Classrooms = null);
 
     // ── School Dashboard ──────────────────────────────────────────────────────
 

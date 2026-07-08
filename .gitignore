@@ -13,6 +13,10 @@ appsettings.json
 appsettings.Development.json
 appsettings.*.local.json
 
+# Deployment credentials — never commit
+*.publishSettings
+*.pubxml
+
 # Runtime-generated uploads (match at any depth)
 **/wwwroot/images/
 **/wwwroot/uploads/
@@ -26,3 +30,31 @@ Frontend/story-app/dist/
 # Frontend secrets — API keys live here, never commit
 Frontend/story-app/src/environments/environment.ts
 Frontend/story-app/src/environments/environment.prod.ts
+
+# Claude Code session data
+.claude/
+**/.claude/
+
+# Planning & investigation documents — internal only
+PRESENTATION_PLANNING.md
+USER_FLOW_DIAGRAMS.md
+PRESENTATION_UPDATE_AUDIT.md
+PROJECT_DISCOVERY_REPORT.md
+PROJECT_DOCUMENTATION.md
+PROJECT_MAP.md
+README.md
+DOCUMENTATION.md
+FEATURES_TESTING.md
+ARCHITECTURE_REFACTOR_REPORT.md
+TTS_IMPLEMENTATION_REPORT.md
+SCHOOL_*.md
+SUBSCRIPTION_*.md
+TEACHER_*.md
+BOOKLETS_*.md
+BOOKLET_*.md
+CLASSROOM_*.md
+CREATE_STUDENT_*.md
+DUPLICATE_*.md
+
+# Generator scripts
+scripts/

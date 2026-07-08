@@ -6,6 +6,7 @@ import { AppStateService } from '../../../services/app-state-service';
 import { AuthService, StudentSummary } from '../../../services/auth.service';
 import { StudentGroupDto, LessonSummary, AssignLessonRequest } from '../../../models/story.models';
 import { TeacherSidebarComponent } from '../teacher-shell/teacher-sidebar.component';
+import { SubscriptionService, MySubscription } from '../../../services/subscription.service';
 
 const PAGE_SIZE = 10;
 
@@ -17,9 +18,18 @@ const PAGE_SIZE = 10;
   styleUrl: './teacher-groups.css'
 })
 export class TeacherGroupsComponent implements OnInit {
-  private readonly svc   = inject(StoryService);
-  private readonly state = inject(AppStateService);
-  private readonly auth  = inject(AuthService);
+  private readonly svc    = inject(StoryService);
+  private readonly state  = inject(AppStateService);
+  private readonly auth   = inject(AuthService);
+  private readonly subSvc = inject(SubscriptionService);
+
+  readonly subscription = signal<MySubscription | null>(null);
+  readonly atGroupLimit = computed(() => {
+    const s = this.subscription();
+    const max = s?.maxGroups ?? 1;
+    const count = s?.groupsCount ?? this.groups().length;
+    return count >= max;
+  });
 
   teacherId      = signal('');
   groups         = signal<StudentGroupDto[]>([]);
@@ -45,6 +55,7 @@ export class TeacherGroupsComponent implements OnInit {
   assignForm: Record<string, { lessonId: string; type: 'Student' | 'Group'; studentId: string }> = {};
 
   ngOnInit(): void {
+    this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
     const user = this.state.currentUser();
     if (user?.id) {
       this.teacherId.set(user.id);
@@ -99,14 +110,15 @@ export class TeacherGroupsComponent implements OnInit {
   }
 
   createGroup(): void {
-    if (!this.newGroupName.trim()) return;
+    if (!this.newGroupName.trim() || this.atGroupLimit()) return;
     this.svc.createGroup(this.teacherId(), this.newGroupName.trim()).subscribe({
       next: g => {
         this.groups.update(list => [...list, g]);
         this.newGroupName = '';
         this.showMessage('تم إنشاء المجموعة.');
+        this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
       },
-      error: () => this.error.set('فشل إنشاء المجموعة.')
+      error: (err: any) => this.error.set(err?.error?.message ?? err?.error?.error ?? 'فشل إنشاء المجموعة.')
     });
   }
 
@@ -160,7 +172,7 @@ export class TeacherGroupsComponent implements OnInit {
     if (!studentId) return;
     this.svc.addGroupMember(groupId, studentId).subscribe({
       next: () => { this.closePicker(groupId); this.loadGroups(); this.showMessage('تمت إضافة الطالب.'); },
-      error: () => this.error.set('فشل إضافة الطالب.')
+      error: (err: any) => this.error.set(err?.error?.message ?? err?.error?.error ?? 'فشل إضافة الطالب.')
     });
   }
 

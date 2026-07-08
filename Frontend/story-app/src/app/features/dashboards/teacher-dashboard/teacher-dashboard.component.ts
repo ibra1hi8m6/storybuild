@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { StoryService } from '../../../services/story';
 import { AppStateService } from '../../../services/app-state-service';
 import { TeacherSidebarComponent } from '../../teacher/teacher-shell/teacher-sidebar.component';
+import { SubscriptionService, MySubscription, PLAN_LABELS } from '../../../services/subscription.service';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -17,6 +18,50 @@ export class TeacherDashboardComponent implements OnInit {
   private readonly service = inject(StoryService);
   private readonly state   = inject(AppStateService);
   private readonly router  = inject(Router);
+  private readonly subSvc  = inject(SubscriptionService);
+
+  readonly subscription = signal<MySubscription | null>(null);
+
+  readonly teacherName = computed(() => {
+    const u = this.state.currentUser();
+    return u?.name ?? 'المعلم';
+  });
+
+  readonly planLabel = computed(() => {
+    const s = this.subscription();
+    return s ? (PLAN_LABELS[s.activePlan] ?? s.activePlan) : 'مجاني';
+  });
+
+  readonly maxStudents = computed(() => {
+    const s = this.subscription();
+    return s?.maxStudents ?? 5;
+  });
+
+  readonly maxGroups = computed(() => {
+    const s = this.subscription();
+    return s?.maxGroups ?? 1;
+  });
+
+  readonly studentsCount = computed(() => {
+    const s = this.subscription();
+    return s?.studentsCount ?? this.data()?.totalStudents ?? 0;
+  });
+
+  readonly groupsCount = computed(() => {
+    const s = this.subscription();
+    return s?.groupsCount ?? 0;
+  });
+
+  readonly atStudentLimit = computed(() => {
+    if (this.isSchoolTeacher()) return false;
+    return this.studentsCount() >= this.maxStudents();
+  });
+  readonly atGroupLimit   = computed(() => this.groupsCount()   >= this.maxGroups());
+
+  readonly activationCode    = signal('');
+  readonly isActivating      = signal(false);
+  readonly activationError   = signal<string | null>(null);
+  readonly activationSuccess = signal<string | null>(null);
 
   readonly isLoading    = signal(false);
   readonly data         = signal<any>(null);
@@ -49,17 +94,33 @@ export class TeacherDashboardComponent implements OnInit {
   });
 
   readonly studentsByClassroom = computed(() => {
-    const students = this.filteredStudents();
-    const map = new Map<string, any[]>();
-    for (const s of students) {
-      const key = (s as any).classroomName ?? 'بدون فصل';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(s);
+    const d = this.data();
+    // School teacher: use server-built classroom groups so empty classrooms appear
+    if (this.isSchoolTeacher() && d?.classrooms) {
+      const t = this.searchTerm().toLowerCase().trim();
+      return (d.classrooms as any[]).map((cls: any) => ({
+        classroomId: cls.classroomId as string,
+        name:        cls.classroomName as string,
+        students:    t
+          ? (cls.students as any[]).filter((s: any) => s.childName.toLowerCase().includes(t))
+          : (cls.students as any[])
+      }));
     }
-    return Array.from(map.entries()).map(([name, list]) => ({ name, students: list }));
+    // Private teacher: group from flat students list
+    const students = this.filteredStudents();
+    const map = new Map<string, { classroomId: string | null; name: string; students: any[] }>();
+    for (const s of students) {
+      const id   = (s as any).classroomId   as string | null ?? null;
+      const name = (s as any).classroomName as string        ?? 'بدون فصل';
+      const key  = id ?? name;
+      if (!map.has(key)) map.set(key, { classroomId: id, name, students: [] });
+      map.get(key)!.students.push(s);
+    }
+    return Array.from(map.values());
   });
 
   ngOnInit(): void {
+    this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
     this.isLoading.set(true);
     this.service.getTeacherDashboard().subscribe({
       next:  d => { this.data.set(d); this.isLoading.set(false); },
@@ -105,7 +166,28 @@ export class TeacherDashboardComponent implements OnInit {
   }
 
   addStudent(): void {
+    if (this.atStudentLimit()) return;
     this.router.navigate(['/auth/create-student']);
+  }
+
+  activateCode(): void {
+    const code = this.activationCode().trim();
+    if (!code) return;
+    this.isActivating.set(true);
+    this.activationError.set(null);
+    this.activationSuccess.set(null);
+    this.subSvc.activate(code).subscribe({
+      next: res => {
+        this.isActivating.set(false);
+        this.activationSuccess.set(res.message);
+        this.activationCode.set('');
+        this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
+      },
+      error: (err: Error) => {
+        this.isActivating.set(false);
+        this.activationError.set(err.message);
+      }
+    });
   }
 
   assignLessonToLevel(lv: number): void {

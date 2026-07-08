@@ -42,8 +42,17 @@
     <div class="row g-3" style="max-width:900px;margin-right:auto;margin-left:auto">
       @for (lesson of lessons(); track lesson.id) {
         <div class="col-6 col-sm-4 col-md-3">
-          <div class="card h-100 overflow-hidden lesson-card"
-               (click)="openLesson(lesson)" role="button" tabindex="0">
+          <div class="card h-100 overflow-hidden lesson-card position-relative"
+               (click)="openLesson(lesson)" role="button" tabindex="0"
+               [style.opacity]="lesson.isLocked ? '0.85' : '1'">
+
+            @if (lesson.isLocked) {
+              <div style="position:absolute;inset:0;background:rgba(255,255,255,.65);z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:inherit">
+                <span style="font-size:26px">🔒</span>
+                <span style="font-size:12px;font-weight:800;color:#6B7280">مغلق</span>
+                <span style="font-size:11px;font-weight:700;background:linear-gradient(135deg,#F4788A,#C084FC);color:#fff;padding:4px 12px;border-radius:99px">فعّل الاشتراك</span>
+              </div>
+            }
 
             <div class="position-relative d-flex align-items-center justify-content-center p-2"
                  style="background:#fff0f5;min-height:120px">
@@ -55,7 +64,7 @@
               }
               <span class="badge position-absolute top-0 start-0 m-2"
                     style="background:#e040a0">L{{ lesson.level }}</span>
-              @if (state.isCompleted(lesson.id)) {
+              @if (!lesson.isLocked && state.isCompleted(lesson.id)) {
                 <span style="position:absolute;top:8px;right:8px;width:22px;height:22px;background:#22C55E;border-radius:50%;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span>
               }
             </div>
@@ -64,7 +73,11 @@
               <h3 class="fw-800 mb-0" style="font-size:1rem;color:#2d2d6b">{{ lesson.letterName }}</h3>
               <div class="small">⭐ ⭐ ⭐</div>
               <p class="small text-muted fw-600 mb-0">{{ lesson.pageCount }} صفحات</p>
-              <button class="btn btn-primary rounded-pill fw-800 w-100 btn-sm mt-2" type="button">واصل</button>
+              <button class="btn rounded-pill fw-800 w-100 btn-sm mt-2" type="button"
+                      [style.background]="lesson.isLocked ? 'linear-gradient(135deg,#F4788A,#C084FC)' : '#0d6efd'"
+                      style="color:#fff">
+                {{ lesson.isLocked ? '🔒 مغلق' : 'واصل' }}
+              </button>
             </div>
 
           </div>

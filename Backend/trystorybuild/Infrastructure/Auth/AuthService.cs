@@ -97,16 +97,59 @@ namespace Infrastructure.Auth
 
             // School teachers must belong to a classroom before adding students
             Guid? autoEnrollClassroomId = null;
+            int?  autoEnrollLevel       = null;
             if (creator.Role == UserRole.Teacher)
             {
                 var teacher = await userRepo.GetTeacherByIdAsync(creatorId);
                 if (teacher?.SchoolManagerId.HasValue == true)
                 {
+                    if (request.ClassroomId is null)
+                        throw new InvalidOperationException("يرجى اختيار الفصل الدراسي.");
+
                     var classroom = await db.Classrooms
-                        .FirstOrDefaultAsync(c => c.TeacherId == creatorId);
+                        .FirstOrDefaultAsync(c => c.Id == request.ClassroomId && c.TeacherId == creatorId);
                     if (classroom is null)
-                        throw new InvalidOperationException("لم يتم تعيينك في أي فصل دراسي بعد. تواصل مع مدير المدرسة.");
+                        throw new InvalidOperationException("الفصل الدراسي غير موجود أو لا ينتمي إليك.");
+
+                    // Per-class capacity: 30 students for ALL school plans
+                    var enrolled = await db.ClassroomStudents.CountAsync(cs => cs.ClassroomId == classroom.Id);
+                    if (enrolled >= SubscriptionConstants.SchoolPremiumMaxStudentsPerClass)
+                        throw new InvalidOperationException($"الفصل الدراسي ممتلئ. الحد الأقصى هو {SubscriptionConstants.SchoolPremiumMaxStudentsPerClass} طالبًا في الفصل الواحد.");
+
                     autoEnrollClassroomId = classroom.Id;
+                    autoEnrollLevel       = classroom.Level;
+                }
+                else if (teacher is not null)
+                {
+                    // Private teacher: Free/null/TeacherFree = 5 students, TeacherPremium = 30, Demo = unlimited
+                    var plan = await GetActivePlanAsync(creatorId);
+                    if (plan != SubscriptionPlan.DemoFullAccess)
+                    {
+                        var maxStudents = plan == SubscriptionPlan.TeacherPremium
+                            ? SubscriptionConstants.TeacherPremiumMaxStudents
+                            : SubscriptionConstants.FreeTeacherMaxStudents;
+
+                        var count = await db.Students.CountAsync(s => s.TeacherId == creatorId);
+                        if (count >= maxStudents)
+                            throw new InvalidOperationException("لقد وصلت إلى الحد الأقصى لعدد الطلاب في خطتك الحالية.");
+                    }
+                }
+            }
+
+            if (creator.Role == UserRole.Parent)
+            {
+                var plan = await GetActivePlanAsync(creatorId);
+
+                // DemoFullAccess: no limit
+                if (plan != SubscriptionPlan.DemoFullAccess)
+                {
+                    var maxChildren = plan == SubscriptionPlan.ParentPremium
+                        ? SubscriptionConstants.ParentPremiumMaxChildren
+                        : SubscriptionConstants.FreeParentMaxChildren;
+
+                    var count = await db.Students.CountAsync(s => s.ParentId == creatorId);
+                    if (count >= maxChildren)
+                        throw new InvalidOperationException("لقد وصلت إلى الحد الأقصى لعدد الأطفال في خطتك الحالية.");
                 }
             }
 
@@ -118,7 +161,7 @@ namespace Infrastructure.Auth
                 NationalId   = nationalId,
                 ImagePin1    = request.ImagePin1,
                 ImagePin2    = request.ImagePin2,
-                Level        = request.Level,
+                Level        = autoEnrollLevel ?? request.Level,
                 AvatarEmoji  = request.AvatarEmoji,
                 LoginMethod  = StudentLoginMethod.ImagePin,
                 ParentId     = creator.Role == UserRole.Parent  ? creatorId : null,
@@ -316,5 +359,15 @@ namespace Infrastructure.Auth
 
         private static StudentProfileDto ToSummary(Student s) =>
             new(s.Id, s.Name, s.Age, s.Username, s.NationalId, s.Level, s.PlacementDone, s.AvatarUrl, s.AvatarEmoji);
+
+        private async Task<SubscriptionPlan?> GetActivePlanAsync(Guid userId)
+        {
+            var now = DateTime.UtcNow;
+            return await db.Subscriptions
+                .Where(s => s.UserId == userId && s.IsActive && (s.ExpiresAt == null || s.ExpiresAt > now))
+                .OrderByDescending(s => s.Plan)
+                .Select(s => (SubscriptionPlan?)s.Plan)
+                .FirstOrDefaultAsync();
+        }
     }
 }

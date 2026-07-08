@@ -25,9 +25,10 @@ namespace Application.DTOs
         string  Username,
         string  NationalId,
         int     ImagePin1,
-        int?    ImagePin2   = null,
-        int     Level       = 1,
-        string? AvatarEmoji = null);
+        int?    ImagePin2    = null,
+        int     Level        = 1,
+        string? AvatarEmoji  = null,
+        Guid?   ClassroomId  = null);
 
     public record StudentLoginRequest(
         string Username,

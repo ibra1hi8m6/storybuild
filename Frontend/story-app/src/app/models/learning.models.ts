@@ -9,6 +9,7 @@ export interface LetterContentDto {
   imagePath: string;
   isPublished: boolean;
   sortOrder: number;
+  isLocked?: boolean;
 }
 
 export interface WordContentDto {
@@ -20,6 +21,7 @@ export interface WordContentDto {
   isPublished: boolean;
   sortOrder: number;
   nextId?: string;
+  isLocked?: boolean;
 }
 
 export interface SentenceContentDto {
@@ -35,6 +37,7 @@ export interface SentenceContentDto {
   isPublished: boolean;
   sortOrder: number;
   nextId?: string;
+  isLocked?: boolean;
 }
 
 export type LearningContentType =

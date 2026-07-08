@@ -148,16 +148,16 @@ namespace Infrastructure.Services
                     .ToListAsync()
                 : new();
 
-            // Source 3: students in classrooms assigned to this teacher (school teacher), with classroom name
+            // Source 3: students in classrooms assigned to this teacher (school teacher), with classroom name and level
             var classroomData = await db.Classrooms
                 .Where(c => c.TeacherId == teacherId)
-                .Select(c => new { c.Id, c.Name, StudentIds = c.Students.Select(cs => cs.StudentId).ToList() })
+                .Select(c => new { c.Id, c.Name, c.Level, StudentIds = c.Students.Select(cs => cs.StudentId).ToList() })
                 .ToListAsync();
 
-            var classroomStudentMap = new Dictionary<Guid, string>(); // studentId → classroomName
+            var classroomStudentMap = new Dictionary<Guid, (Guid ClassroomId, string Name)>(); // studentId → (classroomId, classroomName)
             foreach (var cls in classroomData)
                 foreach (var sid in cls.StudentIds)
-                    classroomStudentMap.TryAdd(sid, cls.Name);
+                    classroomStudentMap.TryAdd(sid, (cls.Id, cls.Name));
 
             var classroomStudentIds = classroomStudentMap.Keys.ToList();
             var classroomStudents = classroomStudentIds.Any()
@@ -213,8 +213,27 @@ namespace Infrastructure.Services
             var students = new List<StudentSummaryDto>();
             foreach (var entry in childEntries)
             {
-                classroomStudentMap.TryGetValue(entry.Id, out var clsName);
-                students.Add(await BuildStudentSummaryAsync(entry.Id, entry.Name, entry.Level, clsName));
+                classroomStudentMap.TryGetValue(entry.Id, out var clsInfo);
+                students.Add(await BuildStudentSummaryAsync(
+                    entry.Id, entry.Name, entry.Level,
+                    clsInfo.Name,
+                    clsInfo.ClassroomId == Guid.Empty ? null : clsInfo.ClassroomId));
+            }
+
+            // Build classroom groups for school teachers — includes empty classrooms
+            List<ClassroomGroupDto>? classroomGroups = null;
+            if (classroomData.Count > 0)
+            {
+                var studentsByClassroomId = students
+                    .Where(s => s.ClassroomId.HasValue)
+                    .GroupBy(s => s.ClassroomId!.Value)
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(s => s.Stars).ToList());
+
+                classroomGroups = classroomData.Select(cls =>
+                {
+                    var clsStudents = studentsByClassroomId.TryGetValue(cls.Id, out var s) ? s : new List<StudentSummaryDto>();
+                    return new ClassroomGroupDto(cls.Id, cls.Name, cls.Level, clsStudents.Count, clsStudents);
+                }).ToList();
             }
 
             return new TeacherDashboardDto(
@@ -227,7 +246,8 @@ namespace Infrastructure.Services
                 wordsAvgPct, wordsTotal,
                 sentencesAvgPct, sentencesTotal,
                 lessonsAvgPct, lessonsTotal,
-                storiesAvgPct, storiesTotal);
+                storiesAvgPct, storiesTotal,
+                classroomGroups);
         }
 
         // ── School ────────────────────────────────────────────────────────────
@@ -592,7 +612,7 @@ namespace Infrastructure.Services
             return list.OrderByDescending(a => a.OccurredAt).Take(15).ToList();
         }
 
-        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1, string? classroomName = null)
+        private async Task<StudentSummaryDto> BuildStudentSummaryAsync(Guid id, string name, int level = 1, string? classroomName = null, Guid? classroomId = null)
         {
             var progress = await db.StudentProgress.Where(p => p.StudentId == id).ToListAsync();
             var writing  = await db.WritingAttempts.Where(w => w.StudentId == id).ToListAsync();
@@ -610,7 +630,7 @@ namespace Infrastructure.Services
                 storiesDone, lessonsDone,
                 avg,
                 writing.Count(w => w.IsAccepted), writing.Count,
-                GetPerformanceLevel(avg), last, level, classroomName);
+                GetPerformanceLevel(avg), last, level, classroomName, classroomId);
         }
 
         private async Task<List<TopContentDto>> BuildTopStoriesAsync() =>

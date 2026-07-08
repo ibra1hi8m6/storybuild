@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StoryService } from '../../services/story';
 import { AppStateService } from '../../services/app-state-service';
+import { SubscriptionAlertService } from '../../core/subscription-alert.service';
 import { LoadingComponent } from '../../shared/loading/loading';
 import { ErrorToastComponent } from '../../shared/error-toast/error-toast';
 import { LessonSummary } from '../../models/story.models';
@@ -19,6 +20,7 @@ export class LessonsListComponent implements OnInit {
   private readonly storyService = inject(StoryService);
   readonly state                = inject(AppStateService);
   private readonly router       = inject(Router);
+  private readonly alert        = inject(SubscriptionAlertService);
 
   readonly isLoading = signal(false);
   readonly error     = signal<string | null>(null);
@@ -37,15 +39,25 @@ export class LessonsListComponent implements OnInit {
   load(): void {
     this.isLoading.set(true);
     this.error.set(null);
-    this.storyService.getLessonsByLevel(this.level()).subscribe({
+    this.storyService.getLessonsCatalog(this.level()).subscribe({
       next: list => { this.lessons.set(list); this.isLoading.set(false); },
-      error: () => { this.error.set('تعذّر تحميل الدروس.'); this.isLoading.set(false); }
+      error: () => {
+        this.storyService.getLessonsByLevel(this.level()).subscribe({
+          next: list => { this.lessons.set(list); this.isLoading.set(false); },
+          error: () => { this.error.set('تعذّر تحميل الدروس.'); this.isLoading.set(false); }
+        });
+      }
     });
   }
 
   selectLevel(v: number): void { this.level.set(v); this.load(); }
 
   openLesson(lesson: LessonSummary): void {
+    if (lesson.isLocked) {
+      this.alert.show('هذا الكتيب متاح في الخطة المميزة. فعّل اشتراكك للوصول إلى جميع الكتيّبات.', 'Booklets');
+      this.router.navigate(['/upgrade']);
+      return;
+    }
     this.router.navigate(['/lessons', lesson.id]);
   }
 

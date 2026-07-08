@@ -35,14 +35,15 @@ export interface StudentSummary {
 }
 
 export interface CreateStudentRequest {
-  name:         string;
-  age:          number;
-  username:     string;
-  nationalId:   string;
-  imagePin1:    number;
-  imagePin2:    number | null;
-  level:        number;
-  avatarEmoji?: string;
+  name:          string;
+  age:           number;
+  username:      string;
+  nationalId:    string;
+  imagePin1:     number;
+  imagePin2:     number | null;
+  level?:        number;
+  avatarEmoji?:  string;
+  classroomId?:  string;
 }
 
 @Injectable({ providedIn: 'root' })

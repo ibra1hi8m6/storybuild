@@ -10,9 +10,11 @@ namespace Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
         public bool IsBlocked { get; set; } = false;
+        public bool IsDemo { get; set; } = false;
 
         public Parent? Parent { get; set; }
         public Teacher? Teacher { get; set; }
+        public List<Subscription> Subscriptions { get; set; } = new();
     }
 
     public enum UserRole

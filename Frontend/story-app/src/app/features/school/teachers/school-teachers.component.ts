@@ -6,6 +6,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
 import { StoryService } from '../../../services/story';
 import { AuthService } from '../../../services/auth.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { SubscriptionService, MySubscription } from '../../../services/subscription.service';
 
 interface TeacherRow {
   id:       string;
@@ -24,10 +25,19 @@ interface TeacherRow {
   templateUrl: './school-teachers.component.html',
 })
 export class SchoolTeachersComponent implements OnInit {
-  private readonly svc   = inject(StoryService);
-  private readonly auth  = inject(AuthService);
-  private readonly state = inject(AppStateService);
-  private readonly route = inject(ActivatedRoute);
+  private readonly svc    = inject(StoryService);
+  private readonly auth   = inject(AuthService);
+  private readonly state  = inject(AppStateService);
+  private readonly route  = inject(ActivatedRoute);
+  private readonly subSvc = inject(SubscriptionService);
+
+  readonly subscription = signal<MySubscription | null>(null);
+  readonly atTeacherLimit = computed(() => {
+    const s = this.subscription();
+    const max = s?.maxTeachers ?? 1;
+    const count = s?.teachersCount ?? this.teachers().length;
+    return count >= max;
+  });
 
   readonly isLoading    = signal(false);
   readonly isSaving     = signal(false);
@@ -58,6 +68,7 @@ export class SchoolTeachersComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.subSvc.getMySubscription().subscribe({ next: s => this.subscription.set(s), error: () => {} });
     if (this.route.snapshot.queryParamMap.get('openForm') === '1') {
       this.showForm.set(true);
     }
@@ -124,7 +135,7 @@ export class SchoolTeachersComponent implements OnInit {
         this.isSaving.set(false);
       },
       error: (err: any) => {
-        this.formError = err?.error?.error ?? 'تعذّر إنشاء الحساب. تحقق من البيانات.';
+        this.formError = err?.error?.message ?? err?.error?.error ?? 'تعذّر إنشاء الحساب. تحقق من البيانات.';
         this.isSaving.set(false);
       }
     });

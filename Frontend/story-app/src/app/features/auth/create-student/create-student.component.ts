@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
 import { AppStateService } from '../../../services/app-state-service';
+import { StoryService } from '../../../services/story';
 
 @Component({
   selector: 'app-create-student',
@@ -16,13 +17,18 @@ export class CreateStudentComponent implements OnInit {
   private readonly state  = inject(AppStateService);
   private readonly router = inject(Router);
   private readonly route  = inject(ActivatedRoute);
+  private readonly svc    = inject(StoryService);
 
   returnTo = 'parent';
 
-  readonly isLoading  = signal(false);
-  readonly error      = signal<string | null>(null);
-  readonly done       = signal(false);
-  readonly isTeacher  = computed(() => ['teacher', 'school'].includes(this.state.userRole()));
+  readonly isLoading           = signal(false);
+  readonly error               = signal<string | null>(null);
+  readonly done                = signal(false);
+  readonly isTeacher           = computed(() => ['teacher', 'school'].includes(this.state.userRole()));
+  readonly isSchoolTeacher     = computed(() => !!this.state.currentUser()?.schoolManagerId);
+  readonly classrooms          = signal<any[]>([]);
+  readonly selectedClassroomId = signal<string | null>(null);
+  readonly classroomsLoading   = signal(false);
 
   form = {
     name:        '',
@@ -68,6 +74,22 @@ export class CreateStudentComponent implements OnInit {
     } else {
       this.returnTo = 'parent';
     }
+
+    if (this.isSchoolTeacher()) {
+      this.classroomsLoading.set(true);
+      this.svc.getMyTeacherClassrooms().subscribe({
+        next: (list) => {
+          this.classrooms.set(list);
+          if (list.length === 1) {
+            this.selectedClassroomId.set(list[0].id);
+          }
+          this.classroomsLoading.set(false);
+        },
+        error: () => {
+          this.classroomsLoading.set(false);
+        }
+      });
+    }
   }
 
   goBack(): void {
@@ -99,6 +121,11 @@ export class CreateStudentComponent implements OnInit {
     if (!this.form.username.trim())   { this.error.set('يرجى إدخال اسم المستخدم.'); return; }
     if (pins.length < 1)              { this.error.set('يرجى اختيار رمز صورة واحد على الأقل.'); return; }
 
+    if (this.isSchoolTeacher()) {
+      if (this.classrooms().length === 0) { this.error.set('لم يتم تعيينك في أي فصل دراسي. تواصل مع مدير المدرسة.'); return; }
+      if (!this.selectedClassroomId())    { this.error.set('يرجى اختيار الفصل الدراسي.'); return; }
+    }
+
     this.isLoading.set(true);
     this.error.set(null);
 
@@ -109,8 +136,9 @@ export class CreateStudentComponent implements OnInit {
       nationalId:  this.form.nationalId.trim(),
       imagePin1:   pins[0],
       imagePin2:   pins[1] ?? null,
-      level:       this.form.level,
+      level:       this.isSchoolTeacher() ? undefined : this.form.level,
       avatarEmoji: this.form.avatarEmoji || undefined,
+      classroomId: this.selectedClassroomId() ?? undefined,
     }).subscribe({
       next: () => {
         this.isLoading.set(false);
@@ -119,7 +147,7 @@ export class CreateStudentComponent implements OnInit {
       },
       error: err => {
         this.isLoading.set(false);
-        this.error.set(err?.error?.error ?? 'فشل إنشاء الحساب. حاول مرة أخرى.');
+        this.error.set(err?.error?.error ?? err?.error?.message ?? 'فشل إنشاء الحساب. حاول مرة أخرى.');
       }
     });
   }

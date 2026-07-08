@@ -23,10 +23,18 @@
         <h2 style="font-size:24px;font-weight:900;margin:0">🏫 الفصول الدراسية</h2>
         <p style="color:var(--text-muted);font-size:13px;margin-top:4px">{{ classrooms().length }} فصل</p>
       </div>
-      <button (click)="toggleForm()"
-              style="background:var(--primary-gradient);color:#fff;border:none;padding:11px 22px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
-        {{ showForm() ? '✕ إلغاء' : '+ إضافة فصل' }}
-      </button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button (click)="toggleForm()" [disabled]="atClassLimit() && !showForm()"
+                style="background:var(--primary-gradient);color:#fff;border:none;padding:11px 22px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer"
+                [style.opacity]="atClassLimit() && !showForm() ? '0.5' : '1'">
+          {{ showForm() ? '✕ إلغاء' : '+ إضافة فصل' }}
+        </button>
+        @if (atClassLimit() && !showForm()) {
+          <p style="font-size:11px;color:#EF4444;font-weight:700;margin:0">
+            وصلت إلى الحد الأقصى للفصول في خطتك الحالية.
+          </p>
+        }
+      </div>
     </div>
 
     <!-- Create form -->

@@ -28,4 +28,5 @@ export interface UploadedStoryDto {
   pageCount:     number;
   createdAt:     string;
   pages:         StoryPage[];
+  isLocked?:     boolean;
 }

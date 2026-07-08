@@ -50,6 +50,10 @@ export class StoryContentService {
     return this.http.get<UploadedStoryDto[]>(`${this.api}/api/story/uploaded`);
   }
 
+  getUploadedStoriesCatalog(): Observable<UploadedStoryDto[]> {
+    return this.http.get<UploadedStoryDto[]>(`${this.api}/api/story/uploaded/catalog`);
+  }
+
   getUploadedStory(id: string): Observable<UploadedStoryDto> {
     return this.http.get<UploadedStoryDto>(`${this.api}/api/story/uploaded/${id}`);
   }

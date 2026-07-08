@@ -16,9 +16,14 @@
   <section class="create-card">
     <h2>إنشاء مجموعة جديدة</h2>
     <div class="create-row">
-      <input [(ngModel)]="newGroupName" class="form-control" placeholder="اسم المجموعة" />
-      <button class="btn-primary" (click)="createGroup()">إنشاء</button>
+      <input [(ngModel)]="newGroupName" class="form-control" placeholder="اسم المجموعة" [disabled]="atGroupLimit()" />
+      <button class="btn-primary" (click)="createGroup()" [disabled]="atGroupLimit()">إنشاء</button>
     </div>
+    @if (atGroupLimit()) {
+      <p style="font-size:12px;color:#EF4444;font-weight:700;margin-top:8px;margin-bottom:0">
+        وصلت إلى الحد الأقصى للمجموعات في خطتك الحالية.
+      </p>
+    }
   </section>
 
   <!-- Groups list -->

@@ -33,10 +33,18 @@
         <h2 style="font-size:24px;font-weight:900;margin:0">👩‍🏫 المعلمون</h2>
         <p style="color:var(--text-muted);font-size:13px;margin-top:4px">{{ teachers().length }} معلم في المدرسة</p>
       </div>
-      <button (click)="toggleForm()"
-              style="background:var(--primary-gradient);color:#fff;border:none;padding:11px 22px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer">
-        {{ showForm() ? '✕ إلغاء' : '+ إضافة معلم' }}
-      </button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button (click)="toggleForm()" [disabled]="atTeacherLimit() && !showForm()"
+                style="background:var(--primary-gradient);color:#fff;border:none;padding:11px 22px;border-radius:99px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer"
+                [style.opacity]="atTeacherLimit() && !showForm() ? '0.5' : '1'">
+          {{ showForm() ? '✕ إلغاء' : '+ إضافة معلم' }}
+        </button>
+        @if (atTeacherLimit() && !showForm()) {
+          <p style="font-size:11px;color:#EF4444;font-weight:700;margin:0">
+            وصلت إلى الحد الأقصى للمعلمين في خطتك الحالية.
+          </p>
+        }
+      </div>
     </div>
 
     <!-- Create teacher form -->

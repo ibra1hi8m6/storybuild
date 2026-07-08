@@ -62,7 +62,7 @@ export class RecordModeComponent implements OnDestroy {
         () => this.state.set('result')
       );
     } catch (e: any) {
-      this.error.set('حدث خطأ أثناء التقييم. حاول مرة أخرى.');
+      this.error.set(e?.message || 'حدث خطأ أثناء التقييم. حاول مرة أخرى.');
       this.state.set('idle');
     }
   }

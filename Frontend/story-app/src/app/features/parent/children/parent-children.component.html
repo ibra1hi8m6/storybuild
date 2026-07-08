@@ -3,15 +3,34 @@
 
   <div class="container" style="max-width:960px;padding-top:88px;padding-bottom:60px">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;gap:12px;flex-wrap:wrap">
       <div>
         <h2 style="font-size:24px;font-weight:900;margin:0">👨‍👧‍👦 أطفالي</h2>
         <p style="color:var(--text-muted);font-size:13px;margin-top:4px">إدارة حسابات أطفالك ومتابعة تقدّمهم</p>
+        @if (subscription()) {
+          <p style="font-size:12px;font-weight:700;margin-top:2px"
+             [style.color]="atChildLimit() ? '#EF4444' : 'var(--text-muted)'">
+            {{ subscription()!.childrenCount ?? children().length }} / {{ subscription()!.maxChildren ?? 1 }} أطفال — {{ planLabel() }}
+          </p>
+        }
       </div>
-      <a routerLink="/auth/create-student" [queryParams]="{ returnTo: 'parent' }"
-         style="background:var(--primary-gradient);color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-size:13px;font-weight:800">
-        + إضافة طفل جديد
-      </a>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <a routerLink="/auth/create-student" [queryParams]="{ returnTo: 'parent' }"
+           [class.disabled-link]="atChildLimit()"
+           [attr.aria-disabled]="atChildLimit()"
+           (click)="atChildLimit() ? $event.preventDefault() : null"
+           style="background:var(--primary-gradient);color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-size:13px;font-weight:800;transition:.2s"
+           [style.opacity]="atChildLimit() ? '0.5' : '1'"
+           [style.pointer-events]="atChildLimit() ? 'none' : 'auto'">
+          + إضافة طفل جديد
+        </a>
+        @if (atChildLimit()) {
+          <p style="font-size:11px;color:#EF4444;font-weight:700;margin:0;text-align:left">
+            وصلت إلى الحد الأقصى للأطفال في خطتك الحالية.
+            <a routerLink="/upgrade" style="color:#EF4444;text-decoration:underline">تفعيل كود الاشتراك</a>
+          </p>
+        }
+      </div>
     </div>
 
     <!-- Parent nav tabs -->
@@ -100,6 +119,26 @@
         }
       </div>
     }
+
+    <!-- Activation code section -->
+    <div style="background:var(--bg-card);border-radius:20px;padding:24px;margin-top:28px;border:1.5px solid rgba(244,120,138,.08)">
+      <div style="font-size:15px;font-weight:900;margin-bottom:16px">🔑 تفعيل كود الاشتراك</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input type="text" placeholder="أدخل كود التفعيل" [(ngModel)]="activationCode"
+               style="flex:1;min-width:160px;border:1.5px solid rgba(244,120,138,.2);border-radius:12px;padding:10px 14px;font-family:'Cairo',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px;background:var(--bg-base);color:var(--text-main)"
+               [disabled]="isActivating()" />
+        <button (click)="activateCode()" [disabled]="isActivating() || !activationCode().trim()"
+                style="background:var(--primary-gradient);color:#fff;border:none;border-radius:12px;padding:10px 22px;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer">
+          {{ isActivating() ? 'جارٍ...' : '🔑 تفعيل' }}
+        </button>
+      </div>
+      @if (activationSuccess()) {
+        <div style="margin-top:10px;font-size:13px;font-weight:700;color:#16A34A">✅ {{ activationSuccess() }}</div>
+      }
+      @if (activationError()) {
+        <div style="margin-top:10px;font-size:13px;font-weight:700;color:#DC2626">⚠️ {{ activationError() }}</div>
+      }
+    </div>
 
   </div>
 </div>

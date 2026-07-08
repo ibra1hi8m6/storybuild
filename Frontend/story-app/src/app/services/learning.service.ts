@@ -23,6 +23,11 @@ export class LearningService {
     return this.http.get<LetterContentDto[]>(`${this.api}/api/learning/letters`);
   }
 
+  getLettersCatalog(studentId?: string): Observable<LetterContentDto[]> {
+    const params = studentId ? `?studentId=${studentId}` : '';
+    return this.http.get<LetterContentDto[]>(`${this.api}/api/learning/letters/catalog${params}`);
+  }
+
   getAllLetters(): Observable<LetterContentDto[]> {
     return this.http.get<LetterContentDto[]>(`${this.api}/api/learning/letters/all`);
   }
@@ -51,6 +56,11 @@ export class LearningService {
 
   getWords(): Observable<WordContentDto[]> {
     return this.http.get<WordContentDto[]>(`${this.api}/api/learning/words`);
+  }
+
+  getWordsCatalog(studentId?: string): Observable<WordContentDto[]> {
+    const params = studentId ? `?studentId=${studentId}` : '';
+    return this.http.get<WordContentDto[]>(`${this.api}/api/learning/words/catalog${params}`);
   }
 
   getAllWords(): Observable<WordContentDto[]> {
@@ -85,6 +95,11 @@ export class LearningService {
 
   getSentences(): Observable<SentenceContentDto[]> {
     return this.http.get<SentenceContentDto[]>(`${this.api}/api/learning/sentences`);
+  }
+
+  getSentencesCatalog(studentId?: string): Observable<SentenceContentDto[]> {
+    const params = studentId ? `?studentId=${studentId}` : '';
+    return this.http.get<SentenceContentDto[]>(`${this.api}/api/learning/sentences/catalog${params}`);
   }
 
   getAllSentences(): Observable<SentenceContentDto[]> {

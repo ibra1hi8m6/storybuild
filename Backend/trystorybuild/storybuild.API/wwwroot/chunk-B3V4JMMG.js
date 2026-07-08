@@ -1,0 +1,1 @@
+import{O as i,ha as n}from"./chunk-ZOHADGS7.js";var s=class t{alert=n(null);show(r,e){this.alert.set({message:r,feature:e})}dismiss(){this.alert.set(null)}static \u0275fac=function(e){return new(e||t)};static \u0275prov=i({token:t,factory:t.\u0275fac,providedIn:"root"})};export{s as a};

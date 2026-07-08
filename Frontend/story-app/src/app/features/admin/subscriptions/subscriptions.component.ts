@@ -1,32 +1,99 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AdminSidebarComponent } from '../shared/admin-sidebar.component';
-import { StoryService } from '../../../services/story';
+import { SubscriptionService, ActivationCodeDto, PLAN_LABELS } from '../../../services/subscription.service';
 
 @Component({
   selector: 'app-subscriptions',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, AdminSidebarComponent],
+  imports: [CommonModule, FormsModule, AdminSidebarComponent],
   templateUrl: './subscriptions.component.html',
   styleUrl: './subscriptions.component.css'
 })
 export class SubscriptionsComponent implements OnInit {
-  private readonly service = inject(StoryService);
+  private readonly subSvc = inject(SubscriptionService);
 
-  readonly isLoading = signal(false);
-  readonly data      = signal<any>(null);
+  readonly isLoading   = signal(false);
+  readonly codes       = signal<ActivationCodeDto[]>([]);
+  readonly showCreate  = signal(false);
+  readonly isSaving    = signal(false);
+  readonly saveError   = signal<string | null>(null);
+  readonly saveSuccess = signal<string | null>(null);
+  readonly copiedId    = signal<string | null>(null);
 
-  readonly plans = [
-    { name: 'مجاني',    price: 0,   color: '#86EFAC', features: ['3 قصص/شهر', 'مستوى واحد', 'بدون تقارير'] },
-    { name: 'عائلي',    price: 29,  color: '#F4788A', features: ['قصص غير محدودة', 'كل المستويات', 'تقارير متقدمة'] },
-    { name: 'مدرسي',    price: 199, color: '#C4B5FD', features: ['عدد لا محدود من الطلاب', 'لوحة معلمين', 'تحليلات كاملة'] },
+  readonly form = {
+    plan:         'ParentPremium',
+    durationDays: 365,
+    maxUses:      1,
+    code:         '',
+    notes:        '',
+    expiresAt:    '',
+  };
+
+  readonly availablePlans = [
+    { value: 'ParentPremium',  label: 'مميز (أولياء الأمور) — 3 أطفال' },
+    { value: 'TeacherPremium', label: 'معلم مميز — 30 طالب / 5 مجموعات' },
+    { value: 'SchoolPremium',  label: 'مدرسة مميزة — 20 فصل / 10 معلمين' },
   ];
 
-  ngOnInit(): void {
+  readonly planLabels = PLAN_LABELS;
+
+  ngOnInit(): void { this.loadCodes(); }
+
+  loadCodes(): void {
     this.isLoading.set(true);
-    this.service.getSubscriptionStats().subscribe({
-      next:  d => { this.data.set(d); this.isLoading.set(false); },
+    this.subSvc.getAdminCodes().subscribe({
+      next:  c => { this.codes.set(c); this.isLoading.set(false); },
       error: () => this.isLoading.set(false)
     });
+  }
+
+  createCode(): void {
+    this.isSaving.set(true);
+    this.saveError.set(null);
+    this.saveSuccess.set(null);
+    this.subSvc.createCode({
+      plan:         this.form.plan,
+      durationDays: this.form.durationDays,
+      maxUses:      this.form.maxUses,
+      code:         this.form.code.trim() || null,
+      notes:        this.form.notes.trim() || null,
+      expiresAt:    this.form.expiresAt || null,
+    }).subscribe({
+      next: c => {
+        this.isSaving.set(false);
+        this.saveSuccess.set(`تم إنشاء الكود: ${c.code}`);
+        this.form.code = '';
+        this.form.notes = '';
+        this.form.expiresAt = '';
+        this.loadCodes();
+      },
+      error: (err: Error) => {
+        this.isSaving.set(false);
+        this.saveError.set(err.message);
+      }
+    });
+  }
+
+  deactivate(id: string): void {
+    this.subSvc.deactivateCode(id).subscribe({
+      next: () => this.codes.update(list => list.map(c => c.id === id ? { ...c, isActive: false } : c)),
+      error: () => {}
+    });
+  }
+
+  copyCode(code: string, id: string): void {
+    navigator.clipboard.writeText(code).then(() => {
+      this.copiedId.set(id);
+      setTimeout(() => this.copiedId.set(null), 2000);
+    });
+  }
+
+  planLabel(plan: string): string { return PLAN_LABELS[plan] ?? plan; }
+
+  formatDate(d: string | null): string {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('ar-SA');
   }
 }

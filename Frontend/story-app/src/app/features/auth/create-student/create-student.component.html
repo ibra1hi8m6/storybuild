@@ -38,7 +38,7 @@
           <div class="form-text">أحرف إنجليزية وأرقام فقط</div>
         </div>
 
-        @if (isTeacher()) {
+        @if (isTeacher() && !isSchoolTeacher()) {
           <div class="mb-3">
             <label class="form-label fw-bold small mb-1">مستوى الطالب</label>
             <select class="form-control" [(ngModel)]="form.level" name="level">
@@ -47,6 +47,31 @@
               <option [value]="3">المستوى الثالث</option>
             </select>
           </div>
+        }
+
+        @if (isSchoolTeacher()) {
+          @if (classroomsLoading()) {
+            <div class="mb-3 text-muted small">جارٍ تحميل الفصول...</div>
+          } @else if (classrooms().length === 0) {
+            <div class="alert alert-warning py-2 small mb-3">
+              لم يتم تعيينك في أي فصل دراسي بعد. تواصل مع مدير المدرسة.
+            </div>
+          } @else {
+            <div class="mb-3">
+              <label class="form-label fw-bold small mb-1">الفصل الدراسي</label>
+              <select class="form-control"
+                      [ngModel]="selectedClassroomId()"
+                      (ngModelChange)="selectedClassroomId.set($event)"
+                      name="classroomId">
+                @if (classrooms().length > 1) {
+                  <option [value]="null">-- اختر الفصل --</option>
+                }
+                @for (cls of classrooms(); track cls.id) {
+                  <option [value]="cls.id">{{ cls.name }} (مستوى {{ cls.level }})</option>
+                }
+              </select>
+            </div>
+          }
         }
 
         <div class="mb-4">
@@ -77,7 +102,8 @@
           <div class="alert alert-danger py-2 small">{{ error() }}</div>
         }
 
-        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2" [disabled]="isLoading()">
+        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2"
+                [disabled]="isLoading() || (isSchoolTeacher() && (classrooms().length === 0 || !selectedClassroomId()))">
           {{ isLoading() ? 'جارٍ الحفظ...' : '💾 حفظ الحساب' }}
         </button>
       </form>
